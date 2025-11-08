@@ -21,6 +21,8 @@ void main() {
     float brightness = mix(0.3, 1.0, timeOfDay);
     finalColor = finalColor * brightness;
     
+    finalColor = mix(finalColor, finalColor * skyColor, 0.1);
+    
     FragColor = vec4(finalColor, texColor.a);
 }
 
