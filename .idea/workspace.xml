@@ -42,9 +42,16 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "F:/ComRD/Projects/MyCraft/stories",
     "settings.editor.selected.configurable": "MavenSettings"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="F:\ComRD\Projects\MyCraft\stories" />
+      <recent name="F:\ComRD\Projects\MyCraft" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="Launcher" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.ksptool.mycraft.Launcher" />
@@ -79,7 +86,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1762627010009</updated>
-      <workItem from="1762627010885" duration="10807000" />
+      <workItem from="1762627010885" duration="12939000" />
     </task>
     <servers />
   </component>

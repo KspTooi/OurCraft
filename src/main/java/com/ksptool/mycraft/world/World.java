@@ -1,7 +1,9 @@
 package com.ksptool.mycraft.world;
 
 import com.ksptool.mycraft.entity.BoundingBox;
+import com.ksptool.mycraft.entity.Camera;
 import com.ksptool.mycraft.entity.Entity;
+import com.ksptool.mycraft.rendering.Frustum;
 import com.ksptool.mycraft.rendering.ShaderProgram;
 import com.ksptool.mycraft.rendering.TextureManager;
 import org.joml.Vector3f;
@@ -26,6 +28,7 @@ public class World {
     private final Map<Long, ChunkGenerationTask> pendingChunks;
     private WorldGenerator worldGenerator;
     private ChunkMeshGenerator chunkMeshGenerator;
+    private Frustum frustum;
     
     private final List<Entity> entities;
 
@@ -38,6 +41,7 @@ public class World {
         this.generationQueue = new LinkedBlockingQueue<>();
         this.pendingChunks = new ConcurrentHashMap<>();
         this.entities = new ArrayList<>();
+        this.frustum = new Frustum();
     }
 
     public void init() {
@@ -182,10 +186,12 @@ public class World {
         return (int) (64 + noiseValue * 20);
     }
 
-    public void render(ShaderProgram shader) {
+    public void render(ShaderProgram shader, Camera camera) {
         if (chunks.isEmpty()) {
             return;
         }
+        
+        frustum.update(camera.getProjectionMatrix(), camera.getViewMatrix());
         
         GL13.glActiveTexture(GL13.GL_TEXTURE0);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
@@ -193,7 +199,9 @@ public class World {
 
         for (Chunk chunk : chunks.values()) {
             if (chunk != null && chunk.hasMesh()) {
-                chunk.render();
+                if (frustum.intersects(chunk.getBoundingBox())) {
+                    chunk.render();
+                }
             }
         }
     }

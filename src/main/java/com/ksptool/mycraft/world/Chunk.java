@@ -1,5 +1,6 @@
 package com.ksptool.mycraft.world;
 
+import com.ksptool.mycraft.entity.BoundingBox;
 import com.ksptool.mycraft.rendering.Mesh;
 import com.ksptool.mycraft.rendering.TextureManager;
 
@@ -24,6 +25,7 @@ public class Chunk {
     private Mesh mesh;
     private boolean needsUpdate;
     private ChunkState state;
+    private BoundingBox boundingBox;
     private static final int AIR_STATE_ID = 0;
 
     public Chunk(int chunkX, int chunkZ) {
@@ -32,6 +34,12 @@ public class Chunk {
         this.blockStates = new int[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
         this.needsUpdate = true;
         this.state = ChunkState.NEW;
+        
+        float minX = chunkX * CHUNK_SIZE;
+        float maxX = minX + CHUNK_SIZE;
+        float minZ = chunkZ * CHUNK_SIZE;
+        float maxZ = minZ + CHUNK_SIZE;
+        this.boundingBox = new BoundingBox(minX, 0, minZ, maxX, CHUNK_HEIGHT, maxZ);
     }
 
     public void setBlockState(int x, int y, int z, int stateId) {
@@ -346,6 +354,10 @@ public class Chunk {
 
     public void setState(ChunkState state) {
         this.state = state;
+    }
+
+    public BoundingBox getBoundingBox() {
+        return boundingBox;
     }
 }
 

@@ -9,10 +9,12 @@ public class Camera {
     private float yaw;
     private float roll;
     private Matrix4f viewMatrix;
+    private Matrix4f projectionMatrix;
 
     public Camera() {
         this.position = new Vector3f();
         this.viewMatrix = new Matrix4f();
+        this.projectionMatrix = new Matrix4f();
     }
 
     public void update() {
@@ -78,6 +80,14 @@ public class Camera {
 
     public Matrix4f getViewMatrix() {
         return viewMatrix;
+    }
+
+    public Matrix4f getProjectionMatrix() {
+        return projectionMatrix;
+    }
+
+    public void setProjectionMatrix(Matrix4f projectionMatrix) {
+        this.projectionMatrix.set(projectionMatrix);
     }
 }
 

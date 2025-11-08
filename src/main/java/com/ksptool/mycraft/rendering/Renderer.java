@@ -41,6 +41,7 @@ public class Renderer {
         shader.bind();
         
         player.getCamera().update();
+        player.getCamera().setProjectionMatrix(projectionMatrix);
         org.joml.Matrix4f viewMatrix = player.getCamera().getViewMatrix();
         
         shader.setUniform("projection", projectionMatrix);
@@ -56,7 +57,7 @@ public class Renderer {
             System.err.println("ERROR: Projection matrix is not initialized!");
         }
 
-        world.render(shader);
+        world.render(shader, player.getCamera());
         
         int error = GL11.glGetError();
         if (error != 0) {
