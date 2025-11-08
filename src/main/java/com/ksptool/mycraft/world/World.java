@@ -31,6 +31,9 @@ public class World {
     private Frustum frustum;
     
     private final List<Entity> entities;
+    
+    private int lastPlayerChunkX = Integer.MIN_VALUE;
+    private int lastPlayerChunkZ = Integer.MIN_VALUE;
 
     private static long getChunkKey(int x, int z) {
         return ((long)x << 32) | (z & 0xFFFFFFFFL);
@@ -85,46 +88,51 @@ public class World {
         int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
         int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
 
-        for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
-            for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
-                long key = getChunkKey(x, z);
-                if (!chunks.containsKey(key) && !pendingChunks.containsKey(key)) {
-                    ChunkGenerationTask task = new ChunkGenerationTask(x, z);
-                    pendingChunks.put(key, task);
-                    generationQueue.offer(task);
+        if (playerChunkX != lastPlayerChunkX || playerChunkZ != lastPlayerChunkZ) {
+            for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
+                for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
+                    long key = getChunkKey(x, z);
+                    if (!chunks.containsKey(key) && !pendingChunks.containsKey(key)) {
+                        ChunkGenerationTask task = new ChunkGenerationTask(x, z);
+                        pendingChunks.put(key, task);
+                        generationQueue.offer(task);
+                    }
                 }
             }
-        }
 
-        for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
-            for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
-                long key = getChunkKey(x, z);
-                ChunkGenerationTask task = pendingChunks.get(key);
-                if (task != null && task.isDataGenerated() && task.getChunk() != null) {
-                    Chunk chunk = task.getChunk();
-                    if (!chunks.containsKey(key)) {
-                        chunks.put(key, chunk);
-                    }
-                    if (chunk.getState() == Chunk.ChunkState.DATA_LOADED) {
-                        chunkMeshGenerator.submitMeshTask(chunk);
-                        chunk.setState(Chunk.ChunkState.AWAITING_MESH);
+            for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
+                for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
+                    long key = getChunkKey(x, z);
+                    ChunkGenerationTask task = pendingChunks.get(key);
+                    if (task != null && task.isDataGenerated() && task.getChunk() != null) {
+                        Chunk chunk = task.getChunk();
+                        if (!chunks.containsKey(key)) {
+                            chunks.put(key, chunk);
+                        }
+                        if (chunk.getState() == Chunk.ChunkState.DATA_LOADED) {
+                            chunkMeshGenerator.submitMeshTask(chunk);
+                            chunk.setState(Chunk.ChunkState.AWAITING_MESH);
+                        }
                     }
                 }
             }
+            
+            chunks.entrySet().removeIf(entry -> {
+                long key = entry.getKey();
+                int chunkX = (int)(key >> 32);
+                int chunkZ = (int)(key & 0xFFFFFFFFL);
+                int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
+                if (distance > RENDER_DISTANCE + 5) {
+                    entry.getValue().cleanup();
+                    pendingChunks.remove(key);
+                    return true;
+                }
+                return false;
+            });
+
+            lastPlayerChunkX = playerChunkX;
+            lastPlayerChunkZ = playerChunkZ;
         }
-        
-        chunks.entrySet().removeIf(entry -> {
-            long key = entry.getKey();
-            int chunkX = (int)(key >> 32);
-            int chunkZ = (int)(key & 0xFFFFFFFFL);
-            int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
-            if (distance > RENDER_DISTANCE + 5) {
-                entry.getValue().cleanup();
-                pendingChunks.remove(key);
-                return true;
-            }
-            return false;
-        });
     }
 
     public void generateChunkData(Chunk chunk) {
@@ -197,10 +205,20 @@ public class World {
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
         shader.setUniform("textureSampler", 0);
 
-        for (Chunk chunk : chunks.values()) {
-            if (chunk != null && chunk.hasMesh()) {
-                if (frustum.intersects(chunk.getBoundingBox())) {
-                    chunk.render();
+        Vector3f playerPosition = camera.getPosition();
+        int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
+
+        for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
+            for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
+                
+                long key = getChunkKey(x, z);
+                Chunk chunk = chunks.get(key);
+
+                if (chunk != null && chunk.hasMesh()) {
+                    if (frustum.intersects(chunk.getBoundingBox())) {
+                        chunk.render();
+                    }
                 }
             }
         }
