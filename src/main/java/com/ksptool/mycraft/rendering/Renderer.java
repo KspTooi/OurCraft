@@ -12,11 +12,13 @@ public class Renderer {
     private ShaderProgram shader;
     private Matrix4f projectionMatrix;
     private HotbarRenderer hotbarRenderer;
+    private double startTimeSec;
 
     public void init() {
         shader = new ShaderProgram("/shaders/vertex.glsl", "/shaders/fragment.glsl");
         projectionMatrix = new Matrix4f();
         hotbarRenderer = new HotbarRenderer();
+        startTimeSec = org.lwjgl.glfw.GLFW.glfwGetTime();
     }
 
     public void resize(int width, int height) {
@@ -55,12 +57,23 @@ public class Renderer {
         shader.setUniform("model", new org.joml.Matrix4f().identity());
         shader.setUniform("textureSampler", 0);
         shader.setUniform("u_TintColor", new org.joml.Vector3f(0.2f, 1.0f, 0.1f));
+        float elapsed = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() - startTimeSec);
+        shader.setUniform("u_Time", elapsed);
+        shader.setUniform("u_TextureSize", 16.0f);
+        TextureManager tm = TextureManager.getInstance();
+        shader.setUniform("u_AtlasSize", (float)tm.getAtlasWidth());
         
         if (projectionMatrix.m00() == 0) {
             System.err.println("ERROR: Projection matrix is not initialized!");
         }
 
-        world.render(shader, player.getCamera());
+        GL11.glDisable(GL11.GL_BLEND);
+        world.renderOpaque(shader, player.getCamera());
+        
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        world.renderTransparent(shader, player.getCamera());
+        GL11.glDisable(GL11.GL_BLEND);
         
         int error = GL11.glGetError();
         if (error != 0) {

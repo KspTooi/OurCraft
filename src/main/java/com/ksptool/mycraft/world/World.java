@@ -10,6 +10,11 @@ import com.ksptool.mycraft.world.save.ChunkSerializer;
 import com.ksptool.mycraft.world.save.EntitySerializer;
 import com.ksptool.mycraft.world.save.RegionFile;
 import com.ksptool.mycraft.world.save.RegionManager;
+import com.ksptool.mycraft.world.gen.GenerationContext;
+import com.ksptool.mycraft.world.gen.TerrainPipeline;
+import com.ksptool.mycraft.world.gen.layers.BaseDensityLayer;
+import com.ksptool.mycraft.world.gen.layers.SurfaceLayer;
+import com.ksptool.mycraft.world.gen.layers.WaterLayer;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
@@ -52,6 +57,10 @@ public class World {
     private RegionManager regionManager;
     private RegionManager entityRegionManager;
     private String saveName;
+    
+    private NoiseGenerator noiseGenerator;
+    private TerrainPipeline terrainPipeline;
+    private GenerationContext generationContext;
 
     private static long getChunkKey(int x, int z) {
         return ((long)x << 32) | (z & 0xFFFFFFFFL);
@@ -89,6 +98,14 @@ public class World {
     public void init() {
         loadTexture();
         chunkMeshGenerator = new ChunkMeshGenerator(this);
+        
+        noiseGenerator = new NoiseGenerator(seed);
+        terrainPipeline = new TerrainPipeline();
+        terrainPipeline.addLayer(new BaseDensityLayer());
+        terrainPipeline.addLayer(new WaterLayer());
+        terrainPipeline.addLayer(new SurfaceLayer());
+        generationContext = new GenerationContext(noiseGenerator, this, seed);
+        
         worldGenerator = new WorldGenerator(this, generationQueue);
         worldGenerator.start();
     }
@@ -116,6 +133,8 @@ public class World {
         org.lwjgl.opengl.GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, atlasWidth, atlasHeight, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, org.lwjgl.opengl.GL12.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, org.lwjgl.opengl.GL12.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE);
     }
 
     public void update(Vector3f playerPosition) {
@@ -194,41 +213,10 @@ public class World {
     }
 
     public void generateChunkData(Chunk chunk) {
-        int chunkX = chunk.getChunkX();
-        int chunkZ = chunk.getChunkZ();
-        GlobalPalette palette = GlobalPalette.getInstance();
-        Registry registry = Registry.getInstance();
-
-        Block grassBlock = registry.get("mycraft:grass_block");
-        Block dirtBlock = registry.get("mycraft:dirt");
-        Block stoneBlock = registry.get("mycraft:stone");
-        
-        int grassStateId = palette.getStateId(grassBlock.getDefaultState());
-        int dirtStateId = palette.getStateId(dirtBlock.getDefaultState());
-        int stoneStateId = palette.getStateId(stoneBlock.getDefaultState());
-
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                int worldX = chunkX * Chunk.CHUNK_SIZE + x;
-                int worldZ = chunkZ * Chunk.CHUNK_SIZE + z;
-
-                double noiseValue = NoiseGenerator.noise(worldX * 0.05 + seed, worldZ * 0.05 + seed);
-                int height = (int) (64 + noiseValue * 20);
-
-                for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
-                    if (y > height) {
-                        continue;
-                    }
-                    if (y == height) {
-                        chunk.setBlockState(x, y, z, grassStateId);
-                    } else if (y > height - 3) {
-                        chunk.setBlockState(x, y, z, dirtStateId);
-                    } else {
-                        chunk.setBlockState(x, y, z, stoneStateId);
-                    }
-                }
-            }
+        if (terrainPipeline == null || generationContext == null) {
+            return;
         }
+        terrainPipeline.execute(chunk, generationContext);
     }
     
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
@@ -253,11 +241,19 @@ public class World {
     }
     
     public int getHeightAt(int worldX, int worldZ) {
-        double noiseValue = NoiseGenerator.noise(worldX * 0.05 + seed, worldZ * 0.05 + seed);
+        if (noiseGenerator == null) {
+            return 64;
+        }
+        double noiseValue = noiseGenerator.noise(worldX * 0.05 + seed, worldZ * 0.05 + seed);
         return (int) (64 + noiseValue * 20);
     }
 
     public void render(ShaderProgram shader, Camera camera) {
+        renderOpaque(shader, camera);
+        renderTransparent(shader, camera);
+    }
+
+    public void renderOpaque(ShaderProgram shader, Camera camera) {
         if (chunks.isEmpty()) {
             return;
         }
@@ -281,6 +277,36 @@ public class World {
                 if (chunk != null && chunk.hasMesh()) {
                     if (frustum.intersects(chunk.getBoundingBox())) {
                         chunk.render();
+                    }
+                }
+            }
+        }
+    }
+
+    public void renderTransparent(ShaderProgram shader, Camera camera) {
+        if (chunks.isEmpty()) {
+            return;
+        }
+        
+        frustum.update(camera.getProjectionMatrix(), camera.getViewMatrix());
+        
+        GL13.glActiveTexture(GL13.GL_TEXTURE0);
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
+        shader.setUniform("textureSampler", 0);
+
+        Vector3f playerPosition = camera.getPosition();
+        int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
+
+        for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
+            for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
+                
+                long key = getChunkKey(x, z);
+                Chunk chunk = chunks.get(key);
+
+                if (chunk != null && chunk.hasTransparentMesh()) {
+                    if (frustum.intersects(chunk.getBoundingBox())) {
+                        chunk.renderTransparent();
                     }
                 }
             }

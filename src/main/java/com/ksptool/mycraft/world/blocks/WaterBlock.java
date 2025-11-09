@@ -16,7 +16,7 @@ public class WaterBlock extends Block {
 
     @Override
     public String getTextureName(int face, BlockState state) {
-        return "water_still";
+        return "water_still.png";
     }
 
     @Override

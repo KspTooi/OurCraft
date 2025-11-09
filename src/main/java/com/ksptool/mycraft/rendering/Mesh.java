@@ -22,20 +22,25 @@ public class Mesh {
     private int vertexCount;
 
     public Mesh(float[] vertices, float[] texCoords, int[] indices) {
-        this(vertices, texCoords, new float[texCoords.length / 2], indices);
+        this(vertices, texCoords, new float[texCoords.length / 2], new float[texCoords.length], indices);
     }
 
     public Mesh(float[] vertices, float[] texCoords, float[] tints, int[] indices) {
+        this(vertices, texCoords, tints, new float[texCoords.length], indices);
+    }
+
+    public Mesh(float[] vertices, float[] texCoords, float[] tints, float[] animationData, int[] indices) {
         vertexCount = indices.length;
 
         vaoId = glGenVertexArrays();
         glBindVertexArray(vaoId);
 
         vboId = glGenBuffers();
-        FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(vertices.length + texCoords.length + tints.length);
+        FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(vertices.length + texCoords.length + tints.length + animationData.length);
         verticesBuffer.put(vertices);
         verticesBuffer.put(texCoords);
         verticesBuffer.put(tints);
+        verticesBuffer.put(animationData);
         verticesBuffer.flip();
 
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
@@ -50,6 +55,9 @@ public class Mesh {
         
         glVertexAttribPointer(2, 1, GL_FLOAT, false, 0, (vertices.length + texCoords.length) * 4);
         glEnableVertexAttribArray(2);
+
+        glVertexAttribPointer(3, 3, GL_FLOAT, false, 0, (vertices.length + texCoords.length + tints.length) * 4);
+        glEnableVertexAttribArray(3);
 
         eboId = glGenBuffers();
         IntBuffer indicesBuffer = MemoryUtil.memAllocInt(indices.length);
@@ -79,6 +87,7 @@ public class Mesh {
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
+        glDisableVertexAttribArray(3);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDeleteBuffers(vboId);

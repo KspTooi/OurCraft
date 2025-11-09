@@ -1,12 +1,17 @@
 package com.ksptool.mycraft.rendering;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImage;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,58 +19,83 @@ import java.util.Map;
  * 纹理图集管理类，负责加载和管理方块纹理图集
  */
 public class TextureManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(TextureManager.class);
+
+    //纹理大小
     private static final int TEXTURE_SIZE = 16;
-    private static final int ATLAS_SIZE = 1024;
-    private static TextureManager instance;
     
-    private Map<String, UVCoords> textureUVMap;
+    //纹理图集大小
+    private static final int ATLAS_SIZE = 2048;
+
+    //纹理图集管理器实例
+    private static TextureManager instance;
+
+    //纹理UV坐标映射表
+    private final Map<String, UVCoords> textureUVMap;
     private int[] atlasPixels;
     private int atlasWidth;
     private int atlasHeight;
-    
+
     public static class UVCoords {
         public float u0, v0, u1, v1;
-        
+        public boolean isAnimated;
+        public int frameCount;
+        public float frameTime;
+
         public UVCoords(float u0, float v0, float u1, float v1) {
             this.u0 = u0;
             this.v0 = v0;
             this.u1 = u1;
             this.v1 = v1;
+            this.isAnimated = false;
+            this.frameCount = 1;
+            this.frameTime = 1.0f;
+        }
+
+        public UVCoords(float u0, float v0, float u1, float v1, boolean isAnimated, int frameCount, float frameTime) {
+            this.u0 = u0;
+            this.v0 = v0;
+            this.u1 = u1;
+            this.v1 = v1;
+            this.isAnimated = isAnimated;
+            this.frameCount = frameCount;
+            this.frameTime = frameTime;
         }
     }
-    
+
     private TextureManager() {
         textureUVMap = new HashMap<>();
     }
-    
+
     public static TextureManager getInstance() {
         if (instance == null) {
             instance = new TextureManager();
         }
         return instance;
     }
-    
+
     public void loadAtlas() {
         String texturePath = "/textures/blocks/";
         java.util.List<String> textureFiles = new java.util.ArrayList<>();
-        
+
         try {
             java.io.File dir = new java.io.File("src/main/resources" + texturePath);
             if (dir.exists() && dir.isDirectory()) {
-                java.io.File[] files = dir.listFiles((d, name) -> name.endsWith(".png") && !name.endsWith(".mcmeta"));
+                java.io.File[] files = dir.listFiles((d, name) -> name.endsWith(".png"));
                 if (files != null) {
                     for (java.io.File file : files) {
                         textureFiles.add(file.getName());
                     }
                 }
             }
-            
+
             if (textureFiles.isEmpty()) {
                 java.net.URL resourceUrl = getClass().getResource(texturePath);
                 if (resourceUrl != null && "file".equals(resourceUrl.getProtocol())) {
                     java.io.File resourceDir = new java.io.File(resourceUrl.getPath());
                     if (resourceDir.exists() && resourceDir.isDirectory()) {
-                        java.io.File[] resourceFiles = resourceDir.listFiles((d, name) -> name.endsWith(".png") && !name.endsWith(".mcmeta"));
+                        java.io.File[] resourceFiles = resourceDir.listFiles((d, name) -> name.endsWith(".png"));
                         if (resourceFiles != null) {
                             for (java.io.File file : resourceFiles) {
                                 textureFiles.add(file.getName());
@@ -75,9 +105,9 @@ public class TextureManager {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error listing texture directory: " + e.getMessage());
+            logger.error("Error listing texture directory: {}", e.getMessage(), e);
         }
-        
+
         if (textureFiles.isEmpty()) {
             textureFiles.add("dirt.png");
             textureFiles.add("grass_top.png");
@@ -86,133 +116,227 @@ public class TextureManager {
             textureFiles.add("log_oak.png");
             textureFiles.add("leaves_oak.png");
         }
-        
+
         java.util.Collections.sort(textureFiles);
         
-        int tilesPerRow = ATLAS_SIZE / TEXTURE_SIZE;
-        int currentX = 0;
-        int currentY = 0;
-        
+        logger.info("Found " + textureFiles.size() + " texture files to load");
+        for (String name : textureFiles) {
+            logger.info("  - " + name);
+        }
+
         atlasPixels = new int[ATLAS_SIZE * ATLAS_SIZE];
         atlasWidth = ATLAS_SIZE;
         atlasHeight = ATLAS_SIZE;
-        
+
+        int currentX = 0;
+        int currentY = 0;
+        int rowHeight = 0;
+
         for (String textureName : textureFiles) {
-            if (textureName.endsWith(".mcmeta")) {
+            logger.info("Attempting to load texture: " + textureName);
+            TextureLoadResult loadResult = loadTexture(texturePath + textureName);
+            if (loadResult == null || loadResult.pixels == null) {
+                logger.warn("Failed to load texture: " + textureName);
                 continue;
             }
-            
-            if (currentX >= tilesPerRow) {
+
+            int texWidth = loadResult.imgWidth;
+            int texHeight = loadResult.imgHeight;
+
+            if (currentX + texWidth > ATLAS_SIZE) {
+                currentY += rowHeight;
                 currentX = 0;
-                currentY++;
-                if (currentY * TEXTURE_SIZE >= ATLAS_SIZE) {
-                    System.err.println("Atlas too small! Cannot fit all textures.");
+                rowHeight = 0;
+
+                if (currentY + texHeight > ATLAS_SIZE) {
+                    logger.error("Atlas too small! Cannot fit texture: {}", textureName);
                     break;
                 }
             }
-            
-            int[] texturePixels = loadTexture(texturePath + textureName);
-            if (texturePixels == null) {
-                continue;
-            }
-            
-            int atlasX = currentX * TEXTURE_SIZE;
-            int atlasY = currentY * TEXTURE_SIZE;
-            
-            for (int y = 0; y < TEXTURE_SIZE; y++) {
-                for (int x = 0; x < TEXTURE_SIZE; x++) {
-                    int srcIndex = y * TEXTURE_SIZE + x;
+
+            int atlasX = currentX;
+            int atlasY = currentY;
+
+            for (int y = 0; y < texHeight; y++) {
+                for (int x = 0; x < texWidth; x++) {
+                    int srcIndex = y * texWidth + x;
                     int dstIndex = (atlasY + y) * ATLAS_SIZE + (atlasX + x);
-                    if (dstIndex < atlasPixels.length && srcIndex < texturePixels.length) {
-                        atlasPixels[dstIndex] = texturePixels[srcIndex];
+                    if (dstIndex < atlasPixels.length && srcIndex < loadResult.pixels.length) {
+                        atlasPixels[dstIndex] = loadResult.pixels[srcIndex];
                     }
                 }
             }
-            
-            float u0 = (float) atlasX / ATLAS_SIZE;
-            float v0 = (float) atlasY / ATLAS_SIZE;
-            float u1 = (float) (atlasX + TEXTURE_SIZE) / ATLAS_SIZE;
-            float v1 = (float) (atlasY + TEXTURE_SIZE) / ATLAS_SIZE;
-            
-            textureUVMap.put(textureName, new UVCoords(u0, v0, u1, v1));
-            
-            currentX++;
+
+            float epsilon = 0.5f / ATLAS_SIZE;
+            float u0 = (float) atlasX / ATLAS_SIZE + epsilon;
+            float v0 = (float) atlasY / ATLAS_SIZE + epsilon;
+            float u1 = (float) (atlasX + texWidth) / ATLAS_SIZE - epsilon;
+            float v1 = (float) (atlasY + TEXTURE_SIZE) / ATLAS_SIZE - epsilon;
+
+            logger.info("Loaded texture: " + textureName);
+            textureUVMap.put(textureName, new UVCoords(u0, v0, u1, v1, loadResult.isAnimated, loadResult.frameCount, loadResult.frameTime));
+
+            currentX += texWidth;
+            rowHeight = Math.max(rowHeight, texHeight);
         }
     }
-    
-    private int[] loadTexture(String path) {
+
+    private static class TextureLoadResult {
+        int[] pixels;
+        boolean isAnimated;
+        int frameCount;
+        float frameTime;
+        int imgWidth;
+        int imgHeight;
+
+        TextureLoadResult(int[] pixels, boolean isAnimated, int frameCount, float frameTime, int imgWidth, int imgHeight) {
+            this.pixels = pixels;
+            this.isAnimated = isAnimated;
+            this.frameCount = frameCount;
+            this.frameTime = frameTime;
+            this.imgWidth = imgWidth;
+            this.imgHeight = imgHeight;
+        }
+    }
+
+    private static class AnimationMetadata {
+        AnimationData animation;
+
+        static class AnimationData {
+            Integer frametime;
+            Boolean interpolate;
+            Integer[] frames;
+        }
+    }
+
+    private TextureLoadResult loadTexture(String path) {
         try {
+            logger.debug("Loading texture from path: " + path);
             InputStream inputStream = getClass().getResourceAsStream(path);
             if (inputStream == null) {
                 java.io.File file = new java.io.File("src/main/resources" + path);
+                logger.debug("Resource stream is null, trying file: " + file.getAbsolutePath() + " (exists: " + file.exists() + ")");
                 if (file.exists()) {
                     inputStream = new java.io.FileInputStream(file);
                 } else {
-                    System.err.println("Texture not found: " + path);
+                    logger.error("Texture not found: " + path + " (tried: " + file.getAbsolutePath() + ")");
                     return null;
                 }
             }
-            
+
             byte[] bytes = inputStream.readAllBytes();
             inputStream.close();
-            
+
             ByteBuffer imageBuffer = BufferUtils.createByteBuffer(bytes.length);
             imageBuffer.put(bytes);
             imageBuffer.flip();
-            
+
             IntBuffer width = BufferUtils.createIntBuffer(1);
             IntBuffer height = BufferUtils.createIntBuffer(1);
             IntBuffer channels = BufferUtils.createIntBuffer(1);
-            
+
             ByteBuffer image = STBImage.stbi_load_from_memory(imageBuffer, width, height, channels, 4);
             if (image == null) {
-                System.err.println("Failed to load texture: " + path + " - " + STBImage.stbi_failure_reason());
+                logger.error("Failed to load texture: " + path + " - " + STBImage.stbi_failure_reason());
                 return null;
             }
-            
+
             int imgWidth = width.get(0);
             int imgHeight = height.get(0);
+            logger.debug("Loaded texture from " + path + ": " + imgWidth + "x" + imgHeight);
+
+            boolean isAnimatedTexture = false;
+            int frameCount = 1;
+            float frameTime = 1.0f / 20.0f;
+
+            String mcmetaPath = path + ".mcmeta";
+            AnimationMetadata animMeta = loadAnimationMetadata(mcmetaPath);
             
-            int[] pixels = new int[TEXTURE_SIZE * TEXTURE_SIZE];
+            if (animMeta != null && animMeta.animation != null) {
+                isAnimatedTexture = true;
+                if (animMeta.animation.frames != null && animMeta.animation.frames.length > 0) {
+                    frameCount = animMeta.animation.frames.length;
+                } else {
+                    frameCount = imgHeight > TEXTURE_SIZE && imgWidth == TEXTURE_SIZE && imgHeight % TEXTURE_SIZE == 0 
+                        ? (imgHeight / TEXTURE_SIZE) : 1;
+                }
+                if (animMeta.animation.frametime != null) {
+                    frameTime = animMeta.animation.frametime / 20.0f;
+                } else {
+                    frameTime = 1.0f / 20.0f;
+                }
+                logger.debug("Found animation metadata for " + path + ": frames=" + frameCount + ", frametime=" + frameTime);
+            } else if (imgHeight > TEXTURE_SIZE && imgWidth == TEXTURE_SIZE && imgHeight % TEXTURE_SIZE == 0) {
+                isAnimatedTexture = true;
+                frameCount = imgHeight / TEXTURE_SIZE;
+                frameTime = 1.0f / 20.0f;
+                logger.debug("Detected animated texture by size: " + path + ", frames=" + frameCount);
+            }
+
+            int totalPixels = imgWidth * imgHeight;
+            int[] pixels = new int[totalPixels];
             int imageSize = imgWidth * imgHeight * 4;
-            
-            for (int y = 0; y < TEXTURE_SIZE; y++) {
-                for (int x = 0; x < TEXTURE_SIZE; x++) {
-                    int srcX = (x * imgWidth) / TEXTURE_SIZE;
-                    int srcY = (y * imgHeight) / TEXTURE_SIZE;
-                    int srcIndex = (srcY * imgWidth + srcX) * 4;
-                    
+
+            for (int y = 0; y < imgHeight; y++) {
+                for (int x = 0; x < imgWidth; x++) {
+                    int srcIndex = (y * imgWidth + x) * 4;
+                    int dstIndex = y * imgWidth + x;
+
                     if (srcIndex + 3 < imageSize && srcIndex + 3 < image.capacity()) {
                         int r = image.get(srcIndex) & 0xFF;
                         int g = image.get(srcIndex + 1) & 0xFF;
                         int b = image.get(srcIndex + 2) & 0xFF;
                         int a = image.get(srcIndex + 3) & 0xFF;
-                        
-                        pixels[y * TEXTURE_SIZE + x] = (a << 24) | (r << 16) | (g << 8) | b;
+
+                        pixels[dstIndex] = (a << 24) | (r << 16) | (g << 8) | b;
                     }
                 }
             }
-            
+
             STBImage.stbi_image_free(image);
-            return pixels;
+            return new TextureLoadResult(pixels, isAnimatedTexture, frameCount, frameTime, imgWidth, imgHeight);
         } catch (IOException e) {
-            System.err.println("Error loading texture: " + path + " - " + e.getMessage());
+            logger.error("Error loading texture: {} - {}", path, e.getMessage());
             return null;
         }
     }
-    
+
+    private AnimationMetadata loadAnimationMetadata(String mcmetaPath) {
+        try {
+            InputStream inputStream = getClass().getResourceAsStream(mcmetaPath);
+            if (inputStream == null) {
+                java.io.File file = new java.io.File("src/main/resources" + mcmetaPath);
+                if (file.exists()) {
+                    inputStream = new java.io.FileInputStream(file);
+                } else {
+                    return null;
+                }
+            }
+
+            String jsonContent = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            inputStream.close();
+
+            JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
+            Gson gson = new Gson();
+            return gson.fromJson(jsonObject, AnimationMetadata.class);
+        } catch (Exception e) {
+            logger.debug("Could not load animation metadata from {}: {}", mcmetaPath, e.getMessage());
+            return null;
+        }
+    }
+
     public UVCoords getUVCoords(String textureName) {
         return textureUVMap.get(textureName);
     }
-    
+
     public int[] getAtlasPixels() {
         return atlasPixels;
     }
-    
+
     public int getAtlasWidth() {
         return atlasWidth;
     }
-    
+
     public int getAtlasHeight() {
         return atlasHeight;
     }
