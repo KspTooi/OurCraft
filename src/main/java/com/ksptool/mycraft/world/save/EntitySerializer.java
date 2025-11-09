@@ -3,7 +3,6 @@ package com.ksptool.mycraft.world.save;
 import com.ksptool.mycraft.entity.Entity;
 import com.ksptool.mycraft.entity.LivingEntity;
 import com.ksptool.mycraft.entity.Player;
-import com.ksptool.mycraft.item.Inventory;
 import com.ksptool.mycraft.item.Item;
 import com.ksptool.mycraft.item.ItemStack;
 
@@ -104,7 +103,7 @@ public class EntitySerializer {
     private static Map<String, Object> flattenEntity(Entity entity) {
         Map<String, Object> kvMap = new HashMap<>();
         
-        kvMap.put("core:uuid", entity.getUniqueId().toString());
+        kvMap.put("core:uuid", entity.getUniqueId());
         kvMap.put("core:pos.x", entity.getPosition().x);
         kvMap.put("core:pos.y", entity.getPosition().y);
         kvMap.put("core:pos.z", entity.getPosition().z);
@@ -114,13 +113,8 @@ public class EntitySerializer {
         kvMap.put("core:onGround", entity.isOnGround());
         kvMap.put("core:isDead", entity.isDead());
         
-        if (entity instanceof LivingEntity) {
-            LivingEntity living = (LivingEntity) entity;
-            kvMap.put("living:health", living.getHealth());
-            kvMap.put("living:eyeHeight", living.getEyeHeight());
-        }
-        
         if (entity instanceof Player) {
+            kvMap.put("core:type", "mycraft:player");
             Player player = (Player) entity;
             kvMap.put("player:yaw", player.getCamera().getYaw());
             kvMap.put("player:pitch", player.getCamera().getPitch());
@@ -133,6 +127,13 @@ public class EntitySerializer {
                     kvMap.put("player:hotbar." + i + ".count", hotbar[i].getCount());
                 }
             }
+        } else if (entity instanceof LivingEntity) {
+            kvMap.put("core:type", "mycraft:living");
+            LivingEntity living = (LivingEntity) entity;
+            kvMap.put("living:health", living.getHealth());
+            kvMap.put("living:eyeHeight", living.getEyeHeight());
+        } else {
+            kvMap.put("core:type", "mycraft:entity");
         }
         
         return kvMap;
@@ -154,10 +155,13 @@ public class EntitySerializer {
         }
         
         String entityType = (String) kvMap.get("core:type");
+        if (entityType == null) {
+            return null;
+        }
         
         Entity entity;
-        if ("player".equals(entityType) || kvMap.containsKey("player:yaw")) {
-            entity = new Player(world);
+        if ("mycraft:player".equals(entityType)) {
+            entity = new Player(world, uuid);
         } else {
             return null;
         }
@@ -293,7 +297,7 @@ public class EntitySerializer {
             } else if (type == TYPE_UUID) {
                 long mostSig = dis.readLong();
                 long leastSig = dis.readLong();
-                value = new UUID(mostSig, leastSig).toString();
+                value = new UUID(mostSig, leastSig);
             } else if (type == TYPE_INT) {
                 value = dis.readInt();
             } else if (type == TYPE_BOOLEAN) {

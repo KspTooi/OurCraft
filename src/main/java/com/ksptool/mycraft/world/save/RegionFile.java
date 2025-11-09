@@ -1,7 +1,5 @@
 package com.ksptool.mycraft.world.save;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -128,11 +126,20 @@ public class RegionFile {
         int oldOffset = raf.readInt();
         int oldLength = raf.readInt();
         
-        long fileLength = raf.length();
-        int newOffset = (int) fileLength;
-        
-        raf.seek(newOffset);
-        raf.write(data);
+        int newOffset;
+        if (oldOffset > 0 && oldLength > 0 && data.length <= oldLength) {
+            newOffset = oldOffset;
+            raf.seek(newOffset);
+            raf.write(data);
+            if (data.length < oldLength) {
+                raf.write(new byte[oldLength - data.length]);
+            }
+        } else {
+            long fileLength = raf.length();
+            newOffset = (int) fileLength;
+            raf.seek(newOffset);
+            raf.write(data);
+        }
         
         raf.seek(indexOffset);
         raf.writeInt(newOffset);

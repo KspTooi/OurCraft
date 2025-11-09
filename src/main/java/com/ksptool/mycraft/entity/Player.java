@@ -239,7 +239,7 @@ public class Player extends LivingEntity {
         if (playerIndex.hotbar != null) {
             com.ksptool.mycraft.item.ItemStack[] hotbar = inventory.getHotbar();
             for (int i = 0; i < Math.min(playerIndex.hotbar.size(), hotbar.length); i++) {
-                com.ksptool.mycraft.world.save.PlayerIndex.ItemStackData stackData = playerIndex.hotbar.get(i);
+                com.ksptool.mycraft.world.save.ItemStackData stackData = playerIndex.hotbar.get(i);
                 if (stackData != null && stackData.itemId != null && stackData.count != null) {
                     com.ksptool.mycraft.item.Item item = com.ksptool.mycraft.item.Item.getItem(stackData.itemId);
                     if (item != null) {

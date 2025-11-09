@@ -172,13 +172,13 @@ public class SaveManager {
         com.ksptool.mycraft.item.ItemStack[] hotbar = player.getInventory().getHotbar();
         for (com.ksptool.mycraft.item.ItemStack stack : hotbar) {
             if (stack != null && !stack.isEmpty()) {
-                PlayerIndex.ItemStackData stackData = new PlayerIndex.ItemStackData(
+                ItemStackData stackData = new ItemStackData(
                     stack.getItem() != null ? stack.getItem().getId() : null,
                     stack.getCount()
                 );
                 playerIndex.hotbar.add(stackData);
             } else {
-                playerIndex.hotbar.add(new PlayerIndex.ItemStackData(null, null));
+                playerIndex.hotbar.add(new ItemStackData(null, null));
             }
         }
 
@@ -301,7 +301,16 @@ public class SaveManager {
         
         for (int i = 0; i < palette.getStateCount(); i++) {
             com.ksptool.mycraft.world.BlockState state = palette.getState(i);
-            paletteIndex.states.add(state.toString());
+            com.ksptool.mycraft.world.save.BlockStateData stateData = new com.ksptool.mycraft.world.save.BlockStateData();
+            stateData.blockId = state.getBlock().getNamespacedID();
+            
+            java.util.Map<String, String> propsMap = new java.util.HashMap<>();
+            for (java.util.Map.Entry<com.ksptool.mycraft.world.properties.BlockProperty<?>, Comparable<?>> entry : state.getProperties().entrySet()) {
+                propsMap.put(entry.getKey().getName(), entry.getValue().toString());
+            }
+            stateData.properties = propsMap;
+            
+            paletteIndex.states.add(stateData);
         }
         
         try (FileWriter writer = new FileWriter(paletteFile)) {
@@ -336,12 +345,37 @@ public class SaveManager {
             palette.clear();
             com.ksptool.mycraft.world.Registry registry = com.ksptool.mycraft.world.Registry.getInstance();
             
-            for (String stateStr : paletteIndex.states) {
-                com.ksptool.mycraft.world.BlockState state = parseBlockState(stateStr, registry);
-                if (state != null) {
-                    palette.getStateList().add(state);
-                    palette.getStateToId().put(state, palette.getStateList().size() - 1);
+            for (com.ksptool.mycraft.world.save.BlockStateData stateData : paletteIndex.states) {
+                if (stateData == null || StringUtils.isBlank(stateData.blockId)) {
+                    continue;
                 }
+                
+                com.ksptool.mycraft.world.Block block = registry.get(stateData.blockId);
+                if (block == null) {
+                    continue;
+                }
+                
+                java.util.Map<com.ksptool.mycraft.world.properties.BlockProperty<?>, Comparable<?>> properties = new java.util.HashMap<>();
+                if (stateData.properties != null) {
+                    for (java.util.Map.Entry<String, String> propEntry : stateData.properties.entrySet()) {
+                        String propName = propEntry.getKey();
+                        String propValueStr = propEntry.getValue();
+                        
+                        for (com.ksptool.mycraft.world.properties.BlockProperty<?> property : block.getProperties()) {
+                            if (property.getName().equals(propName)) {
+                                Comparable<?> value = parsePropertyValue(property, propValueStr);
+                                if (value != null) {
+                                    properties.put(property, value);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                com.ksptool.mycraft.world.BlockState state = new com.ksptool.mycraft.world.BlockState(block, properties);
+                palette.getStateList().add(state);
+                palette.getStateToId().put(state, palette.getStateList().size() - 1);
             }
             
             palette.setBaked(true);
@@ -351,50 +385,6 @@ public class SaveManager {
             logger.error("加载调色板失败: {}", saveName, e);
             return false;
         }
-    }
-    
-    private com.ksptool.mycraft.world.BlockState parseBlockState(String stateStr, com.ksptool.mycraft.world.Registry registry) {
-        if (stateStr == null || stateStr.isEmpty()) {
-            return null;
-        }
-        
-        int bracketIndex = stateStr.indexOf('[');
-        String blockId = bracketIndex > 0 ? stateStr.substring(0, bracketIndex) : stateStr;
-        
-        com.ksptool.mycraft.world.Block block = registry.get(blockId);
-        if (block == null) {
-            return null;
-        }
-        
-        if (bracketIndex < 0) {
-            return block.getDefaultState();
-        }
-        
-        String propsStr = stateStr.substring(bracketIndex + 1, stateStr.length() - 1);
-        java.util.Map<com.ksptool.mycraft.world.properties.BlockProperty<?>, Comparable<?>> properties = new java.util.HashMap<>();
-        
-        if (!propsStr.isEmpty()) {
-            String[] props = propsStr.split(",");
-            for (String prop : props) {
-                String[] parts = prop.split("=");
-                if (parts.length == 2) {
-                    String propName = parts[0].trim();
-                    String propValue = parts[1].trim();
-                    
-                    for (com.ksptool.mycraft.world.properties.BlockProperty<?> property : block.getProperties()) {
-                        if (property.getName().equals(propName)) {
-                            Comparable<?> value = parsePropertyValue(property, propValue);
-                            if (value != null) {
-                                properties.put(property, value);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        
-        return new com.ksptool.mycraft.world.BlockState(block, properties);
     }
     
     @SuppressWarnings("unchecked")

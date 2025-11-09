@@ -21,18 +21,5 @@ public class PlayerIndex {
     public PlayerIndex() {
         this.hotbar = new ArrayList<>();
     }
-
-    public static class ItemStackData {
-        public Integer itemId;
-        public Integer count;
-
-        public ItemStackData() {
-        }
-
-        public ItemStackData(Integer itemId, Integer count) {
-            this.itemId = itemId;
-            this.count = count;
-        }
-    }
 }
 
