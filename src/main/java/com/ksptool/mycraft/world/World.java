@@ -13,6 +13,7 @@ import com.ksptool.mycraft.world.save.RegionManager;
 import com.ksptool.mycraft.world.gen.GenerationContext;
 import com.ksptool.mycraft.world.gen.TerrainPipeline;
 import com.ksptool.mycraft.world.gen.layers.BaseDensityLayer;
+import com.ksptool.mycraft.world.gen.layers.FeatureLayer;
 import com.ksptool.mycraft.world.gen.layers.SurfaceLayer;
 import com.ksptool.mycraft.world.gen.layers.WaterLayer;
 import org.apache.commons.lang3.StringUtils;
@@ -104,6 +105,7 @@ public class World {
         terrainPipeline.addLayer(new BaseDensityLayer());
         terrainPipeline.addLayer(new WaterLayer());
         terrainPipeline.addLayer(new SurfaceLayer());
+        terrainPipeline.addLayer(new FeatureLayer());
         generationContext = new GenerationContext(noiseGenerator, this, seed);
         
         worldGenerator = new WorldGenerator(this, generationQueue);

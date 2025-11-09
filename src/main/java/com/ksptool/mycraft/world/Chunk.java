@@ -513,6 +513,10 @@ public class Chunk {
             return 1.0f;
         }
         
+        if (block.getNamespacedID().equals("mycraft:leaves")) {
+            return 1.0f;
+        }
+        
         return 0.0f;
     }
 
