@@ -4,16 +4,38 @@ package com.ksptool.mycraft.world;
  * 网格生成结果数据类，封装区块网格生成的结果数据
  */
 public class MeshGenerationResult {
+
+    //顶点坐标
     public final float[] vertices;
+
+    //纹理坐标
     public final float[] texCoords;
+
+    //颜色
     public final float[] tints;
+
+    //动画数据
     public final float[] animationData;
+
+    //索引
     public final int[] indices;
+
+    //透明顶点坐标
     public final float[] transparentVertices;
+    
+    //透明纹理坐标
     public final float[] transparentTexCoords;
+
+    //透明颜色
     public final float[] transparentTints;
+
+    //透明动画数据
     public final float[] transparentAnimationData;
+
+    //透明索引
     public final int[] transparentIndices;
+
+    //区块
     public final Chunk chunk;
 
     public MeshGenerationResult(Chunk chunk, float[] vertices, float[] texCoords, float[] tints, int[] indices) {

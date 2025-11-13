@@ -7,9 +7,17 @@ import org.joml.Vector4f;
  * HUD渲染器类，负责渲染游戏内HUD元素（十字准星、生命条、饱食度条、快捷栏）
  */
 public class HudRenderer {
+
+    //GUI渲染器
     private GuiRenderer guiRenderer;
+
+    //文本渲染器
     private TextRenderer textRenderer;
+
+    //快捷栏渲染器
     private HotbarRenderer hotbarRenderer;
+
+    //物品渲染器
     private ItemRenderer itemRenderer;
 
     public HudRenderer(GuiRenderer guiRenderer, int textureAtlasId) {

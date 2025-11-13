@@ -5,6 +5,7 @@ import com.ksptool.mycraft.rendering.GuiRenderer;
 import com.ksptool.mycraft.rendering.TextRenderer;
 import com.ksptool.mycraft.world.WorldManager;
 import com.ksptool.mycraft.world.save.SaveManager;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector2d;
 import org.joml.Vector4f;
@@ -24,9 +25,18 @@ public class SingleplayerMenu {
     private static final float SAVE_LIST_Y = 100.0f;
     private static final float SAVE_LIST_HEIGHT = 200.0f;
 
+    //世界列表滚动偏移
     private int scrollOffset = 0;
+
+    //存档列表滚动偏移
     private int saveScrollOffset = 0;
+
+    //选中的存档
+    @Getter
     private String selectedSave = null;
+
+    //选中的世界
+    @Getter
     private String selectedWorld = null;
 
     public void render(GuiRenderer guiRenderer, int windowWidth, int windowHeight, Input input) {
@@ -76,11 +86,11 @@ public class SingleplayerMenu {
             String saveName = saves.get(i);
             boolean isSelected = saveName.equals(selectedSave);
             
-            org.joml.Vector4f bgColor;
+            Vector4f bgColor;
             if (isSelected) {
-                bgColor = new org.joml.Vector4f(0.3f, 0.5f, 0.8f, 0.9f);
+                bgColor = new Vector4f(0.3f, 0.5f, 0.8f, 0.9f);
             } else {
-                bgColor = new org.joml.Vector4f(0.2f, 0.2f, 0.2f, 0.9f);
+                bgColor = new Vector4f(0.2f, 0.2f, 0.2f, 0.9f);
             }
 
             guiRenderer.renderQuad(listX, currentY, 600.0f, WORLD_ITEM_HEIGHT, bgColor, windowWidth, windowHeight);
@@ -116,11 +126,11 @@ public class SingleplayerMenu {
             String worldName = worlds.get(i);
             boolean isSelected = worldName.equals(selectedWorld);
             
-            org.joml.Vector4f bgColor;
+            Vector4f bgColor;
             if (isSelected) {
-                bgColor = new org.joml.Vector4f(0.3f, 0.5f, 0.8f, 0.9f);
+                bgColor = new Vector4f(0.3f, 0.5f, 0.8f, 0.9f);
             } else {
-                bgColor = new org.joml.Vector4f(0.2f, 0.2f, 0.2f, 0.9f);
+                bgColor = new Vector4f(0.2f, 0.2f, 0.2f, 0.9f);
             }
 
             guiRenderer.renderQuad(listX, currentY, 600.0f, WORLD_ITEM_HEIGHT, bgColor, windowWidth, windowHeight);
@@ -213,14 +223,6 @@ public class SingleplayerMenu {
         }
 
         return 0;
-    }
-
-    public String getSelectedSave() {
-        return selectedSave;
-    }
-
-    public String getSelectedWorld() {
-        return selectedWorld;
     }
 
     private boolean isMouseOverButton(double mouseX, double mouseY, float buttonX, float buttonY, float buttonWidth, float buttonHeight) {

@@ -6,9 +6,17 @@ import java.util.*;
  * 全局方块状态调色板类，管理所有方块状态到ID的映射
  */
 public class GlobalPalette {
+
+    //实例
     private static final GlobalPalette INSTANCE = new GlobalPalette();
+
+    //方块状态列表
     private final List<BlockState> stateList;
+
+    //方块状态到ID的映射
     private final Map<BlockState, Integer> stateToId;
+
+    //是否已烘焙
     private boolean baked = false;
 
     private GlobalPalette() {

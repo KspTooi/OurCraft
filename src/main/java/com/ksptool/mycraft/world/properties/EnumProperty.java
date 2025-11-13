@@ -1,12 +1,12 @@
 package com.ksptool.mycraft.world.properties;
 
 import java.util.Arrays;
-import java.util.Collection;
 
 /**
  * 枚举属性类，表示方块的枚举类型属性
  */
 public class EnumProperty<E extends Enum<E>> extends BlockProperty<E> {
+
     public EnumProperty(String name, Class<E> enumClass) {
         super(name, enumClass, Arrays.asList(enumClass.getEnumConstants()));
     }

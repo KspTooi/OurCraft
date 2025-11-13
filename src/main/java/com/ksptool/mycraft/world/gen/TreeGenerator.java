@@ -11,8 +11,14 @@ import com.ksptool.mycraft.world.blocks.WoodBlock;
  * 树木生成器类，负责生成树木结构
  */
 public class TreeGenerator {
+
+    //树木高度最小值
     private static final int TREE_HEIGHT_MIN = 4;
+
+    //树木高度最大值
     private static final int TREE_HEIGHT_MAX = 7;
+    
+    //树叶半径
     private static final int LEAF_RADIUS = 2;
 
     public static void place(int[][][] chunkData, int x, int y, int z, GenerationContext context) {

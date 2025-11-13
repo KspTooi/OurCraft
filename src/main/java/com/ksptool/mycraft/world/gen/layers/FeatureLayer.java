@@ -14,6 +14,7 @@ import java.util.Random;
  * 地物层，负责在世界中生成树木等结构
  */
 public class FeatureLayer implements ITerrainLayer {
+    
     private static final int AIR_STATE_ID = 0;
     private static final int SAFE_MARGIN = 3;
     private static final double TREE_DENSITY_THRESHOLD = 0.95;

@@ -2,20 +2,31 @@ package com.ksptool.mycraft.rendering;
 
 import com.ksptool.mycraft.entity.Player;
 import com.ksptool.mycraft.world.World;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 主渲染器类，负责渲染世界和玩家快捷栏
  */
+@Slf4j
 public class Renderer {
-    private static final Logger logger = LoggerFactory.getLogger(Renderer.class);
+    
+    //着色器程序
     private ShaderProgram shader;
+
+    //投影矩阵
     private Matrix4f projectionMatrix;
+
+    //快捷栏渲染器
     private HotbarRenderer hotbarRenderer;
+
+    //HUD渲染器
     private HudRenderer hudRenderer;
+
+    //开始时间
     private double startTimeSec;
 
     public void init() {
@@ -74,7 +85,7 @@ public class Renderer {
         shader.setUniform("u_AtlasSize", (float)tm.getAtlasWidth());
         
         if (projectionMatrix.m00() == 0) {
-            logger.error("ERROR: Projection matrix is not initialized!");
+            log.error("ERROR: Projection matrix is not initialized!");
         }
 
         GL11.glDisable(GL11.GL_BLEND);
@@ -92,7 +103,7 @@ public class Renderer {
         
         int error = GL11.glGetError();
         if (error != 0) {
-            logger.error("OpenGL error after rendering world: {}", error);
+            log.error("OpenGL error after rendering world: {}", error);
         }
 
         if (hudRenderer != null) {
@@ -103,7 +114,7 @@ public class Renderer {
         
         error = GL11.glGetError();
         if (error != 0) {
-            logger.error("OpenGL error after rendering HUD: {}", error);
+            log.error("OpenGL error after rendering HUD: {}", error);
         }
     }
 

@@ -8,12 +8,25 @@ import org.joml.Vector3f;
  */
 @Getter
 public class BoundingBox {
+
+    //X轴最小值
     private float minX;
+
+    //Y轴最小值
     private float minY;
+
+    //Z轴最小值
     private float minZ;
+
+    //X轴最大值
     private float maxX;
+
+    //Y轴最大值
     private float maxY;
+
+    //Z轴最大值
     private float maxZ;
+
 
     public BoundingBox(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
         this.minX = minX;
@@ -34,6 +47,10 @@ public class BoundingBox {
         this.maxZ = position.z + halfWidth;
     }
 
+    /**
+     * 根据新位置更新边界框，保持宽度和高度不变
+     * @param position 新的位置
+     */
     public void update(Vector3f position) {
         float width = maxX - minX;
         float height = maxY - minY;
@@ -47,6 +64,11 @@ public class BoundingBox {
         this.maxZ = position.z + halfWidth;
     }
 
+    /**
+     * 返回一个偏移后的新边界框
+     * @param offset 偏移量
+     * @return 偏移后的新边界框
+     */
     public BoundingBox offset(Vector3f offset) {
         return new BoundingBox(
             minX + offset.x, minY + offset.y, minZ + offset.z,
@@ -54,6 +76,11 @@ public class BoundingBox {
         );
     }
 
+    /**
+     * 检测两个边界框是否相交
+     * @param other 另一个边界框
+     * @return 如果相交返回true，否则返回false
+     */
     public boolean intersects(BoundingBox other) {
         return minX < other.maxX && maxX > other.minX &&
                minY < other.maxY && maxY > other.minY &&

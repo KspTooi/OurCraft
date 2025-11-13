@@ -16,9 +16,17 @@ import static org.lwjgl.opengl.GL30.*;
  * 网格数据管理类，封装顶点、纹理坐标、索引等渲染数据
  */
 public class Mesh {
+
+    //VAO（顶点数组对象）ID，用于存储顶点属性配置，简化渲染时的状态设置
     private int vaoId;
+
+    //VBO（顶点缓冲区对象）ID，用于在GPU内存中存储顶点数据
     private int vboId;
+
+    //EBO（元素缓冲区对象）ID，用于在GPU内存中存储索引数据
     private int eboId;
+
+    //顶点数量
     private int vertexCount;
 
     public Mesh(float[] vertices, float[] texCoords, int[] indices) {

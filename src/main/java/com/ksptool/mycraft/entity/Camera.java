@@ -10,13 +10,25 @@ import org.joml.Vector3f;
  */
 @Getter
 public class Camera {
+    
+    //相机位置
     private final Vector3f position;
+
+    //俯仰角
     private float pitch;
+
+    //偏航角
     @Setter
     private float yaw;
+
+    //翻滚角
     @Setter
     private float roll;
+
+    //视图矩阵
     private final Matrix4f viewMatrix;
+
+    //投影矩阵
     private final Matrix4f projectionMatrix;
 
     public Camera() {

@@ -10,11 +10,23 @@ import java.util.*;
  */
 @Getter
 public abstract class Block {
+
+    //方块命名空间ID
     private final String namespacedID;
+
+    //方块耐久度
     private final float durability;
+
+    //方块挖掘等级
     private final int miningLevel;
+
+    //方块属性列表
     private final List<BlockProperty<?>> properties;
+
+    //方块默认状态
     private BlockState defaultState;
+    
+    //方块所有状态
     private List<BlockState> allStates;
 
     public Block(String namespacedID, float durability, int miningLevel) {

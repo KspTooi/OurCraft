@@ -7,8 +7,6 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.freetype.FT_Bitmap;
 import org.lwjgl.util.freetype.FT_Face;
 import org.lwjgl.util.freetype.FT_GlyphSlot;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -22,26 +20,54 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 import org.lwjgl.util.freetype.FreeType;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 文字渲染器类，使用FreeType库加载字体并渲染文字
  */
+@Slf4j
 public class TextRenderer {
-    private static final Logger logger = LoggerFactory.getLogger(TextRenderer.class);
+
+    //字体大小
     private static final int FONT_SIZE = 48;
+
+    //纹理图集宽度
     private static final int ATLAS_WIDTH = 1024;
+
+    //纹理图集高度
     private static final int ATLAS_HEIGHT = 1024;
+
+    //填充
     private static final int PADDING = 2;
     
+    //FreeType库
     private long library;
+
+    //字体面
     private FT_Face face;
+
+    //字体缓冲区
     private ByteBuffer fontBuffer;
+
+    //纹理图集ID
     private int atlasTextureId;
+
+    //纹理图集宽度
     private int atlasWidth;
+
+    //纹理图集高度
     private int atlasHeight;
+
+    //字形缓存
     private Map<Integer, GlyphData> glyphCache;
     
+    //当前X坐标
     private int currentX;
+
+    //当前Y坐标
     private int currentY;
+
+    //当前行高度
     private int currentRowHeight;
     
     public static class GlyphData {
@@ -79,7 +105,7 @@ public class TextRenderer {
             PointerBuffer libraryBuffer = MemoryUtil.memAllocPointer(1);
             int error = FT_Init_FreeType(libraryBuffer);
             if (error != 0) {
-                logger.error("TextRenderer: FreeType初始化失败，错误代码: {}", error);
+                log.error("TextRenderer: FreeType初始化失败，错误代码: {}", error);
                 MemoryUtil.memFree(libraryBuffer);
                 return;
             }
@@ -87,7 +113,7 @@ public class TextRenderer {
             MemoryUtil.memFree(libraryBuffer);
             
             if (library == NULL) {
-                logger.error("TextRenderer: FreeType库初始化失败");
+                log.error("TextRenderer: FreeType库初始化失败");
                 return;
             }
             
@@ -98,7 +124,7 @@ public class TextRenderer {
                 if (file.exists()) {
                     inputStream = new java.io.FileInputStream(file);
                 } else {
-                    logger.error("TextRenderer: 字体文件未找到: {}", fontPath);
+                    log.error("TextRenderer: 字体文件未找到: {}", fontPath);
                     return;
                 }
             }
@@ -113,7 +139,7 @@ public class TextRenderer {
             PointerBuffer faceBuffer = MemoryUtil.memAllocPointer(1);
             error = FT_New_Memory_Face(library, fontBuffer, 0L, faceBuffer);
             if (error != 0) {
-                logger.error("TextRenderer: 加载字体失败，错误代码: {}", error);
+                log.error("TextRenderer: 加载字体失败，错误代码: {}", error);
                 MemoryUtil.memFree(fontBuffer);
                 fontBuffer = null;
                 MemoryUtil.memFree(faceBuffer);
@@ -124,7 +150,7 @@ public class TextRenderer {
             MemoryUtil.memFree(faceBuffer);
             
             if (faceAddress == NULL) {
-                logger.error("TextRenderer: 字体面创建失败");
+                log.error("TextRenderer: 字体面创建失败");
                 MemoryUtil.memFree(fontBuffer);
                 fontBuffer = null;
                 return;
@@ -134,13 +160,13 @@ public class TextRenderer {
             
             error = FT_Set_Pixel_Sizes(face, 0, FONT_SIZE);
             if (error != 0) {
-                logger.error("TextRenderer: 设置字体大小失败，错误代码: {}", error);
+                log.error("TextRenderer: 设置字体大小失败，错误代码: {}", error);
                 return;
             }
             
             createAtlasTexture();
         } catch (Exception e) {
-            logger.error("TextRenderer: 初始化时出错", e);
+            log.error("TextRenderer: 初始化时出错", e);
         }
     }
     
@@ -201,7 +227,7 @@ public class TextRenderer {
         }
         
         if (currentY + height + PADDING > atlasHeight) {
-            logger.warn("TextRenderer: 字体图集已满，无法添加更多字符");
+            log.warn("TextRenderer: 字体图集已满，无法添加更多字符");
             return null;
         }
         

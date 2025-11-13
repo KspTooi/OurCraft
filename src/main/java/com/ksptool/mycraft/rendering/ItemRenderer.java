@@ -3,16 +3,18 @@ package com.ksptool.mycraft.rendering;
 import com.ksptool.mycraft.item.Item;
 import com.ksptool.mycraft.world.Block;
 import com.ksptool.mycraft.world.BlockState;
-import com.ksptool.mycraft.world.GlobalPalette;
 import com.ksptool.mycraft.world.Registry;
 import org.apache.commons.lang3.StringUtils;
-import org.joml.Vector3f;
 
 /**
  * 物品渲染器类，负责渲染物品图标
  */
 public class ItemRenderer {
+
+    //GUI渲染器
     private GuiRenderer guiRenderer;
+
+    //纹理图集ID
     private int textureAtlasId;
 
     public ItemRenderer(GuiRenderer guiRenderer, int textureAtlasId) {

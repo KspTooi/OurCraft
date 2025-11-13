@@ -2,12 +2,16 @@ package com.ksptool.mycraft.rendering;
 
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL11; // 颜色 都在这里
+import org.lwjgl.opengl.GL13; // 纹理 都在这里
+import org.lwjgl.opengl.GL15; // VBO 都在这里
+import org.lwjgl.opengl.GL20; // Shader 都在这里
+import org.lwjgl.opengl.GL30; // VAO 都在这里
+import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.FloatBuffer;
 
 /**
  * GUI渲染器类，负责渲染用户界面元素（按钮、文本框等）
@@ -30,6 +34,7 @@ public class GuiRenderer {
     }
 
     public void init() {
+
         if (shader == null) {
             try {
                 shader = new ShaderProgram("/shaders/ui_vertex.glsl", "/shaders/ui_fragment.glsl");
@@ -38,33 +43,35 @@ public class GuiRenderer {
                 return;
             }
         }
-        
+
+        // 1. 创建 VAO (使用 GL30，因为 VAO 是 3.0 特性)
         vaoId = GL30.glGenVertexArrays();
-        if (vaoId == 0) {
-            logger.error("GuiRenderer: VAO创建失败");
-            return;
-        }
         GL30.glBindVertexArray(vaoId);
 
-        vboId = GL20.glGenBuffers();
-        if (vboId == 0) {
-            logger.error("GuiRenderer: VBO创建失败");
-            return;
-        }
-        
-        java.nio.FloatBuffer verticesBuffer = org.lwjgl.system.MemoryUtil.memAllocFloat(quadVertices.length);
-        verticesBuffer.put(quadVertices);
-        verticesBuffer.flip();
+        // 2. 创建 VBO (统一使用 GL15，这是 VBO 诞生的版本)
+        // 之前的代码混用了 GL20.glGenBuffers，虽然能跑但不规范
+        vboId = GL15.glGenBuffers();
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboId);
 
-        GL20.glBindBuffer(org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER, vboId);
-        GL20.glBufferData(org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER, verticesBuffer, org.lwjgl.opengl.GL15.GL_STATIC_DRAW);
-        org.lwjgl.system.MemoryUtil.memFree(verticesBuffer);
+        // 填充数据
+        FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(quadVertices.length);
+        verticesBuffer.put(quadVertices).flip();
 
+        // 3. 上传数据 (使用 GL15)
+        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, verticesBuffer, GL15.GL_STATIC_DRAW);
+        MemoryUtil.memFree(verticesBuffer);
+
+        // 4. 设置顶点属性指针 (使用 GL20，因为可编程管线属性是 2.0 特性)
+        // 这里的 GL11.GL_FLOAT 是正确的，因为数据类型定义在 1.1
         GL20.glVertexAttribPointer(0, 2, GL11.GL_FLOAT, false, 4 * 4, 0);
         GL20.glVertexAttribPointer(1, 2, GL11.GL_FLOAT, false, 4 * 4, 2 * 4);
 
+        // 解绑 VBO (习惯上解绑一下，虽然不是必须的，用 GL15)
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+
+        // 解绑 VAO (用 GL30)
         GL30.glBindVertexArray(0);
-        
+
         if (textRenderer != null) {
             textRenderer.init();
             textRenderer.setGuiRenderer(this);
@@ -114,16 +121,16 @@ public class GuiRenderer {
             logger.error("GuiRenderer: renderButton调用时渲染器未初始化");
             return;
         }
-        
+
         Vector4f backgroundColor;
         if (hovered) {
             backgroundColor = new Vector4f(0.6f, 0.6f, 0.6f, 0.9f);
         } else {
             backgroundColor = new Vector4f(0.4f, 0.4f, 0.4f, 0.9f);
         }
-        
+
         renderQuad(x, y, width, height, backgroundColor, windowWidth, windowHeight);
-        
+
         Vector4f borderColor = new Vector4f(0.0f, 0.0f, 0.0f, 1.0f);
         float borderWidth = 2.0f;
         renderQuad(x, y, width, borderWidth, borderColor, windowWidth, windowHeight);
@@ -150,7 +157,7 @@ public class GuiRenderer {
                 return;
             }
         }
-        
+
         if (textureId == 0) {
             logger.error("GuiRenderer: 无效的纹理ID");
             return;

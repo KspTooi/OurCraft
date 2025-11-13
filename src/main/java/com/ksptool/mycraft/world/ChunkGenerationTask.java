@@ -4,9 +4,17 @@ package com.ksptool.mycraft.world;
  * 区块生成任务类，封装区块生成任务的状态信息
  */
 public class ChunkGenerationTask {
+
+    //区块X坐标
     private final int chunkX;
+    
+    //区块Z坐标
     private final int chunkZ;
+
+    //区块
     private Chunk chunk;
+    
+    //数据是否生成
     private boolean dataGenerated;
 
     public ChunkGenerationTask(int chunkX, int chunkZ) {

@@ -3,8 +3,8 @@ package com.ksptool.mycraft.rendering;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -14,12 +14,19 @@ import java.nio.charset.StandardCharsets;
 /**
  * 着色器程序管理类，负责加载、编译和链接GLSL着色器程序
  */
+@Slf4j
 public class ShaderProgram {
-    private static final Logger logger = LoggerFactory.getLogger(ShaderProgram.class);
+
+    //程序ID
     private int programId;
+
+    //顶点着色器ID
     private int vertexShaderId;
+
+    //片段着色器ID
     private int fragmentShaderId;
 
+    //加载着色器
     public ShaderProgram(String vertexShaderPath, String fragmentShaderPath) {
         vertexShaderId = loadShader(vertexShaderPath, GL20.GL_VERTEX_SHADER);
         fragmentShaderId = loadShader(fragmentShaderPath, GL20.GL_FRAGMENT_SHADER);
@@ -30,7 +37,7 @@ public class ShaderProgram {
 
         if (GL20.glGetProgrami(programId, GL20.GL_LINK_STATUS) == 0) {
             String error = GL20.glGetProgramInfoLog(programId);
-            logger.error("Shader linking error: {}", error);
+            log.error("Shader linking error: {}", error);
             throw new RuntimeException("Error linking Shader code: " + error);
         }
 
@@ -91,7 +98,7 @@ public class ShaderProgram {
     public void setUniform(String name, int value) {
         int location = GL20.glGetUniformLocation(programId, name);
         if (location == -1) {
-            logger.warn("Uniform '{}' not found in shader!", name);
+            log.warn("Uniform '{}' not found in shader!", name);
             return;
         }
         GL20.glUniform1i(location, value);
@@ -100,7 +107,7 @@ public class ShaderProgram {
     public void setUniform(String name, float value) {
         int location = GL20.glGetUniformLocation(programId, name);
         if (location == -1) {
-            logger.warn("Uniform '{}' not found in shader!", name);
+            log.warn("Uniform '{}' not found in shader!", name);
             return;
         }
         GL20.glUniform1f(location, value);
@@ -109,7 +116,7 @@ public class ShaderProgram {
     public void setUniform(String name, Matrix4f value) {
         int location = GL20.glGetUniformLocation(programId, name);
         if (location == -1) {
-            logger.warn("Uniform '{}' not found in shader!", name);
+            log.warn("Uniform '{}' not found in shader!", name);
             return;
         }
         float[] matrixArray = new float[16];
@@ -120,7 +127,7 @@ public class ShaderProgram {
     public void setUniform(String name, org.joml.Vector3f value) {
         int location = GL20.glGetUniformLocation(programId, name);
         if (location == -1) {
-            logger.warn("Uniform '{}' not found in shader!", name);
+            log.warn("Uniform '{}' not found in shader!", name);
             return;
         }
         GL20.glUniform3f(location, value.x, value.y, value.z);
@@ -129,7 +136,7 @@ public class ShaderProgram {
     public void setUniform(String name, org.joml.Vector4f value) {
         int location = GL20.glGetUniformLocation(programId, name);
         if (location == -1) {
-            logger.warn("Uniform '{}' not found in shader!", name);
+            log.warn("Uniform '{}' not found in shader!", name);
             return;
         }
         GL20.glUniform4f(location, value.x, value.y, value.z, value.w);
@@ -138,7 +145,7 @@ public class ShaderProgram {
     public void setUniform(String name, org.joml.Vector2f value) {
         int location = GL20.glGetUniformLocation(programId, name);
         if (location == -1) {
-            logger.warn("Uniform '{}' not found in shader!", name);
+            log.warn("Uniform '{}' not found in shader!", name);
             return;
         }
         GL20.glUniform2f(location, value.x, value.y);
@@ -147,7 +154,7 @@ public class ShaderProgram {
     public void setUniform(String name, boolean value) {
         int location = GL20.glGetUniformLocation(programId, name);
         if (location == -1) {
-            logger.warn("Uniform '{}' not found in shader!", name);
+            log.warn("Uniform '{}' not found in shader!", name);
             return;
         }
         GL20.glUniform1i(location, value ? 1 : 0);

@@ -9,6 +9,7 @@ import org.joml.Vector2d;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.List;
  * 创建世界菜单界面类，处理存档选择、世界名称输入和创建操作
  */
 public class CreateWorldMenu {
+    
     private static final float BUTTON_WIDTH = 200.0f;
     private static final float BUTTON_HEIGHT = 40.0f;
     private static final float INPUT_WIDTH = 400.0f;
@@ -25,11 +27,22 @@ public class CreateWorldMenu {
     private static final float SAVE_LIST_Y = 200.0f;
     private static final float SAVE_LIST_HEIGHT = 200.0f;
 
+    //世界名称输入
     private StringBuilder worldNameInput = new StringBuilder();
+
+    //存档名称输入
     private StringBuilder saveNameInput = new StringBuilder();
+
+    //是否正在输入世界名称
     private boolean isTypingWorldName = false;
+
+    //是否正在输入存档名称
     private boolean isTypingSaveName = false;
+
+    //选中的存档
     private String selectedSave = null;
+
+    //存档列表滚动偏移
     private int saveScrollOffset = 0;
 
     public void render(GuiRenderer guiRenderer, int windowWidth, int windowHeight, Input input) {
@@ -220,11 +233,11 @@ public class CreateWorldMenu {
     }
 
     private void handleTextInput(Input input, StringBuilder target) {
-        for (int key = org.lwjgl.glfw.GLFW.GLFW_KEY_A; key <= org.lwjgl.glfw.GLFW.GLFW_KEY_Z; key++) {
+        for (int key = GLFW.GLFW_KEY_A; key <= GLFW.GLFW_KEY_Z; key++) {
             if (input.isKeyPressed(key)) {
-                char c = (char) ('a' + (key - org.lwjgl.glfw.GLFW.GLFW_KEY_A));
-                if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT) || 
-                    input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+                char c = (char) ('a' + (key - GLFW.GLFW_KEY_A));
+                if (input.isKeyPressed(GLFW.GLFW_KEY_LEFT_SHIFT) ||
+                    input.isKeyPressed(GLFW.GLFW_KEY_RIGHT_SHIFT)) {
                     c = Character.toUpperCase(c);
                 }
                 target.append(c);
@@ -232,19 +245,19 @@ public class CreateWorldMenu {
             }
         }
 
-        for (int key = org.lwjgl.glfw.GLFW.GLFW_KEY_0; key <= org.lwjgl.glfw.GLFW.GLFW_KEY_9; key++) {
+        for (int key = GLFW.GLFW_KEY_0; key <= GLFW.GLFW_KEY_9; key++) {
             if (input.isKeyPressed(key)) {
-                char c = (char) ('0' + (key - org.lwjgl.glfw.GLFW.GLFW_KEY_0));
+                char c = (char) ('0' + (key - GLFW.GLFW_KEY_0));
                 target.append(c);
                 return;
             }
         }
 
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_SPACE)) {
             target.append(' ');
         }
 
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE) && target.length() > 0) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_BACKSPACE) && target.length() > 0) {
             target.setLength(target.length() - 1);
         }
     }

@@ -9,10 +9,20 @@ import com.ksptool.mycraft.world.World;
  * 地形生成上下文，用于在地形层之间传递共享资源
  */
 public class GenerationContext {
+
+    //噪声生成器
     private final NoiseGenerator noiseGenerator;
+
+    //世界
     private final World world;
+
+    //种子
     private final long seed;
+
+    //全局调色板
     private final GlobalPalette globalPalette;
+    
+    //注册表
     private final Registry registry;
 
     public GenerationContext(NoiseGenerator noiseGenerator, World world, long seed) {

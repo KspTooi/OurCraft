@@ -7,8 +7,14 @@ import java.util.concurrent.*;
  * 区块网格异步生成器类，使用线程池异步生成区块网格数据
  */
 public class ChunkMeshGenerator {
+
+    //线程池
     private final ExecutorService executor;
+
+    //等待完成的任务
     private final List<Future<MeshGenerationResult>> pendingFutures = new CopyOnWriteArrayList<>();
+    
+    //世界
     private final World world;
 
     public ChunkMeshGenerator(World world) {

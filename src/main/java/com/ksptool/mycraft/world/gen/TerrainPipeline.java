@@ -9,6 +9,8 @@ import java.util.List;
  * 地形管道类，负责按顺序执行多个地形层
  */
 public class TerrainPipeline {
+
+    //地形层列表
     private final List<ITerrainLayer> layers;
 
     public TerrainPipeline() {
@@ -22,6 +24,7 @@ public class TerrainPipeline {
         layers.add(layer);
     }
 
+    //执行地形管道
     public void execute(Chunk chunk, GenerationContext context) {
         int[][][] chunkData = new int[Chunk.CHUNK_SIZE][Chunk.CHUNK_HEIGHT][Chunk.CHUNK_SIZE];
         

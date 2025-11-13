@@ -8,8 +8,14 @@ import org.joml.Vector2d;
  * 主菜单界面类，显示游戏主菜单并处理用户选择
  */
 public class MainMenu {
+
+    //按钮宽度
     private static final float BUTTON_WIDTH = 200.0f;
+
+    //按钮高度
     private static final float BUTTON_HEIGHT = 40.0f;
+
+    //按钮间距
     private static final float BUTTON_SPACING = 10.0f;
 
     public void render(GuiRenderer guiRenderer, int windowWidth, int windowHeight, Input input) {
@@ -33,6 +39,7 @@ public class MainMenu {
         guiRenderer.renderButton(buttonX, exitY, BUTTON_WIDTH, BUTTON_HEIGHT, "退出游戏", exitHovered, windowWidth, windowHeight);
     }
 
+    //上一帧鼠标按钮是否按下
     private boolean mouseButtonPressedLastFrame = false;
 
     public int handleInput(Input input, int windowWidth, int windowHeight) {

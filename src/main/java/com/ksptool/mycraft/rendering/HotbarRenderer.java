@@ -3,15 +3,12 @@ package com.ksptool.mycraft.rendering;
 import com.ksptool.mycraft.entity.Player;
 import com.ksptool.mycraft.item.Inventory;
 import com.ksptool.mycraft.item.ItemStack;
+import lombok.Setter;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
 import org.lwjgl.system.MemoryUtil;
-
 import java.nio.FloatBuffer;
-
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.glDisableVertexAttribArray;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
@@ -22,20 +19,27 @@ import static org.lwjgl.opengl.GL30.*;
  * 快捷栏渲染器类，负责渲染玩家快捷栏界面
  */
 public class HotbarRenderer {
+
+    //UI着色器程序
     private ShaderProgram uiShader;
+
+    //VAO（顶点数组对象）ID，用于存储顶点属性配置，简化渲染时的状态设置
     private int vaoId;
+
+    //VBO（顶点缓冲区对象）ID，用于在GPU内存中存储顶点数据
     private int vboId;
+
+    //物品渲染器
+    @Setter
     private ItemRenderer itemRenderer;
+
+    //四边形顶点数据（归一化坐标）
     private static final float[] quadVertices = {
         0.0f, 0.0f,
         1.0f, 0.0f,
         1.0f, 1.0f,
         0.0f, 1.0f
     };
-
-    public void setItemRenderer(ItemRenderer itemRenderer) {
-        this.itemRenderer = itemRenderer;
-    }
 
     public void init() {
         uiShader = new ShaderProgram("/shaders/ui_vertex.glsl", "/shaders/ui_fragment.glsl");

@@ -1,18 +1,22 @@
 package com.ksptool.mycraft.core;
 
+import lombok.Getter;
 import org.joml.Vector2d;
+import lombok.extern.slf4j.Slf4j;
 
 import static org.lwjgl.glfw.GLFW.*;
 
 /**
  * 输入处理类，负责处理键盘、鼠标输入和鼠标锁定
  */
+@Getter
+@Slf4j
 public class Input {
-    private long windowHandle;
-    private boolean[] keys;
-    private boolean[] mouseButtons;
-    private Vector2d mousePosition;
-    private Vector2d mouseDelta;
+    private final long windowHandle;
+    private final boolean[] keys;
+    private final boolean[] mouseButtons;
+    private final Vector2d mousePosition;
+    private final Vector2d mouseDelta;
     private boolean mouseLocked;
     private double scrollX;
     private double scrollY;
@@ -95,10 +99,6 @@ public class Input {
         return false;
     }
 
-    public Vector2d getMouseDelta() {
-        return mouseDelta;
-    }
-
     public void setMouseLocked(boolean locked) {
         this.mouseLocked = locked;
         if (locked) {
@@ -111,18 +111,6 @@ public class Input {
         } else {
             glfwSetInputMode(windowHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
-    }
-
-    public boolean isMouseLocked() {
-        return mouseLocked;
-    }
-
-    public double getScrollX() {
-        return scrollX;
-    }
-
-    public double getScrollY() {
-        return scrollY;
     }
 
     public Vector2d getMousePosition() {

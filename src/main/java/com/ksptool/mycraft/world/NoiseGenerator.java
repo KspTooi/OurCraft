@@ -6,12 +6,23 @@ import java.util.Random;
  * 噪声生成器类，用于生成地形噪声
  */
 public class NoiseGenerator {
+
+    //倍频
     private static final int OCTAVES = 4;
+
+    //持久性
     private static final double PERSISTENCE = 0.5;
+
+    //缩放
     private static final double SCALE = 0.01;
 
+    //种子
     private final long seed;
+
+    //排列
     private final int[] p;
+
+    //随机数生成器
     private final Random random;
 
     public NoiseGenerator(long seed) {

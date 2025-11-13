@@ -1,11 +1,17 @@
 package com.ksptool.mycraft.item;
 
+import lombok.Getter;
+
 /**
  * 物品栏管理类，管理玩家的快捷栏和物品选择
  */
+@Getter
 public class Inventory {
+
     private static final int HOTBAR_SIZE = 9;
+
     private ItemStack[] hotbar;
+
     private int selectedSlot;
 
     public Inventory() {
@@ -36,14 +42,6 @@ public class Inventory {
         if (slot >= 0 && slot < HOTBAR_SIZE) {
             this.selectedSlot = slot;
         }
-    }
-
-    public int getSelectedSlot() {
-        return selectedSlot;
-    }
-
-    public ItemStack[] getHotbar() {
-        return hotbar;
     }
 
     public void scrollSelection(int delta) {

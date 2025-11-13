@@ -6,8 +6,14 @@ import org.joml.Vector3i;
  * 射线检测结果类，存储射线检测的命中信息
  */
 public class RaycastResult {
+
+    //方块位置
     private Vector3i blockPosition;
+    
+    //面法线
     private Vector3i faceNormal;
+    
+    //是否命中
     private boolean hit;
 
     public RaycastResult() {

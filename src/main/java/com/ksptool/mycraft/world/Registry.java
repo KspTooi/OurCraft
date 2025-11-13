@@ -7,7 +7,11 @@ import java.util.Map;
  * 方块注册表类，管理所有已注册的方块
  */
 public class Registry {
+
+    //实例
     private static final Registry INSTANCE = new Registry();
+
+    //方块列表
     private final Map<String, Block> blocks;
 
     private Registry() {

@@ -9,6 +9,8 @@ import com.ksptool.mycraft.world.gen.ITerrainLayer;
  * 基础密度层，生成世界的3D基础形状（石头和空气）
  */
 public class BaseDensityLayer implements ITerrainLayer {
+
+    //空气状态ID
     private static final int AIR_STATE_ID = 0;
 
     @Override

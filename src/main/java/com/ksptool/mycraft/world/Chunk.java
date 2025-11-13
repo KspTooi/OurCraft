@@ -11,7 +11,11 @@ import java.util.List;
  * 区块类，存储方块数据并生成渲染网格
  */
 public class Chunk {
+
+    //区块大小
     public static final int CHUNK_SIZE = 16;
+    
+    //区块高度
     public static final int CHUNK_HEIGHT = 256;
 
     public enum ChunkState {

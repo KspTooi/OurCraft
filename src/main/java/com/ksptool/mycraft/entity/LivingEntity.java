@@ -2,6 +2,7 @@ package com.ksptool.mycraft.entity;
 
 import com.ksptool.mycraft.world.World;
 import lombok.Getter;
+import lombok.Setter;
 import org.joml.Vector3f;
 
 /**
@@ -13,12 +14,23 @@ public abstract class LivingEntity extends Entity {
     //默认重力为 -20F
     protected static final float GRAVITY = -20.0f;
 
+    //跳跃速度
     protected static final float JUMP_VELOCITY = 8.0f;
-    
+
+    //生命值
     protected float health = 40.0f;
+
+    //最大生命值
     protected float maxHealth = 40.0f;
+
+    //饥饿值
     protected float hunger = 40.0f;
+
+    //最大饥饿值
     protected float maxHunger = 40.0f;
+
+    //眼睛高度
+    @Setter
     protected float eyeHeight = 1.6f;
 
     public LivingEntity(World world) {
@@ -101,10 +113,6 @@ public abstract class LivingEntity extends Entity {
             this.health = health;
             markDirty(true);
         }
-    }
-
-    public void setEyeHeight(float eyeHeight) {
-        this.eyeHeight = eyeHeight;
     }
 
     public void setMaxHealth(float maxHealth) {

@@ -6,16 +6,15 @@ import com.ksptool.mycraft.world.save.SaveManager;
 import com.ksptool.mycraft.world.save.WorldIndex;
 import com.ksptool.mycraft.world.save.WorldMetadata;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 
 /**
  * 世界保存/加载管理类，负责世界的保存、加载和删除操作
  */
+@Slf4j
 public class WorldManager {
-    private static final Logger logger = LoggerFactory.getLogger(WorldManager.class);
     private static WorldManager instance;
 
     private WorldManager() {
@@ -67,11 +66,11 @@ public class WorldManager {
 
     public void saveWorld(World world, Player player, String saveName, String worldName) {
         if (StringUtils.isBlank(saveName) || StringUtils.isBlank(worldName) || world == null) {
-            logger.warn("保存世界失败: 参数无效 saveName={}, worldName={}, world={}", saveName, worldName, world != null);
+            log.warn("保存世界失败: 参数无效 saveName={}, worldName={}, world={}", saveName, worldName, world != null);
             return;
         }
 
-        logger.info("开始保存世界: saveName={}, worldName={}", saveName, worldName);
+        log.info("开始保存世界: saveName={}, worldName={}", saveName, worldName);
 
         SaveManager saveManager = SaveManager.getInstance();
         WorldIndex index = saveManager.loadWorldIndex(saveName);
@@ -91,7 +90,7 @@ public class WorldManager {
             metadata = new WorldMetadata();
             metadata.name = worldName;
             index.worlds.add(metadata);
-            logger.debug("创建新的世界元数据: {}", worldName);
+            log.debug("创建新的世界元数据: {}", worldName);
         }
 
         metadata.seed = world.getSeed();
@@ -99,14 +98,14 @@ public class WorldManager {
 
         saveManager.saveWorldIndex(saveName, index);
         saveManager.savePalette(saveName, GlobalPalette.getInstance());
-        logger.debug("已保存世界索引和调色板");
+        log.debug("已保存世界索引和调色板");
 
         if (world.getRegionManager() == null) {
             File chunksDir = saveManager.getWorldChunkDir(saveName, worldName);
             if (chunksDir != null) {
                 RegionManager regionManager = new RegionManager(chunksDir, ".sca", "SCAF");
                 world.setRegionManager(regionManager);
-                logger.debug("初始化区块区域管理器");
+                log.debug("初始化区块区域管理器");
             }
         }
         
@@ -115,7 +114,7 @@ public class WorldManager {
             if (entityDir != null) {
                 RegionManager entityRegionManager = new RegionManager(entityDir, ".sce", "SCEF");
                 world.setEntityRegionManager(entityRegionManager);
-                logger.debug("初始化实体区域管理器");
+                log.debug("初始化实体区域管理器");
             }
         }
         
@@ -123,17 +122,17 @@ public class WorldManager {
         File chunksDir = saveManager.getWorldChunkDir(saveName, worldName);
         if (chunksDir != null) {
             int chunkCount = world.getChunkCount();
-            logger.info("开始保存区块数据，当前已加载区块数: {}", chunkCount);
+            log.info("开始保存区块数据，当前已加载区块数: {}", chunkCount);
             world.saveToFile(chunksDir.getAbsolutePath());
-            logger.info("区块数据保存完成");
+            log.info("区块数据保存完成");
         }
         
         if (player != null) {
-            logger.debug("保存玩家数据: UUID={}", player.getUniqueId());
+            log.debug("保存玩家数据: UUID={}", player.getUniqueId());
             saveManager.savePlayer(saveName, player.getUniqueId(), player);
         }
         
-        logger.info("世界保存完成: saveName={}, worldName={}", saveName, worldName);
+        log.info("世界保存完成: saveName={}, worldName={}", saveName, worldName);
     }
     
     public void saveWorld(World world, String saveName, String worldName) {
@@ -142,16 +141,16 @@ public class WorldManager {
 
     public World loadWorld(String saveName, String worldName) {
         if (StringUtils.isBlank(saveName) || StringUtils.isBlank(worldName)) {
-            logger.warn("加载世界失败: 参数无效 saveName={}, worldName={}", saveName, worldName);
+            log.warn("加载世界失败: 参数无效 saveName={}, worldName={}", saveName, worldName);
             return null;
         }
 
-        logger.info("开始加载世界: saveName={}, worldName={}", saveName, worldName);
+        log.info("开始加载世界: saveName={}, worldName={}", saveName, worldName);
 
         SaveManager saveManager = SaveManager.getInstance();
         WorldIndex index = saveManager.loadWorldIndex(saveName);
         if (index == null || index.worlds == null) {
-            logger.error("加载世界失败: 无法读取世界索引 saveName={}", saveName);
+            log.error("加载世界失败: 无法读取世界索引 saveName={}", saveName);
             return null;
         }
 
@@ -164,19 +163,19 @@ public class WorldManager {
         }
 
         if (metadata == null) {
-            logger.error("加载世界失败: 世界不存在 saveName={}, worldName={}", saveName, worldName);
+            log.error("加载世界失败: 世界不存在 saveName={}, worldName={}", saveName, worldName);
             return null;
         }
 
-        logger.debug("找到世界元数据: seed={}, worldTime={}", metadata.seed, metadata.worldTime);
+        log.debug("找到世界元数据: seed={}, worldTime={}", metadata.seed, metadata.worldTime);
 
         GlobalPalette palette = GlobalPalette.getInstance();
         if (!palette.isBaked()) {
             if (!saveManager.loadPalette(saveName, palette)) {
-                logger.debug("调色板文件不存在，使用默认调色板");
+                log.debug("调色板文件不存在，使用默认调色板");
                 palette.bake();
             } else {
-                logger.debug("已加载调色板");
+                log.debug("已加载调色板");
             }
         }
         
@@ -190,18 +189,18 @@ public class WorldManager {
         if (chunksDir != null) {
             RegionManager regionManager = new RegionManager(chunksDir, ".sca", "SCAF");
             world.setRegionManager(regionManager);
-            logger.debug("已设置区块区域管理器");
+            log.debug("已设置区块区域管理器");
         }
         
         File entityDir = saveManager.getWorldEntityDir(saveName, worldName);
         if (entityDir != null) {
             RegionManager entityRegionManager = new RegionManager(entityDir, ".sce", "SCEF");
             world.setEntityRegionManager(entityRegionManager);
-            logger.debug("已设置实体区域管理器");
+            log.debug("已设置实体区域管理器");
         }
         
         world.init();
-        logger.info("世界加载完成: saveName={}, worldName={}", saveName, worldName);
+        log.info("世界加载完成: saveName={}, worldName={}", saveName, worldName);
         return world;
     }
 

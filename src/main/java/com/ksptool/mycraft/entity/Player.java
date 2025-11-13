@@ -2,6 +2,7 @@ package com.ksptool.mycraft.entity;
 
 import com.ksptool.mycraft.core.Input;
 import com.ksptool.mycraft.item.Inventory;
+import com.ksptool.mycraft.item.Item;
 import com.ksptool.mycraft.item.ItemStack;
 import com.ksptool.mycraft.world.Block;
 import com.ksptool.mycraft.world.GlobalPalette;
@@ -9,18 +10,29 @@ import com.ksptool.mycraft.world.Registry;
 import com.ksptool.mycraft.world.Raycast;
 import com.ksptool.mycraft.world.RaycastResult;
 import com.ksptool.mycraft.world.World;
+import com.ksptool.mycraft.world.save.ItemStackData;
+import com.ksptool.mycraft.world.save.PlayerIndex;
 import lombok.Getter;
 import org.joml.Vector2d;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * 玩家实体类，处理玩家移动、相机控制、方块放置和破坏
  */
 @Getter
 public class Player extends LivingEntity {
+    //相机
     private final Camera camera;
-    private Inventory inventory;
+
+    //背包
+    private final Inventory inventory;
+
+    //移动速度
     private float speed = 100f;
+
+    //鼠标灵敏度
     private float mouseSensitivity = 0.1f;
 
     public Player(World world) {
@@ -77,33 +89,33 @@ public class Player extends LivingEntity {
         Vector3f moveDirection = new Vector3f();
         float yawRad = (float) Math.toRadians(camera.getYaw());
 
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_W)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_W)) {
             moveDirection.x += Math.sin(yawRad);
             moveDirection.z -= Math.cos(yawRad);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_S)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_S)) {
             moveDirection.x -= Math.sin(yawRad);
             moveDirection.z += Math.cos(yawRad);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_A)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_A)) {
             moveDirection.x -= Math.cos(yawRad);
             moveDirection.z -= Math.sin(yawRad);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_D)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_D)) {
             moveDirection.x += Math.cos(yawRad);
             moveDirection.z += Math.sin(yawRad);
         }
-        
+
         if (moveDirection.length() > 0) {
             moveDirection.normalize();
             float moveSpeed = speed * Math.min(delta, 0.1f);
             moveDirection.mul(moveSpeed);
-            
+
             velocity.x += moveDirection.x;
             velocity.z += moveDirection.z;
         }
-        
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE) && onGround) {
+
+        if (input.isKeyPressed(GLFW.GLFW_KEY_SPACE) && onGround) {
             velocity.y = JUMP_VELOCITY;
             onGround = false;
         }
@@ -114,47 +126,47 @@ public class Player extends LivingEntity {
             markDirty(true);
         }
 
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_1)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_1)) {
             inventory.setSelectedSlot(0);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_2)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_2)) {
             inventory.setSelectedSlot(1);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_3)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_3)) {
             inventory.setSelectedSlot(2);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_4)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_4)) {
             inventory.setSelectedSlot(3);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_5)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_5)) {
             inventory.setSelectedSlot(4);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_6)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_6)) {
             inventory.setSelectedSlot(5);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_7)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_7)) {
             inventory.setSelectedSlot(6);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_8)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_8)) {
             inventory.setSelectedSlot(7);
             markDirty(true);
         }
-        if (input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_9)) {
+        if (input.isKeyPressed(GLFW.GLFW_KEY_9)) {
             inventory.setSelectedSlot(8);
             markDirty(true);
         }
 
-        if (input.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
+        if (input.isMouseButtonPressed(GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
             handleBlockBreak();
         }
-        if (input.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (input.isMouseButtonPressed(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             handleBlockPlace();
         }
     }
@@ -184,7 +196,7 @@ public class Player extends LivingEntity {
         Vector3f direction = getLookDirection();
         RaycastResult result = Raycast.cast(world, eyePosition, direction, 5.0f);
         if (result.isHit()) {
-            org.joml.Vector3i placePos = new org.joml.Vector3i(result.getBlockPosition()).add(result.getFaceNormal());
+            Vector3i placePos = new Vector3i(result.getBlockPosition()).add(result.getFaceNormal());
             if (world.canMoveTo(new Vector3f(placePos.x, placePos.y, placePos.z), boundingBox.getHeight())) {
                 String blockId = selectedStack.getItem().getBlockNamespacedID();
                 if (blockId != null) {
@@ -219,7 +231,7 @@ public class Player extends LivingEntity {
         camera.update();
     }
 
-    public void loadFromPlayerIndex(com.ksptool.mycraft.world.save.PlayerIndex playerIndex) {
+    public void loadFromPlayerIndex(PlayerIndex playerIndex) {
         if (playerIndex == null) {
             return;
         }
@@ -231,13 +243,13 @@ public class Player extends LivingEntity {
         inventory.setSelectedSlot(playerIndex.selectedSlot);
 
         if (playerIndex.hotbar != null) {
-            com.ksptool.mycraft.item.ItemStack[] hotbar = inventory.getHotbar();
+            ItemStack[] hotbar = inventory.getHotbar();
             for (int i = 0; i < Math.min(playerIndex.hotbar.size(), hotbar.length); i++) {
-                com.ksptool.mycraft.world.save.ItemStackData stackData = playerIndex.hotbar.get(i);
+                ItemStackData stackData = playerIndex.hotbar.get(i);
                 if (stackData != null && stackData.itemId != null && stackData.count != null) {
-                    com.ksptool.mycraft.item.Item item = com.ksptool.mycraft.item.Item.getItem(stackData.itemId);
+                    Item item = Item.getItem(stackData.itemId);
                     if (item != null) {
-                        hotbar[i] = new com.ksptool.mycraft.item.ItemStack(item, stackData.count);
+                        hotbar[i] = new ItemStack(item, stackData.count);
                     }
                 } else {
                     hotbar[i] = null;

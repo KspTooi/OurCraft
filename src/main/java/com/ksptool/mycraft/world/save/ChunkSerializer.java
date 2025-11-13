@@ -25,7 +25,11 @@ import java.util.zip.Inflater;
  * 3. 使用 zlib 压缩数据
  */
 public class ChunkSerializer {
+
+    //区块大小
     private static final int CHUNK_SIZE = Chunk.CHUNK_SIZE;
+
+    //区块高度
     private static final int CHUNK_HEIGHT = Chunk.CHUNK_HEIGHT;
     
     public static byte[] serialize(Chunk chunk) throws IOException {
