@@ -1,8 +1,11 @@
 package com.ksptool.mycraft.item;
 
+import lombok.Getter;
+
 /**
  * 物品定义类，定义物品的基本属性
  */
+@Getter
 public class Item {
     private int id;
     private String name;
@@ -14,22 +17,6 @@ public class Item {
         this.name = name;
         this.maxStackSize = maxStackSize;
         this.blockNamespacedID = blockNamespacedID;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public int getMaxStackSize() {
-        return maxStackSize;
-    }
-
-    public String getBlockNamespacedID() {
-        return blockNamespacedID;
     }
 
     public static Item getItem(int id) {

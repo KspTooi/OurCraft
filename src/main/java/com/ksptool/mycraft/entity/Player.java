@@ -9,12 +9,14 @@ import com.ksptool.mycraft.world.Registry;
 import com.ksptool.mycraft.world.Raycast;
 import com.ksptool.mycraft.world.RaycastResult;
 import com.ksptool.mycraft.world.World;
+import lombok.Getter;
 import org.joml.Vector2d;
 import org.joml.Vector3f;
 
 /**
  * 玩家实体类，处理玩家移动、相机控制、方块放置和破坏
  */
+@Getter
 public class Player extends LivingEntity {
     private final Camera camera;
     private Inventory inventory;
@@ -215,14 +217,6 @@ public class Player extends LivingEntity {
         eyePosition.y += eyeHeight;
         camera.setPosition(eyePosition);
         camera.update();
-    }
-
-    public Camera getCamera() {
-        return camera;
-    }
-
-    public Inventory getInventory() {
-        return inventory;
     }
 
     public void loadFromPlayerIndex(com.ksptool.mycraft.world.save.PlayerIndex playerIndex) {

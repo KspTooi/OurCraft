@@ -1,12 +1,14 @@
 package com.ksptool.mycraft.world;
 
 import com.ksptool.mycraft.world.properties.BlockProperty;
+import lombok.Getter;
 
 import java.util.*;
 
 /**
  * 方块基类，定义方块的基本属性和状态生成逻辑
  */
+@Getter
 public abstract class Block {
     private final String namespacedID;
     private final float durability;
@@ -30,28 +32,8 @@ public abstract class Block {
         properties.add(property);
     }
 
-    public String getNamespacedID() {
-        return namespacedID;
-    }
-
-    public float getDurability() {
-        return durability;
-    }
-
-    public int getMiningLevel() {
-        return miningLevel;
-    }
-
     public List<BlockProperty<?>> getProperties() {
         return Collections.unmodifiableList(properties);
-    }
-
-    public BlockState getDefaultState() {
-        return defaultState;
-    }
-
-    public List<BlockState> getAllStates() {
-        return Collections.unmodifiableList(allStates);
     }
 
     public boolean isSolid() {

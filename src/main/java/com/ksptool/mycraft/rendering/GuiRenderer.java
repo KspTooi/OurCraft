@@ -1,17 +1,19 @@
 package com.ksptool.mycraft.rendering;
 
 import org.joml.Vector2f;
-import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * GUI渲染器类，负责渲染用户界面元素（按钮、文本框等）
  */
 public class GuiRenderer {
+    private static final Logger logger = LoggerFactory.getLogger(GuiRenderer.class);
     private ShaderProgram shader;
     private int vaoId;
     private int vboId;
@@ -32,22 +34,21 @@ public class GuiRenderer {
             try {
                 shader = new ShaderProgram("/shaders/ui_vertex.glsl", "/shaders/ui_fragment.glsl");
             } catch (Exception e) {
-                System.err.println("GuiRenderer: 着色器加载失败: " + e.getMessage());
-                e.printStackTrace();
+                logger.error("GuiRenderer: 着色器加载失败", e);
                 return;
             }
         }
         
         vaoId = GL30.glGenVertexArrays();
         if (vaoId == 0) {
-            System.err.println("GuiRenderer: VAO创建失败");
+            logger.error("GuiRenderer: VAO创建失败");
             return;
         }
         GL30.glBindVertexArray(vaoId);
 
         vboId = GL20.glGenBuffers();
         if (vboId == 0) {
-            System.err.println("GuiRenderer: VBO创建失败");
+            logger.error("GuiRenderer: VBO创建失败");
             return;
         }
         
@@ -74,7 +75,7 @@ public class GuiRenderer {
         if (shader == null || vaoId == 0 || vboId == 0) {
             init();
             if (shader == null || vaoId == 0 || vboId == 0) {
-                System.err.println("GuiRenderer: 无法渲染，初始化失败");
+                logger.error("GuiRenderer: 无法渲染，初始化失败");
                 return;
             }
         }
@@ -110,7 +111,7 @@ public class GuiRenderer {
 
     public void renderButton(float x, float y, float width, float height, String text, boolean hovered, int windowWidth, int windowHeight) {
         if (shader == null || vaoId == 0) {
-            System.err.println("GuiRenderer: renderButton调用时渲染器未初始化");
+            logger.error("GuiRenderer: renderButton调用时渲染器未初始化");
             return;
         }
         
@@ -145,13 +146,13 @@ public class GuiRenderer {
         if (shader == null || vaoId == 0 || vboId == 0) {
             init();
             if (shader == null || vaoId == 0 || vboId == 0) {
-                System.err.println("GuiRenderer: 无法渲染，初始化失败");
+                logger.error("GuiRenderer: 无法渲染，初始化失败");
                 return;
             }
         }
         
         if (textureId == 0) {
-            System.err.println("GuiRenderer: 无效的纹理ID");
+            logger.error("GuiRenderer: 无效的纹理ID");
             return;
         }
 

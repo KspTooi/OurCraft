@@ -1,15 +1,20 @@
 package com.ksptool.mycraft.entity;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 /**
  * 相机类，负责计算视图矩阵和投影矩阵
  */
+@Getter
 public class Camera {
     private final Vector3f position;
     private float pitch;
+    @Setter
     private float yaw;
+    @Setter
     private float roll;
     private final Matrix4f viewMatrix;
     private final Matrix4f projectionMatrix;
@@ -53,40 +58,8 @@ public class Camera {
         this.position.set(position);
     }
 
-    public Vector3f getPosition() {
-        return position;
-    }
-
     public void setPitch(float pitch) {
         this.pitch = Math.max(-90, Math.min(90, pitch));
-    }
-
-    public float getPitch() {
-        return pitch;
-    }
-
-    public void setYaw(float yaw) {
-        this.yaw = yaw;
-    }
-
-    public float getYaw() {
-        return yaw;
-    }
-
-    public void setRoll(float roll) {
-        this.roll = roll;
-    }
-
-    public float getRoll() {
-        return roll;
-    }
-
-    public Matrix4f getViewMatrix() {
-        return viewMatrix;
-    }
-
-    public Matrix4f getProjectionMatrix() {
-        return projectionMatrix;
     }
 
     public void setProjectionMatrix(Matrix4f projectionMatrix) {

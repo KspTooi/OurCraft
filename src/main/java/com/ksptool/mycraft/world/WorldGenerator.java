@@ -1,11 +1,15 @@
 package com.ksptool.mycraft.world;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.BlockingQueue;
 
 /**
  * 世界生成线程类，在后台线程中生成区块数据
  */
 public class WorldGenerator extends Thread {
+    private static final Logger logger = LoggerFactory.getLogger(WorldGenerator.class);
     private final BlockingQueue<ChunkGenerationTask> generationQueue;
     private final World world;
     private volatile boolean running = true;
@@ -35,8 +39,7 @@ public class WorldGenerator extends Thread {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                System.err.println("Error in WorldGenerator: " + e.getMessage());
-                e.printStackTrace();
+                logger.error("Error in WorldGenerator", e);
             }
         }
     }

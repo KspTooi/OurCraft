@@ -1,11 +1,13 @@
 package com.ksptool.mycraft.entity;
 
 import com.ksptool.mycraft.world.World;
+import lombok.Getter;
 import org.joml.Vector3f;
 
 /**
  * 生物实体基类，实现重力、物理运动和碰撞检测
  */
+@Getter
 public abstract class LivingEntity extends Entity {
 
     //默认重力为 -20F
@@ -94,10 +96,6 @@ public abstract class LivingEntity extends Entity {
         velocity.z *= 0.8f;
     }
 
-    public float getHealth() {
-        return health;
-    }
-
     public void setHealth(float health) {
         if (this.health != health) {
             this.health = health;
@@ -105,16 +103,8 @@ public abstract class LivingEntity extends Entity {
         }
     }
 
-    public float getEyeHeight() {
-        return eyeHeight;
-    }
-
     public void setEyeHeight(float eyeHeight) {
         this.eyeHeight = eyeHeight;
-    }
-
-    public float getMaxHealth() {
-        return maxHealth;
     }
 
     public void setMaxHealth(float maxHealth) {
@@ -124,19 +114,11 @@ public abstract class LivingEntity extends Entity {
         }
     }
 
-    public float getHunger() {
-        return hunger;
-    }
-
     public void setHunger(float hunger) {
         if (this.hunger != hunger) {
             this.hunger = hunger;
             markDirty(true);
         }
-    }
-
-    public float getMaxHunger() {
-        return maxHunger;
     }
 
     public void setMaxHunger(float maxHunger) {

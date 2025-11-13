@@ -1,11 +1,13 @@
 package com.ksptool.mycraft.core;
 
-import org.lwjgl.glfw.GLFW;
+import lombok.Getter;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.IntBuffer;
 
@@ -17,7 +19,9 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 /**
  * GLFW窗口管理类，负责窗口创建、初始化和OpenGL上下文管理
  */
+@Getter
 public class Window {
+    private static final Logger logger = LoggerFactory.getLogger(Window.class);
     private long windowHandle;
     private int width;
     private int height;
@@ -92,7 +96,7 @@ public class Window {
         
         int error = GL11.glGetError();
         if (error != 0) {
-            System.err.println("OpenGL error after initialization: " + error);
+            logger.error("OpenGL error after initialization: {}", error);
         }
     }
 
@@ -122,18 +126,6 @@ public class Window {
 
     public void setResized(boolean resized) {
         this.resized = resized;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public long getWindowHandle() {
-        return windowHandle;
     }
 
     public boolean isvSync() {

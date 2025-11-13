@@ -1,6 +1,7 @@
 package com.ksptool.mycraft.world.save;
 
-import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 区域管理器，负责管理区域文件的创建、打开和缓存
  */
 public class RegionManager {
+    private static final Logger logger = LoggerFactory.getLogger(RegionManager.class);
     private static final int REGION_SIZE = 40;
     private final File baseDir;
     private final String fileExtension;
@@ -54,7 +56,7 @@ public class RegionManager {
             try {
                 regionFile.close();
             } catch (Exception e) {
-                System.err.println("关闭区域文件失败: " + e.getMessage());
+                logger.error("关闭区域文件失败", e);
             }
         }
         openRegions.clear();

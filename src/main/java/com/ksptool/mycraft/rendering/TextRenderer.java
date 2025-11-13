@@ -1,6 +1,5 @@
 package com.ksptool.mycraft.rendering;
 
-import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -8,6 +7,8 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.freetype.FT_Bitmap;
 import org.lwjgl.util.freetype.FT_Face;
 import org.lwjgl.util.freetype.FT_GlyphSlot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -25,6 +26,7 @@ import org.lwjgl.util.freetype.FreeType;
  * 文字渲染器类，使用FreeType库加载字体并渲染文字
  */
 public class TextRenderer {
+    private static final Logger logger = LoggerFactory.getLogger(TextRenderer.class);
     private static final int FONT_SIZE = 48;
     private static final int ATLAS_WIDTH = 1024;
     private static final int ATLAS_HEIGHT = 1024;
@@ -77,7 +79,7 @@ public class TextRenderer {
             PointerBuffer libraryBuffer = MemoryUtil.memAllocPointer(1);
             int error = FT_Init_FreeType(libraryBuffer);
             if (error != 0) {
-                System.err.println("TextRenderer: FreeType初始化失败，错误代码: " + error);
+                logger.error("TextRenderer: FreeType初始化失败，错误代码: {}", error);
                 MemoryUtil.memFree(libraryBuffer);
                 return;
             }
@@ -85,7 +87,7 @@ public class TextRenderer {
             MemoryUtil.memFree(libraryBuffer);
             
             if (library == NULL) {
-                System.err.println("TextRenderer: FreeType库初始化失败");
+                logger.error("TextRenderer: FreeType库初始化失败");
                 return;
             }
             
@@ -96,7 +98,7 @@ public class TextRenderer {
                 if (file.exists()) {
                     inputStream = new java.io.FileInputStream(file);
                 } else {
-                    System.err.println("TextRenderer: 字体文件未找到: " + fontPath);
+                    logger.error("TextRenderer: 字体文件未找到: {}", fontPath);
                     return;
                 }
             }
@@ -111,7 +113,7 @@ public class TextRenderer {
             PointerBuffer faceBuffer = MemoryUtil.memAllocPointer(1);
             error = FT_New_Memory_Face(library, fontBuffer, 0L, faceBuffer);
             if (error != 0) {
-                System.err.println("TextRenderer: 加载字体失败，错误代码: " + error);
+                logger.error("TextRenderer: 加载字体失败，错误代码: {}", error);
                 MemoryUtil.memFree(fontBuffer);
                 fontBuffer = null;
                 MemoryUtil.memFree(faceBuffer);
@@ -122,7 +124,7 @@ public class TextRenderer {
             MemoryUtil.memFree(faceBuffer);
             
             if (faceAddress == NULL) {
-                System.err.println("TextRenderer: 字体面创建失败");
+                logger.error("TextRenderer: 字体面创建失败");
                 MemoryUtil.memFree(fontBuffer);
                 fontBuffer = null;
                 return;
@@ -132,14 +134,13 @@ public class TextRenderer {
             
             error = FT_Set_Pixel_Sizes(face, 0, FONT_SIZE);
             if (error != 0) {
-                System.err.println("TextRenderer: 设置字体大小失败，错误代码: " + error);
+                logger.error("TextRenderer: 设置字体大小失败，错误代码: {}", error);
                 return;
             }
             
             createAtlasTexture();
         } catch (Exception e) {
-            System.err.println("TextRenderer: 初始化时出错: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("TextRenderer: 初始化时出错", e);
         }
     }
     
@@ -200,7 +201,7 @@ public class TextRenderer {
         }
         
         if (currentY + height + PADDING > atlasHeight) {
-            System.err.println("TextRenderer: 字体图集已满，无法添加更多字符");
+            logger.warn("TextRenderer: 字体图集已满，无法添加更多字符");
             return null;
         }
         

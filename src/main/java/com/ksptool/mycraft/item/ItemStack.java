@@ -1,8 +1,11 @@
 package com.ksptool.mycraft.item;
 
+import lombok.Getter;
+
 /**
  * 物品堆栈类，表示一组相同物品及其数量
  */
+@Getter
 public class ItemStack {
     private Item item;
     private int count;
@@ -14,14 +17,6 @@ public class ItemStack {
 
     public ItemStack(Item item) {
         this(item, 1);
-    }
-
-    public Item getItem() {
-        return item;
-    }
-
-    public int getCount() {
-        return count;
     }
 
     public void setCount(int count) {

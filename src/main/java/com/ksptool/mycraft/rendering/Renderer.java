@@ -4,11 +4,14 @@ import com.ksptool.mycraft.entity.Player;
 import com.ksptool.mycraft.world.World;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 主渲染器类，负责渲染世界和玩家快捷栏
  */
 public class Renderer {
+    private static final Logger logger = LoggerFactory.getLogger(Renderer.class);
     private ShaderProgram shader;
     private Matrix4f projectionMatrix;
     private HotbarRenderer hotbarRenderer;
@@ -71,7 +74,7 @@ public class Renderer {
         shader.setUniform("u_AtlasSize", (float)tm.getAtlasWidth());
         
         if (projectionMatrix.m00() == 0) {
-            System.err.println("ERROR: Projection matrix is not initialized!");
+            logger.error("ERROR: Projection matrix is not initialized!");
         }
 
         GL11.glDisable(GL11.GL_BLEND);
@@ -89,7 +92,7 @@ public class Renderer {
         
         int error = GL11.glGetError();
         if (error != 0) {
-            System.err.println("OpenGL error after rendering world: " + error);
+            logger.error("OpenGL error after rendering world: {}", error);
         }
 
         if (hudRenderer != null) {
@@ -100,7 +103,7 @@ public class Renderer {
         
         error = GL11.glGetError();
         if (error != 0) {
-            System.err.println("OpenGL error after rendering HUD: " + error);
+            logger.error("OpenGL error after rendering HUD: {}", error);
         }
     }
 

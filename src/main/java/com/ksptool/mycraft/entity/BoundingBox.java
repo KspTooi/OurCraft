@@ -1,10 +1,12 @@
 package com.ksptool.mycraft.entity;
 
+import lombok.Getter;
 import org.joml.Vector3f;
 
 /**
  * 碰撞边界框类，用于实体碰撞检测
  */
+@Getter
 public class BoundingBox {
     private float minX;
     private float minY;
@@ -56,30 +58,6 @@ public class BoundingBox {
         return minX < other.maxX && maxX > other.minX &&
                minY < other.maxY && maxY > other.minY &&
                minZ < other.maxZ && maxZ > other.minZ;
-    }
-
-    public float getMinX() {
-        return minX;
-    }
-
-    public float getMinY() {
-        return minY;
-    }
-
-    public float getMinZ() {
-        return minZ;
-    }
-
-    public float getMaxX() {
-        return maxX;
-    }
-
-    public float getMaxY() {
-        return maxY;
-    }
-
-    public float getMaxZ() {
-        return maxZ;
     }
 
     public float getWidth() {

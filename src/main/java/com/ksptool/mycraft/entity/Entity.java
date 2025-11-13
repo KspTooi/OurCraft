@@ -1,6 +1,7 @@
 package com.ksptool.mycraft.entity;
 
 import com.ksptool.mycraft.world.World;
+import lombok.Getter;
 import org.joml.Vector3f;
 
 import java.util.Objects;
@@ -9,6 +10,7 @@ import java.util.UUID;
 /**
  * 实体基类，定义实体的基本属性和行为
  */
+@Getter
 public abstract class Entity {
     protected final World world;
     protected final UUID uniqueId;
@@ -34,40 +36,12 @@ public abstract class Entity {
 
     public abstract void update(float delta);
 
-    public World getWorld() {
-        return world;
-    }
-
-    public UUID getUniqueId() {
-        return uniqueId;
-    }
-
-    public Vector3f getPosition() {
-        return position;
-    }
-
-    public Vector3f getVelocity() {
-        return velocity;
-    }
-
-    public boolean isOnGround() {
-        return onGround;
-    }
-
     public void setOnGround(boolean onGround) {
         this.onGround = onGround;
     }
 
-    public BoundingBox getBoundingBox() {
-        return boundingBox;
-    }
-
     public void setBoundingBox(BoundingBox boundingBox) {
         this.boundingBox = boundingBox;
-    }
-
-    public boolean isDead() {
-        return isDead;
     }
 
     public void setDead(boolean dead) {

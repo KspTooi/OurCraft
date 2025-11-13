@@ -10,11 +10,14 @@ import com.ksptool.mycraft.gui.MainMenu;
 import com.ksptool.mycraft.gui.SingleplayerMenu;
 import com.ksptool.mycraft.gui.CreateWorldMenu;
 import com.ksptool.mycraft.world.WorldManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 游戏主循环和状态管理类，负责游戏初始化、更新、渲染和状态切换
  */
 public class Game {
+    private static final Logger logger = LoggerFactory.getLogger(Game.class);
     private Window window;
     private Input input;
     private Renderer renderer;
@@ -196,8 +199,7 @@ public class Game {
                             result.chunk.uploadToGPU(result);
                         }
                     } catch (Exception e) {
-                        System.err.println("Error uploading mesh to GPU: " + e.getMessage());
-                        e.printStackTrace();
+                        logger.error("Error uploading mesh to GPU", e);
                     }
                     completedFutures.add(future);
                 }
@@ -257,11 +259,11 @@ public class Game {
 
     private void renderMainMenu() {
         if (guiRenderer == null) {
-            System.err.println("Game: GuiRenderer未初始化");
+            logger.error("Game: GuiRenderer未初始化");
             return;
         }
         if (mainMenu == null) {
-            System.err.println("Game: MainMenu未初始化");
+            logger.error("Game: MainMenu未初始化");
             return;
         }
         mainMenu.render(guiRenderer, window.getWidth(), window.getHeight(), input);
