@@ -18,16 +18,16 @@ import static org.lwjgl.opengl.GL30.*;
 public class Mesh {
 
     //VAO（顶点数组对象）ID，用于存储顶点属性配置，简化渲染时的状态设置
-    private int vaoId;
+    private final int vaoId;
 
     //VBO（顶点缓冲区对象）ID，用于在GPU内存中存储顶点数据
-    private int vboId;
+    private final int vboId;
 
     //EBO（元素缓冲区对象）ID，用于在GPU内存中存储索引数据
-    private int eboId;
+    private final int eboId;
 
     //顶点数量
-    private int vertexCount;
+    private final int vertexCount;
 
     public Mesh(float[] vertices, float[] texCoords, int[] indices) {
         this(vertices, texCoords, new float[texCoords.length / 2], new float[texCoords.length], indices);

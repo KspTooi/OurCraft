@@ -20,7 +20,7 @@ public class WorldRenderer {
     
     private final World world;
     private int textureId;
-    private Frustum frustum;
+    private final Frustum frustum;
     
     public WorldRenderer(World world) {
         this.world = world;
