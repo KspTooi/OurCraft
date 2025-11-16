@@ -66,11 +66,22 @@ public class Renderer {
         float partialTick = 0.0f; // 客户端插值，暂时使用0.0f
         com.ksptool.ourcraft.client.entity.Camera camera = player.getCamera();
         
+        // 计算插值后的位置和朝向
         org.joml.Vector3f interpolatedPos = new org.joml.Vector3f(player.getPreviousPosition()).lerp(player.getPosition(), partialTick);
-        float interpolatedYaw = camera.getPreviousYaw() + (camera.getYaw() - camera.getPreviousYaw()) * partialTick;
-        float interpolatedPitch = camera.getPreviousPitch() + (camera.getPitch() - camera.getPreviousPitch()) * partialTick;
+        float interpolatedYaw = player.getPreviousYaw() + (player.getYaw() - player.getPreviousYaw()) * partialTick;
+        float interpolatedPitch = player.getPreviousPitch() + (player.getPitch() - player.getPreviousPitch()) * partialTick;
         
-        camera.updateViewMatrixWithInterpolation(interpolatedPos, interpolatedYaw, interpolatedPitch, player.getEyeHeight());
+        // 计算眼睛位置（脚部位置 + 眼睛高度）
+        org.joml.Vector3f eyePos = new org.joml.Vector3f(interpolatedPos);
+        eyePos.y += player.getEyeHeight();
+        
+        // 设置相机位置和朝向
+        camera.setPosition(eyePos);
+        camera.setYaw(interpolatedYaw);
+        camera.setPitch(interpolatedPitch);
+        
+        // 更新视图矩阵
+        camera.update();
         camera.setProjectionMatrix(projectionMatrix);
         org.joml.Matrix4f viewMatrix = camera.getViewMatrix();
         

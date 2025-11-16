@@ -15,7 +15,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 存档管理器，负责管理存档文件夹结构和世界/玩家数据的保存与加载
@@ -25,8 +27,10 @@ public class SaveManager {
     private static final String SAVES_DIR = "saves";
     private static final String WORLD_INDEX_FILE = "world.index";
     private static final String PLAYERS_DIR = "players";
+    private static final String PLAYER_UUID_MAP_FILE = "player_uuids.json";
     private static SaveManager instance;
     private final Gson gson;
+    private final Map<String, Map<String, UUID>> savePlayerUuidCache = new ConcurrentHashMap<>();
 
     private SaveManager() {
         this.gson = new GsonBuilder().setPrettyPrinting().create();
@@ -41,6 +45,77 @@ public class SaveManager {
             instance = new SaveManager();
         }
         return instance;
+    }
+
+    private static class PlayerUUIDMap {
+        Map<String, String> nameToUuid = new ConcurrentHashMap<>();
+    }
+
+    public UUID getOrCreatePlayerUUID(String saveName, String playerName) {
+        if (StringUtils.isBlank(saveName) || StringUtils.isBlank(playerName)) {
+            return UUID.randomUUID();
+        }
+
+        Map<String, UUID> uuidMap = savePlayerUuidCache.computeIfAbsent(saveName, this::loadPlayerUUIDs);
+        UUID playerUUID = uuidMap.get(playerName);
+
+        if (playerUUID == null) {
+            playerUUID = UUID.randomUUID();
+            uuidMap.put(playerName, playerUUID);
+            savePlayerUUIDs(saveName, uuidMap);
+            logger.info("为新玩家 '{}' 创建了新的 UUID: {}", playerName, playerUUID);
+        }
+
+        return playerUUID;
+    }
+
+    private Map<String, UUID> loadPlayerUUIDs(String saveName) {
+        Map<String, UUID> result = new ConcurrentHashMap<>();
+        File saveDir = new File(SAVES_DIR, saveName);
+        if (!saveDir.exists()) {
+            return result;
+        }
+
+        File uuidFile = new File(saveDir, PLAYER_UUID_MAP_FILE);
+        if (!uuidFile.exists()) {
+            return result;
+        }
+
+        try (FileReader reader = new FileReader(uuidFile)) {
+            PlayerUUIDMap uuidMapData = gson.fromJson(reader, PlayerUUIDMap.class);
+            if (uuidMapData != null && uuidMapData.nameToUuid != null) {
+                for (Map.Entry<String, String> entry : uuidMapData.nameToUuid.entrySet()) {
+                    result.put(entry.getKey(), UUID.fromString(entry.getValue()));
+                }
+            }
+            logger.debug("成功加载 {} 的玩家UUID映射", saveName);
+        } catch (IOException e) {
+            logger.error("加载玩家UUID映射失败: saveName={}", saveName, e);
+        }
+        return result;
+    }
+
+    private void savePlayerUUIDs(String saveName, Map<String, UUID> uuidMap) {
+        File saveDir = new File(SAVES_DIR, saveName);
+        if (!saveDir.exists()) {
+            if (!saveDir.mkdirs()) {
+                logger.error("无法创建存档目录: {}", saveName);
+                return;
+            }
+        }
+
+        File uuidFile = new File(saveDir, PLAYER_UUID_MAP_FILE);
+        PlayerUUIDMap uuidMapData = new PlayerUUIDMap();
+        for (Map.Entry<String, UUID> entry : uuidMap.entrySet()) {
+            uuidMapData.nameToUuid.put(entry.getKey(), entry.getValue().toString());
+        }
+
+        try (FileWriter writer = new FileWriter(uuidFile)) {
+            gson.toJson(uuidMapData, writer);
+            logger.debug("成功保存 {} 的玩家UUID映射", saveName);
+        } catch (IOException e) {
+            logger.error("保存玩家UUID映射失败: saveName={}", saveName, e);
+        }
     }
 
     public List<String> getSaveList() {

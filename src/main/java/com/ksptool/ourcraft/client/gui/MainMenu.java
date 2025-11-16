@@ -23,18 +23,21 @@ public class MainMenu {
         float startY = windowHeight / 2.0f - 60.0f;
 
         float singleplayerY = startY;
-        float optionsY = startY + BUTTON_HEIGHT + BUTTON_SPACING;
-        float exitY = startY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2;
+        float multiplayerY = startY + BUTTON_HEIGHT + BUTTON_SPACING;
+        float optionsY = startY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2;
+        float exitY = startY + (BUTTON_HEIGHT + BUTTON_SPACING) * 3;
 
         float buttonX = centerX - BUTTON_WIDTH / 2.0f;
 
         Vector2d mousePos = input.getMousePosition();
 
         boolean singleplayerHovered = isMouseOverButton(mousePos.x, mousePos.y, buttonX, singleplayerY, BUTTON_WIDTH, BUTTON_HEIGHT);
+        boolean multiplayerHovered = isMouseOverButton(mousePos.x, mousePos.y, buttonX, multiplayerY, BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean optionsHovered = isMouseOverButton(mousePos.x, mousePos.y, buttonX, optionsY, BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean exitHovered = isMouseOverButton(mousePos.x, mousePos.y, buttonX, exitY, BUTTON_WIDTH, BUTTON_HEIGHT);
 
         guiRenderer.renderButton(buttonX, singleplayerY, BUTTON_WIDTH, BUTTON_HEIGHT, "单人游戏", singleplayerHovered, windowWidth, windowHeight);
+        guiRenderer.renderButton(buttonX, multiplayerY, BUTTON_WIDTH, BUTTON_HEIGHT, "多人游戏", multiplayerHovered, windowWidth, windowHeight);
         guiRenderer.renderButton(buttonX, optionsY, BUTTON_WIDTH, BUTTON_HEIGHT, "选项", optionsHovered, windowWidth, windowHeight);
         guiRenderer.renderButton(buttonX, exitY, BUTTON_WIDTH, BUTTON_HEIGHT, "退出游戏", exitHovered, windowWidth, windowHeight);
     }
@@ -48,8 +51,9 @@ public class MainMenu {
         float startY = windowHeight / 2.0f - 60.0f;
 
         float singleplayerY = startY;
-        float optionsY = startY + BUTTON_HEIGHT + BUTTON_SPACING;
-        float exitY = startY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2;
+        float multiplayerY = startY + BUTTON_HEIGHT + BUTTON_SPACING;
+        float optionsY = startY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2;
+        float exitY = startY + (BUTTON_HEIGHT + BUTTON_SPACING) * 3;
 
         float buttonX = centerX - BUTTON_WIDTH / 2.0f;
 
@@ -61,11 +65,14 @@ public class MainMenu {
             if (isMouseOverButton(mousePos.x, mousePos.y, buttonX, singleplayerY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
                 return 1;
             }
-            if (isMouseOverButton(mousePos.x, mousePos.y, buttonX, optionsY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+            if (isMouseOverButton(mousePos.x, mousePos.y, buttonX, multiplayerY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
                 return 2;
             }
-            if (isMouseOverButton(mousePos.x, mousePos.y, buttonX, exitY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+            if (isMouseOverButton(mousePos.x, mousePos.y, buttonX, optionsY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
                 return 3;
+            }
+            if (isMouseOverButton(mousePos.x, mousePos.y, buttonX, exitY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+                return 4;
             }
         }
 

@@ -33,5 +33,25 @@ public class ClientEntity {
         previousPosition.set(position);
         position.set(newPosition);
     }
+    
+    /**
+     * 设置实体位置（用于初始化）
+     * 如果previousPosition尚未被有意义地设置过，则同时设置它
+     */
+    public void setPosition(Vector3f newPosition) {
+        position.set(newPosition);
+        // 如果previousPosition尚未被有意义地设置过（仍为0,0,0），则用当前位置初始化它
+        // 避免(0,0,0)的初始值导致错误的插值
+        if (previousPosition.lengthSquared() < 0.001f) {
+            previousPosition.set(newPosition);
+        }
+    }
+
+    /**
+     * 更新实体（子类可以重写以实现物理模拟等）
+     */
+    public void update(float delta) {
+        // 默认实现为空，子类可以重写
+    }
 }
 

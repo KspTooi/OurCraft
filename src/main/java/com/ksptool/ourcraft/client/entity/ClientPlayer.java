@@ -2,16 +2,21 @@ package com.ksptool.ourcraft.client.entity;
 
 import com.ksptool.ourcraft.client.Input;
 import com.ksptool.ourcraft.client.item.ClientInventory;
+import com.ksptool.ourcraft.client.world.ClientWorld;
+import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerUpdateEvent;
 import lombok.Getter;
 import org.joml.Vector2d;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 
+import java.util.UUID;
+
 /**
- * 客户端玩家实体类，负责渲染和输入处理
+ * 客户端玩家实体类，负责渲染和输入处理，支持客户端预测
  */
 @Getter
-public class ClientPlayer extends ClientEntity {
+public class ClientPlayer extends ClientLivingEntity {
     //相机
     private final Camera camera;
 
@@ -21,8 +26,20 @@ public class ClientPlayer extends ClientEntity {
     //鼠标灵敏度
     private float mouseSensitivity = 0.1f;
     
-    //眼睛高度
-    private float eyeHeight = 1.6f;
+    //相机朝向
+    private float yaw = 0.0f;
+    private float pitch = 0.0f;
+    private float previousYaw = 0.0f;
+    private float previousPitch = 0.0f;
+    
+    //地面加速度
+    private static final float GROUND_ACCELERATION = 40F;
+    
+    //空中加速度
+    private static final float AIR_ACCELERATION = 5F;
+    
+    //最大移动速度
+    private static final float MAX_SPEED = 40F;
     
     //生命值（从服务器同步）
     private float health = 40.0f;
@@ -32,16 +49,20 @@ public class ClientPlayer extends ClientEntity {
     private float hunger = 40.0f;
     private float maxHunger = 40.0f;
 
-    public ClientPlayer() {
-        super(java.util.UUID.randomUUID());
+    public ClientPlayer(ClientWorld world) {
+        super(java.util.UUID.randomUUID(), world);
         this.camera = new Camera();
         this.inventory = new ClientInventory();
+        this.eyeHeight = 1.6f;
+        this.boundingBox = new com.ksptool.ourcraft.sharedcore.BoundingBox(position, 0.6f, 1.8f);
     }
 
-    public ClientPlayer(java.util.UUID uniqueId) {
-        super(uniqueId);
+    public ClientPlayer(UUID uniqueId, ClientWorld world) {
+        super(uniqueId, world);
         this.camera = new Camera();
         this.inventory = new ClientInventory();
+        this.eyeHeight = 1.6f;
+        this.boundingBox = new com.ksptool.ourcraft.sharedcore.BoundingBox(position, 0.6f, 1.8f);
     }
 
     public void initializeCamera() {
@@ -50,7 +71,20 @@ public class ClientPlayer extends ClientEntity {
         updateCamera();
     }
 
+    @Override
     public void update(float delta) {
+        // 限制delta值，防止极端时间间隔导致的问题
+        if (delta > 0.1f) {
+            delta = 0.1f;
+        }
+        
+        // 更新previousYaw和previousPitch用于插值
+        previousYaw = yaw;
+        previousPitch = pitch;
+        
+        // 调用父类的物理更新
+        super.update(delta);
+        
         updateCamera();
     }
     
@@ -67,9 +101,73 @@ public class ClientPlayer extends ClientEntity {
             float deltaYaw = (float) mouseDelta.x * mouseSensitivity;
             float deltaPitch = (float) mouseDelta.y * mouseSensitivity;
 
-            camera.setYaw(camera.getYaw() + deltaYaw);
-            camera.setPitch(camera.getPitch() + deltaPitch);
+            yaw += deltaYaw;
+            pitch += deltaPitch;
+            pitch = Math.max(-90, Math.min(90, pitch));
+            
+            camera.setYaw(yaw);
+            camera.setPitch(pitch);
         }
+    }
+    
+    /**
+     * 应用玩家输入（移动方向）- 客户端预测
+     */
+    public void applyInput(PlayerInputEvent event) {
+        Vector3f moveDirection = new Vector3f();
+        float yawRad = (float) Math.toRadians(yaw);
+        
+        if (event.isForward()) {
+            moveDirection.x += Math.sin(yawRad);
+            moveDirection.z -= Math.cos(yawRad);
+        }
+        if (event.isBackward()) {
+            moveDirection.x -= Math.sin(yawRad);
+            moveDirection.z += Math.cos(yawRad);
+        }
+        if (event.isLeft()) {
+            moveDirection.x -= Math.cos(yawRad);
+            moveDirection.z -= Math.sin(yawRad);
+        }
+        if (event.isRight()) {
+            moveDirection.x += Math.cos(yawRad);
+            moveDirection.z += Math.sin(yawRad);
+        }
+        
+        if (moveDirection.length() > 0) {
+            moveDirection.normalize();
+            
+            float acceleration = onGround ? GROUND_ACCELERATION : AIR_ACCELERATION;
+            float tickDelta = 1.0f / 20.0f; // 假设20 TPS，后续可以从WorldTemplate获取
+            if (world != null && world.getTemplate() != null) {
+                tickDelta = 1.0f / world.getTemplate().getTicksPerSecond();
+            }
+            velocity.x += moveDirection.x * acceleration * tickDelta;
+            velocity.z += moveDirection.z * acceleration * tickDelta;
+            
+            Vector2f horizontalVelocity = new Vector2f(velocity.x, velocity.z);
+            if (horizontalVelocity.lengthSquared() > MAX_SPEED * MAX_SPEED) {
+                horizontalVelocity.normalize().mul(MAX_SPEED);
+                velocity.x = horizontalVelocity.x;
+                velocity.z = horizontalVelocity.y;
+            }
+        }
+        
+        if (event.isJump() && onGround) {
+            velocity.y = JUMP_VELOCITY;
+            onGround = false;
+        }
+    }
+    
+    /**
+     * 更新相机朝向（从服务器接收）
+     */
+    public void updateCameraOrientation(float deltaYaw, float deltaPitch) {
+        this.yaw += deltaYaw;
+        this.pitch += deltaPitch;
+        this.pitch = Math.max(-90, Math.min(90, this.pitch));
+        camera.setYaw(yaw);
+        camera.setPitch(pitch);
     }
 
     /**
@@ -95,10 +193,14 @@ public class ClientPlayer extends ClientEntity {
         }
         
         // 同步相机朝向（服务端是权威的）
-        camera.setYaw(event.getYaw());
-        camera.setPitch(event.getPitch());
-        camera.setPreviousYaw(event.getPreviousYaw());
-        camera.setPreviousPitch(event.getPreviousPitch());
+        yaw = event.getYaw();
+        pitch = event.getPitch();
+        previousYaw = event.getPreviousYaw();
+        previousPitch = event.getPreviousPitch();
+        camera.setYaw(yaw);
+        camera.setPitch(pitch);
+        camera.setPreviousYaw(previousYaw);
+        camera.setPreviousPitch(previousPitch);
         
         // 同步物品栏选择
         inventory.setSelectedSlot(event.getSelectedSlot());
@@ -113,40 +215,30 @@ public class ClientPlayer extends ClientEntity {
         camera.update();
     }
 
-    public float getEyeHeight() {
-        return eyeHeight;
+    public float getYaw() {
+        return yaw;
     }
     
-    public float getHealth() {
-        return health;
+    public void setYaw(float yaw) {
+        this.yaw = yaw;
+        camera.setYaw(yaw);
     }
     
-    public float getMaxHealth() {
-        return maxHealth;
+    public float getPreviousYaw() {
+        return previousYaw;
     }
     
-    public float getHunger() {
-        return hunger;
+    public float getPitch() {
+        return pitch;
     }
     
-    public float getMaxHunger() {
-        return maxHunger;
+    public void setPitch(float pitch) {
+        this.pitch = Math.max(-90, Math.min(90, pitch));
+        camera.setPitch(this.pitch);
     }
     
-    public void setHealth(float health) {
-        this.health = health;
-    }
-    
-    public void setMaxHealth(float maxHealth) {
-        this.maxHealth = maxHealth;
-    }
-    
-    public void setHunger(float hunger) {
-        this.hunger = hunger;
-    }
-    
-    public void setMaxHunger(float maxHunger) {
-        this.maxHunger = maxHunger;
+    public float getPreviousPitch() {
+        return previousPitch;
     }
 }
 

@@ -2,7 +2,6 @@ package com.ksptool.ourcraft.client.world;
 
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.rendering.Mesh;
-import com.ksptool.ourcraft.server.world.ChunkManager;
 import com.ksptool.ourcraft.sharedcore.events.BlockUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.events.ChunkDataEvent;
 import com.ksptool.ourcraft.sharedcore.events.ChunkUnloadEvent;
@@ -12,7 +11,6 @@ import com.ksptool.ourcraft.sharedcore.events.GameEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.client.world.MeshGenerationResult;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import com.ksptool.ourcraft.sharedcore.world.ChunkUtils;
 import lombok.Getter;
@@ -34,6 +32,9 @@ public class ClientWorld implements SharedWorld {
     //服务器发送到客户端的事件队列
     private final EventQueue eventQueue;
     
+    //世界模板
+    private final WorldTemplate template;
+    
     private float timeOfDay = 0.0f;
 
     //客户端本地玩家
@@ -42,6 +43,7 @@ public class ClientWorld implements SharedWorld {
     private final List<ClientChunk> dirtyChunks = new ArrayList<>();
     
     public ClientWorld(WorldTemplate template) {
+        this.template = template;
         this.eventQueue = EventQueue.getInstance();
         this.chunkMeshGenerator = new ChunkMeshGenerator(this);
     }
@@ -178,6 +180,21 @@ public class ClientWorld implements SharedWorld {
             }
         }
         return result;
+    }
+    
+    /**
+     * 将区块标记为需要网格更新（用于网络接收的区块数据）
+     */
+    public void markChunkForMeshUpdate(int chunkX, int chunkZ) {
+        ClientChunk chunk = getChunk(chunkX, chunkZ);
+        if (chunk != null) {
+            chunk.markNeedsMeshUpdate();
+            synchronized (dirtyChunks) {
+                if (!dirtyChunks.contains(chunk)) {
+                    dirtyChunks.add(chunk);
+                }
+            }
+        }
     }
     
     public void setTimeOfDay(float timeOfDay) {

@@ -47,6 +47,13 @@ public class ClientChunk {
         return 0;
     }
     
+    public void setBlockState(int x, int y, int z, int stateId) {
+        if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT && z >= 0 && z < CHUNK_SIZE) {
+            blockStates[x][y][z] = stateId;
+            needsMeshUpdate = true;
+        }
+    }
+    
     public void setMesh(Mesh mesh) {
         if (this.mesh != null) {
             this.mesh.cleanup();

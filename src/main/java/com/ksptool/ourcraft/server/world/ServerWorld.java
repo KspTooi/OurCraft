@@ -52,6 +52,7 @@ public class ServerWorld implements SharedWorld {
     private RegionManager regionManager;
     @Getter
     private RegionManager entityRegionManager;
+    @Getter
     private String saveName;
     
     private NoiseGenerator noiseGenerator;
@@ -99,12 +100,20 @@ public class ServerWorld implements SharedWorld {
 
     /**
      * 新的update方法，由GameServer的主循环调用
-     * 使用累加器模式，根据模板配置的TPS进行逻辑更新
+     * 如果传入的deltaTime等于tickTime，则直接执行一次tick（固定时间步长模式）
+     * 否则使用累加器模式处理可变时间增量（向后兼容）
      */
     public void update(float deltaTime, Vector3f playerPosition, Runnable playerTickCallback) {
-        timeAccumulator += deltaTime;
         double tickTime = 1.0 / template.getTicksPerSecond();
         
+        // 如果传入的时间增量等于tickTime（固定时间步长），直接执行一次tick
+        if (Math.abs(deltaTime - tickTime) < 0.001) {
+            tick(playerPosition, playerTickCallback);
+            return;
+        }
+        
+        // 否则使用累加器模式（处理可变时间增量，向后兼容）
+        timeAccumulator += deltaTime;
         while (timeAccumulator >= tickTime) {
             tick(playerPosition, playerTickCallback);
             timeAccumulator -= tickTime;
