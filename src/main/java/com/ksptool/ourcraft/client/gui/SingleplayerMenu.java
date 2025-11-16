@@ -3,8 +3,9 @@ package com.ksptool.ourcraft.client.gui;
 import com.ksptool.ourcraft.client.Input;
 import com.ksptool.ourcraft.client.rendering.GuiRenderer;
 import com.ksptool.ourcraft.client.rendering.TextRenderer;
-import com.ksptool.ourcraft.world.WorldManager;
-import com.ksptool.ourcraft.world.save.SaveManager;
+import com.ksptool.ourcraft.server.world.save.SaveManager;
+import com.ksptool.ourcraft.server.world.save.WorldIndex;
+import com.ksptool.ourcraft.server.world.save.WorldMetadata;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector2d;
@@ -59,8 +60,8 @@ public class SingleplayerMenu {
         renderSaveList(guiRenderer, saves, windowWidth, windowHeight);
 
         if (StringUtils.isNotBlank(selectedSave)) {
-            List<String> worlds = WorldManager.getInstance().getWorldList(selectedSave);
-        renderWorldList(guiRenderer, worlds, windowWidth, windowHeight);
+            List<String> worlds = getWorldList(selectedSave);
+            renderWorldList(guiRenderer, worlds, windowWidth, windowHeight);
         }
     }
 
@@ -178,7 +179,7 @@ public class SingleplayerMenu {
             }
 
             if (StringUtils.isNotBlank(selectedSave)) {
-                List<String> worlds = WorldManager.getInstance().getWorldList(selectedSave);
+                List<String> worlds = getWorldList(selectedSave);
                 currentY = WORLD_LIST_Y;
 
                 startIndex = Math.max(0, scrollOffset);
@@ -209,9 +210,9 @@ public class SingleplayerMenu {
                 if (saveScrollOffset > maxScroll) {
                     saveScrollOffset = maxScroll;
                 }
-            } else if (StringUtils.isNotBlank(selectedSave) && mousePosition.y >= WORLD_LIST_Y && mousePosition.y <= WORLD_LIST_Y + WORLD_LIST_HEIGHT) {
-                List<String> worlds = WorldManager.getInstance().getWorldList(selectedSave);
-            int maxScroll = Math.max(0, worlds.size() - (int)(WORLD_LIST_HEIGHT / WORLD_ITEM_HEIGHT));
+            } else             if (StringUtils.isNotBlank(selectedSave) && mousePosition.y >= WORLD_LIST_Y && mousePosition.y <= WORLD_LIST_Y + WORLD_LIST_HEIGHT) {
+                List<String> worlds = getWorldList(selectedSave);
+                int maxScroll = Math.max(0, worlds.size() - (int)(WORLD_LIST_HEIGHT / WORLD_ITEM_HEIGHT));
             scrollOffset += (int)scrollY;
             if (scrollOffset < 0) {
                 scrollOffset = 0;
@@ -228,6 +229,25 @@ public class SingleplayerMenu {
     private boolean isMouseOverButton(double mouseX, double mouseY, float buttonX, float buttonY, float buttonWidth, float buttonHeight) {
         return mouseX >= buttonX && mouseX <= buttonX + buttonWidth &&
                mouseY >= buttonY && mouseY <= buttonY + buttonHeight;
+    }
+
+    private List<String> getWorldList(String saveName) {
+        if (StringUtils.isBlank(saveName)) {
+            return new java.util.ArrayList<>();
+        }
+
+        WorldIndex index = SaveManager.getInstance().loadWorldIndex(saveName);
+        if (index == null || index.worlds == null) {
+            return new java.util.ArrayList<>();
+        }
+
+        List<String> worldNames = new java.util.ArrayList<>();
+        for (WorldMetadata metadata : index.worlds) {
+            if (metadata != null && StringUtils.isNotBlank(metadata.name)) {
+                worldNames.add(metadata.name);
+            }
+        }
+        return worldNames;
     }
 }
 

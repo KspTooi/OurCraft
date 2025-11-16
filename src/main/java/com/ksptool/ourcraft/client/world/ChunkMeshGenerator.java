@@ -4,8 +4,8 @@ import com.ksptool.ourcraft.client.rendering.TextureManager;
 import com.ksptool.ourcraft.sharedcore.BlockType;
 import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.world.GlobalPalette;
-import com.ksptool.ourcraft.world.MeshGenerationResult;
+import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
+import com.ksptool.ourcraft.client.world.MeshGenerationResult;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.client.world;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
-import com.ksptool.ourcraft.world.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
 import org.joml.Vector3f;
 
 /**

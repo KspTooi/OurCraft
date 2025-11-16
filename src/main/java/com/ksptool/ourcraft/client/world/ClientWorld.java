@@ -1,7 +1,8 @@
 package com.ksptool.ourcraft.client.world;
 
+import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.rendering.Mesh;
-import com.ksptool.ourcraft.sharedcore.BoundingBox;
+import com.ksptool.ourcraft.server.world.ChunkManager;
 import com.ksptool.ourcraft.sharedcore.events.BlockUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.events.ChunkDataEvent;
 import com.ksptool.ourcraft.sharedcore.events.ChunkUnloadEvent;
@@ -11,11 +12,10 @@ import com.ksptool.ourcraft.sharedcore.events.GameEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.world.ChunkManager;
-import com.ksptool.ourcraft.world.MeshGenerationResult;
-import com.ksptool.ourcraft.world.WorldTemplate;
+import com.ksptool.ourcraft.client.world.MeshGenerationResult;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.ChunkUtils;
 import lombok.Getter;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,10 +27,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Getter
 public class ClientWorld implements SharedWorld {
+
+
     private final Map<Long, ClientChunk> chunks = new ConcurrentHashMap<>();
+
+    //服务器发送到客户端的事件队列
     private final EventQueue eventQueue;
+    
     private float timeOfDay = 0.0f;
-    private com.ksptool.ourcraft.client.entity.ClientPlayer player;
+
+    //客户端本地玩家
+    private ClientPlayer player;
     private ChunkMeshGenerator chunkMeshGenerator;
     private final List<ClientChunk> dirtyChunks = new ArrayList<>();
     
@@ -39,27 +46,32 @@ public class ClientWorld implements SharedWorld {
         this.chunkMeshGenerator = new ChunkMeshGenerator(this);
     }
     
-    public void setPlayer(com.ksptool.ourcraft.client.entity.ClientPlayer player) {
+    public void setPlayer(ClientPlayer player) {
         this.player = player;
     }
     
     /**
-     * 处理事件队列中的所有事件
+     * 处理服务器发送到客户端的事件队列中的所有事件
      */
     public void processEvents() {
         java.util.List<GameEvent> events = eventQueue.pollAllS2C();
         for (GameEvent event : events) {
             if (event instanceof BlockUpdateEvent) {
                 handleBlockUpdate((BlockUpdateEvent) event);
-            } else if (event instanceof ChunkUpdateEvent) {
+            }
+            if (event instanceof ChunkUpdateEvent) {
                 handleChunkUpdate((ChunkUpdateEvent) event);
-            } else if (event instanceof TimeUpdateEvent) {
+            }
+            if (event instanceof TimeUpdateEvent) {
                 handleTimeUpdate((TimeUpdateEvent) event);
-            } else if (event instanceof ChunkDataEvent) {
+            }
+            if (event instanceof ChunkDataEvent) {
                 handleChunkData((ChunkDataEvent) event);
-            } else if (event instanceof ChunkUnloadEvent) {
+            }
+            if (event instanceof ChunkUnloadEvent) {
                 handleChunkUnload((ChunkUnloadEvent) event);
-            } else if (event instanceof PlayerUpdateEvent) {
+            }
+            if (event instanceof PlayerUpdateEvent) {
                 handlePlayerUpdate((PlayerUpdateEvent) event);
             }
         }
@@ -68,7 +80,7 @@ public class ClientWorld implements SharedWorld {
     private void handleBlockUpdate(BlockUpdateEvent event) {
         int chunkX = (int) Math.floor((float) event.getX() / ClientChunk.CHUNK_SIZE);
         int chunkZ = (int) Math.floor((float) event.getZ() / ClientChunk.CHUNK_SIZE);
-        long key = ChunkManager.getChunkKey(chunkX, chunkZ);
+        long key = ChunkUtils.getChunkKey(chunkX, chunkZ);
         
         ClientChunk clientChunk = chunks.get(key);
         if (clientChunk != null) {
@@ -77,7 +89,7 @@ public class ClientWorld implements SharedWorld {
     }
     
     private void handleChunkUpdate(ChunkUpdateEvent event) {
-        long key = ChunkManager.getChunkKey(event.getChunkX(), event.getChunkZ());
+        long key = ChunkUtils.getChunkKey(event.getChunkX(), event.getChunkZ());
         ClientChunk clientChunk = chunks.get(key);
         if (clientChunk != null) {
             clientChunk.markNeedsMeshUpdate();
@@ -132,7 +144,7 @@ public class ClientWorld implements SharedWorld {
      * 添加或更新客户端区块
      */
     public void putChunk(int chunkX, int chunkZ, ClientChunk clientChunk) {
-        long key = ChunkManager.getChunkKey(chunkX, chunkZ);
+        long key = ChunkUtils.getChunkKey(chunkX, chunkZ);
         chunks.put(key, clientChunk);
     }
     
@@ -140,7 +152,7 @@ public class ClientWorld implements SharedWorld {
      * 获取客户端区块
      */
     public ClientChunk getChunk(int chunkX, int chunkZ) {
-        long key = ChunkManager.getChunkKey(chunkX, chunkZ);
+        long key = ChunkUtils.getChunkKey(chunkX, chunkZ);
         return chunks.get(key);
     }
     
@@ -148,7 +160,7 @@ public class ClientWorld implements SharedWorld {
      * 移除客户端区块
      */
     public void removeChunk(int chunkX, int chunkZ) {
-        long key = ChunkManager.getChunkKey(chunkX, chunkZ);
+        long key = ChunkUtils.getChunkKey(chunkX, chunkZ);
         ClientChunk clientChunk = chunks.remove(key);
         if (clientChunk != null) {
             clientChunk.cleanup();

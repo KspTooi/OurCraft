@@ -7,13 +7,10 @@ import com.ksptool.ourcraft.client.rendering.Renderer;
 import com.ksptool.ourcraft.client.rendering.GuiRenderer;
 import com.ksptool.ourcraft.client.rendering.WorldRenderer;
 import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
-import com.ksptool.ourcraft.world.GlobalPalette;
 import com.ksptool.ourcraft.client.gui.MainMenu;
 import com.ksptool.ourcraft.client.gui.SingleplayerMenu;
 import com.ksptool.ourcraft.client.gui.CreateWorldMenu;
 import com.ksptool.ourcraft.client.gui.UiConstants;
-import com.ksptool.ourcraft.world.WorldTemplate;
-import com.ksptool.ourcraft.world.Registry;
 import com.ksptool.ourcraft.sharedcore.events.EventQueue;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerHotbarSwitchEvent;
@@ -21,6 +18,9 @@ import com.ksptool.ourcraft.sharedcore.events.PlayerActionEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerAction;
 import com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.ClientReadyEvent;
+import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.world.Registry;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -51,7 +51,7 @@ public class GameClient {
         SharedBlock.registerBlocks();
         GlobalPalette.getInstance().bake();
         
-        window = new Window(1280, 720, "MyCraft");
+        window = new Window(1280, 720, "OurCraft 1.1Z1 \uD83E\uDD86 内部预览版");
         window.init();
         input = new Input(window.getWindowHandle());
         input.setMouseLocked(false);

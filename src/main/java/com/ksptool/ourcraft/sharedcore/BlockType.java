@@ -2,7 +2,7 @@ package com.ksptool.ourcraft.sharedcore;
 
 import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.blocks.*;
-import com.ksptool.ourcraft.world.Registry;
+import com.ksptool.ourcraft.sharedcore.world.Registry;
 import lombok.Getter;
 import lombok.SneakyThrows;
 

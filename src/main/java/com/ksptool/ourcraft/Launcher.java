@@ -7,11 +7,12 @@ import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.server.GameServer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
-import com.ksptool.ourcraft.world.Registry;
-import com.ksptool.ourcraft.world.WorldManager;
-import com.ksptool.ourcraft.world.WorldTemplate;
-import com.ksptool.ourcraft.world.save.RegionManager;
-import com.ksptool.ourcraft.world.save.SaveManager;
+import com.ksptool.ourcraft.sharedcore.world.Registry;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.server.world.save.RegionManager;
+import com.ksptool.ourcraft.server.world.save.SaveManager;
+import com.ksptool.ourcraft.server.world.save.WorldIndex;
+import com.ksptool.ourcraft.server.world.save.WorldMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -50,7 +51,17 @@ public class Launcher {
 
         log.info("启动游戏服务器: saveName={}, worldName={}", saveName, worldName);
 
-        boolean isNewWorld = !WorldManager.getInstance().worldExists(saveName, worldName);
+        SaveManager saveManager = SaveManager.getInstance();
+        WorldIndex index = saveManager.loadWorldIndex(saveName);
+        boolean isNewWorld = true;
+        if (index != null && index.worlds != null) {
+            for (WorldMetadata metadata : index.worlds) {
+                if (metadata != null && worldName.equals(metadata.name)) {
+                    isNewWorld = false;
+                    break;
+                }
+            }
+        }
         
         if (isNewWorld) {
             createNewWorld(saveName, worldName);
@@ -141,7 +152,18 @@ public class Launcher {
 
         serverWorld.init();
 
-        WorldManager.getInstance().saveWorld(convertToWorld(serverWorld), saveName, worldName);
+        WorldIndex index = saveManager.loadWorldIndex(saveName);
+        if (index == null) {
+            index = new WorldIndex();
+        }
+        WorldMetadata metadata = new WorldMetadata();
+        metadata.name = worldName;
+        metadata.seed = serverWorld.getSeed();
+        metadata.worldTime = serverWorld.getGameTime();
+        metadata.templateId = serverWorld.getTemplate().getTemplateId();
+        index.worlds.add(metadata);
+        saveManager.saveWorldIndex(saveName, index);
+        saveManager.savePalette(saveName, com.ksptool.ourcraft.sharedcore.world.GlobalPalette.getInstance());
 
         float initialX = 8.0f;
         float initialZ = 8.0f;
@@ -170,13 +192,67 @@ public class Launcher {
     private static void loadWorld(String saveName, String worldName) {
         log.info("加载世界: saveName={}, worldName={}", saveName, worldName);
 
-        com.ksptool.ourcraft.world.World loadedWorld = WorldManager.getInstance().loadWorld(saveName, worldName);
-        if (loadedWorld == null) {
-            log.error("加载世界失败");
+        SaveManager saveManager = SaveManager.getInstance();
+        WorldIndex index = saveManager.loadWorldIndex(saveName);
+        if (index == null || index.worlds == null) {
+            log.error("加载世界失败: 无法读取世界索引 saveName={}", saveName);
             return;
         }
 
-        serverWorld = convertToServerWorld(loadedWorld);
+        WorldMetadata metadata = null;
+        for (WorldMetadata m : index.worlds) {
+            if (m != null && worldName.equals(m.name)) {
+                metadata = m;
+                break;
+            }
+        }
+
+        if (metadata == null) {
+            log.error("加载世界失败: 世界不存在 saveName={}, worldName={}", saveName, worldName);
+            return;
+        }
+
+        com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = com.ksptool.ourcraft.sharedcore.world.GlobalPalette.getInstance();
+        if (!palette.isBaked()) {
+            if (!saveManager.loadPalette(saveName, palette)) {
+                log.debug("调色板文件不存在，使用默认调色板");
+                palette.bake();
+            } else {
+                log.debug("已加载调色板");
+            }
+        }
+        
+        WorldTemplate template = Registry.getWorldTemplate(metadata.templateId);
+        if (template == null) {
+            log.warn("找不到世界模板 '{}', 使用默认模板", metadata.templateId);
+            template = Registry.getDefaultTemplate();
+            if (template == null) {
+                log.error("无法加载世界: 默认模板未找到");
+                return;
+            }
+        }
+        
+        serverWorld = new ServerWorld(template);
+        serverWorld.setWorldName(worldName);
+        serverWorld.setSeed(metadata.seed);
+        serverWorld.setGameTime(metadata.worldTime);
+        serverWorld.setSaveName(saveName);
+        
+        File chunksDir = saveManager.getWorldChunkDir(saveName, worldName);
+        if (chunksDir != null) {
+            RegionManager regionManager = new RegionManager(chunksDir, ".sca", "SCAF");
+            serverWorld.setRegionManager(regionManager);
+            log.debug("已设置区块区域管理器");
+        }
+        
+        File entityDir = saveManager.getWorldEntityDir(saveName, worldName);
+        if (entityDir != null) {
+            RegionManager entityRegionManager = new RegionManager(entityDir, ".sce", "SCEF");
+            serverWorld.setEntityRegionManager(entityRegionManager);
+            log.debug("已设置实体区域管理器");
+        }
+        
+        serverWorld.init();
 
         float initialX = 8.0f;
         float initialZ = 8.0f;
@@ -202,7 +278,7 @@ public class Launcher {
         serverPlayer.getPosition().set(initialX, initialY, initialZ);
         serverWorld.addEntity(serverPlayer);
 
-        com.ksptool.ourcraft.world.save.PlayerIndex playerIndex = SaveManager.getInstance().loadPlayer(saveName, playerUUID);
+        com.ksptool.ourcraft.server.world.save.PlayerIndex playerIndex = SaveManager.getInstance().loadPlayer(saveName, playerUUID);
         if (playerIndex != null) {
             serverPlayer.loadFromPlayerIndex(playerIndex);
             if (serverPlayer.getPosition().y > 0) {
@@ -223,63 +299,38 @@ public class Launcher {
         }
 
         log.info("保存世界: saveName={}, worldName={}", currentSaveName, currentWorldName);
-        WorldManager.getInstance().saveWorld(convertToWorld(serverWorld), serverPlayer, currentSaveName, currentWorldName);
-    }
+        
+        SaveManager saveManager = SaveManager.getInstance();
+        WorldIndex index = saveManager.loadWorldIndex(currentSaveName);
+        if (index == null) {
+            index = new WorldIndex();
+        }
 
-    /**
-     * 临时转换方法：将ServerWorld转换为World（用于兼容现有代码）
-     * 注意：这个方法只是创建一个包装器，实际的区块数据仍然在ServerWorld中
-     * TODO: 未来应该修改WorldManager以直接接受ServerWorld
-     */
-    private static com.ksptool.ourcraft.world.World convertToWorld(ServerWorld serverWorld) {
-        if (serverWorld == null) {
-            return null;
+        WorldMetadata metadata = null;
+        for (WorldMetadata m : index.worlds) {
+            if (m != null && currentWorldName.equals(m.name)) {
+                metadata = m;
+                break;
+            }
         }
-        WorldTemplate template = serverWorld.getTemplate();
-        com.ksptool.ourcraft.world.World world = new com.ksptool.ourcraft.world.World(template);
-        world.setWorldName(serverWorld.getWorldName());
-        world.setSeed(serverWorld.getSeed());
-        world.setGameTime(serverWorld.getGameTime());
-        world.setSaveName(serverWorld.getSaveName());
-        world.setRegionManager(serverWorld.getRegionManager());
-        world.setEntityRegionManager(serverWorld.getEntityRegionManager());
-        world.init();
-        
-        com.ksptool.ourcraft.world.ChunkManager worldChunkManager = world.getChunkManager();
-        com.ksptool.ourcraft.world.ChunkManager serverChunkManager = serverWorld.getChunkManager();
-        
-        for (java.util.Map.Entry<Long, com.ksptool.ourcraft.server.world.ServerChunk> entry : serverChunkManager.getChunks().entrySet()) {
-            worldChunkManager.getChunks().put(entry.getKey(), entry.getValue());
-        }
-        
-        return world;
-    }
 
-    /**
-     * 临时转换方法：将World转换为ServerWorld
-     * 注意：这个方法复制区块数据以确保数据一致性
-     * TODO: 未来应该直接加载为ServerWorld
-     */
-    private static ServerWorld convertToServerWorld(com.ksptool.ourcraft.world.World world) {
-        if (world == null) {
-            return null;
+        if (metadata == null) {
+            metadata = new WorldMetadata();
+            metadata.name = currentWorldName;
+            index.worlds.add(metadata);
         }
-        ServerWorld serverWorld = new ServerWorld(world.getTemplate());
-        serverWorld.setWorldName(world.getWorldName());
-        serverWorld.setSeed(world.getSeed());
-        serverWorld.setGameTime(world.getGameTime());
-        serverWorld.setSaveName(world.getSaveName());
-        serverWorld.setRegionManager(world.getRegionManager());
-        serverWorld.setEntityRegionManager(world.getEntityRegionManager());
-        serverWorld.init();
+
+        metadata.seed = serverWorld.getSeed();
+        metadata.worldTime = serverWorld.getGameTime();
+        metadata.templateId = serverWorld.getTemplate().getTemplateId();
+
+        saveManager.saveWorldIndex(currentSaveName, index);
+        saveManager.savePalette(currentSaveName, com.ksptool.ourcraft.sharedcore.world.GlobalPalette.getInstance());
         
-        com.ksptool.ourcraft.world.ChunkManager worldChunkManager = world.getChunkManager();
-        com.ksptool.ourcraft.world.ChunkManager serverChunkManager = serverWorld.getChunkManager();
+        serverWorld.saveAllDirtyData();
         
-        for (java.util.Map.Entry<Long, com.ksptool.ourcraft.server.world.ServerChunk> entry : worldChunkManager.getChunks().entrySet()) {
-            serverChunkManager.getChunks().put(entry.getKey(), entry.getValue());
+        if (serverPlayer != null) {
+            saveManager.savePlayer(currentSaveName, serverPlayer.getUniqueId(), serverPlayer);
         }
-        
-        return serverWorld;
     }
 }

@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.client.gui;
 import com.ksptool.ourcraft.client.Input;
 import com.ksptool.ourcraft.client.rendering.GuiRenderer;
 import com.ksptool.ourcraft.client.rendering.TextRenderer;
-import com.ksptool.ourcraft.world.save.SaveManager;
+import com.ksptool.ourcraft.server.world.save.SaveManager;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector2d;
 import org.joml.Vector4f;

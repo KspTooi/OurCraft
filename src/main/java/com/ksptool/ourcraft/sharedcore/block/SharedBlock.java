@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.sharedcore.block;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
-import com.ksptool.ourcraft.world.Registry;
+import com.ksptool.ourcraft.sharedcore.world.Registry;
 import lombok.Getter;
 import java.util.*;
 

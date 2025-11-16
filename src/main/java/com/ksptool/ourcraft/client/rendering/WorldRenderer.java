@@ -3,7 +3,6 @@ package com.ksptool.ourcraft.client.rendering;
 import com.ksptool.ourcraft.client.world.ClientChunk;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.client.entity.Camera;
-import com.ksptool.ourcraft.world.ChunkManager;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
