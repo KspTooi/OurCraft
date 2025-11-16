@@ -1,6 +1,6 @@
 package com.ksptool.mycraft.world.gen;
 
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.server.world.ServerChunk;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,16 +25,16 @@ public class TerrainPipeline {
     }
 
     //执行地形管道
-    public void execute(Chunk chunk, GenerationContext context) {
-        int[][][] chunkData = new int[Chunk.CHUNK_SIZE][Chunk.CHUNK_HEIGHT][Chunk.CHUNK_SIZE];
+    public void execute(ServerChunk chunk, GenerationContext context) {
+        int[][][] chunkData = new int[ServerChunk.CHUNK_SIZE][ServerChunk.CHUNK_HEIGHT][ServerChunk.CHUNK_SIZE];
         
         for (ITerrainLayer layer : layers) {
             layer.apply(chunkData, chunk.getChunkX(), chunk.getChunkZ(), context);
         }
         
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
+        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
+            for (int y = 0; y < ServerChunk.CHUNK_HEIGHT; y++) {
+                for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
                     chunk.setBlockState(x, y, z, chunkData[x][y][z]);
                 }
             }

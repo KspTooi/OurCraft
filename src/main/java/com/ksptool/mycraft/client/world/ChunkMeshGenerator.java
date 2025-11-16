@@ -1,32 +1,20 @@
-package com.ksptool.mycraft.world;
+package com.ksptool.mycraft.client.world;
 
-import com.ksptool.mycraft.sharedcore.BlockType;
-import com.ksptool.mycraft.sharedcore.BoundingBox;
-import com.ksptool.mycraft.client.rendering.Mesh;
 import com.ksptool.mycraft.client.rendering.TextureManager;
+import com.ksptool.mycraft.sharedcore.BlockType;
 import com.ksptool.mycraft.sharedcore.world.BlockState;
+import com.ksptool.mycraft.world.Block;
+import com.ksptool.mycraft.world.GlobalPalette;
+import com.ksptool.mycraft.world.MeshGenerationResult;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 
 /**
- * 区块类，存储方块数据并生成渲染网格
+ * 客户端区块网格异步生成器类，使用线程池异步生成区块网格数据
  */
-public class Chunk {
-
-    //区块大小
-    public static final int CHUNK_SIZE = 16;
-    
-    //区块高度
-    public static final int CHUNK_HEIGHT = 256;
-
-    public enum ChunkState {
-        NEW,
-        DATA_LOADED,
-        AWAITING_MESH,
-        READY_TO_UPLOAD,
-        READY
-    }
+public class ChunkMeshGenerator {
 
     private enum BlockFace {
         TOP(0, 1, 0, 0, new int[][]{{0, 1, 0}, {1, 1, 0}, {1, 1, 1}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
@@ -55,52 +43,31 @@ public class Chunk {
         }
     }
 
-    private int[][][] blockStates;
-    private int chunkX;
-    private int chunkZ;
-    private Mesh mesh;
-    private Mesh transparentMesh;
-    private boolean needsUpdate;
-    private ChunkState state;
-    private BoundingBox boundingBox;
-    private static final int AIR_STATE_ID = 0;
-    private boolean isDirty = false;
-    private boolean entitiesDirty = false;
+    private final ExecutorService executor;
+    private final List<Future<MeshGenerationResult>> pendingFutures = new CopyOnWriteArrayList<>();
+    private final ClientWorld clientWorld;
 
-    public Chunk(int chunkX, int chunkZ) {
-        this.chunkX = chunkX;
-        this.chunkZ = chunkZ;
-        this.blockStates = new int[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];
-        this.needsUpdate = true;
-        this.state = ChunkState.NEW;
-        
-        float minX = chunkX * CHUNK_SIZE;
-        float maxX = minX + CHUNK_SIZE;
-        float minZ = chunkZ * CHUNK_SIZE;
-        float maxZ = minZ + CHUNK_SIZE;
-        this.boundingBox = new BoundingBox(minX, 0, minZ, maxX, CHUNK_HEIGHT, maxZ);
+    public ChunkMeshGenerator(ClientWorld clientWorld) {
+        this.clientWorld = clientWorld;
+        int numThreads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+        this.executor = Executors.newFixedThreadPool(numThreads);
     }
 
-    public void setBlockState(int x, int y, int z, int stateId) {
-        if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT && z >= 0 && z < CHUNK_SIZE) {
-            blockStates[x][y][z] = stateId;
-            needsUpdate = true;
-            markDirty(true);
-        }
+    public void submitMeshTask(ClientChunk chunk) {
+        Callable<MeshGenerationResult> task = () -> calculateMeshData(chunk, clientWorld);
+        Future<MeshGenerationResult> future = executor.submit(task);
+        pendingFutures.add(future);
     }
 
-    public int getBlockState(int x, int y, int z) {
-        if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT && z >= 0 && z < CHUNK_SIZE) {
-            return blockStates[x][y][z];
-        }
-        return AIR_STATE_ID;
+    public List<Future<MeshGenerationResult>> getPendingFutures() {
+        return pendingFutures;
     }
 
-    public MeshGenerationResult calculateMeshData(World world) {
-        if (!needsUpdate) {
-            return null;
-        }
+    public void shutdown() {
+        executor.shutdown();
+    }
 
+    public MeshGenerationResult calculateMeshData(ClientChunk chunk, ClientWorld clientWorld) {
         List<Float> vertices = new ArrayList<>();
         List<Float> texCoords = new ArrayList<>();
         List<Float> tints = new ArrayList<>();
@@ -117,10 +84,14 @@ public class Chunk {
         int transparentVertexOffset = 0;
 
         GlobalPalette palette = GlobalPalette.getInstance();
+        int[][][] blockStates = chunk.getBlockStates();
+        int chunkX = chunk.getChunkX();
+        int chunkZ = chunk.getChunkZ();
+        int AIR_STATE_ID = 0;
 
-        for (int x = 0; x < CHUNK_SIZE; x++) {
-            for (int y = 0; y < CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < CHUNK_SIZE; z++) {
+        for (int x = 0; x < ClientChunk.CHUNK_SIZE; x++) {
+            for (int y = 0; y < ClientChunk.CHUNK_HEIGHT; y++) {
+                for (int z = 0; z < ClientChunk.CHUNK_SIZE; z++) {
                     int stateId = blockStates[x][y][z];
                     BlockState state = palette.getState(stateId);
                     Block block = state.getBlock();
@@ -129,8 +100,8 @@ public class Chunk {
                         continue;
                     }
 
-                    int worldX = chunkX * CHUNK_SIZE + x;
-                    int worldZ = chunkZ * CHUNK_SIZE + z;
+                    int worldX = chunkX * ClientChunk.CHUNK_SIZE + x;
+                    int worldZ = chunkZ * ClientChunk.CHUNK_SIZE + z;
 
                     boolean isFluid = block.isFluid();
                     List<Float> targetVertices = isFluid ? transparentVertices : vertices;
@@ -141,7 +112,7 @@ public class Chunk {
                     int currentOffset = isFluid ? transparentVertexOffset : vertexOffset;
 
                     for (BlockFace face : BlockFace.values()) {
-                        if (shouldRenderFace(world, worldX, y, worldZ, face.dx, face.dy, face.dz, block)) {
+                        if (shouldRenderFace(clientWorld, worldX, y, worldZ, face.dx, face.dy, face.dz, block)) {
                             addFace(face, targetVertices, targetTexCoords, targetTints, targetAnimationData, targetIndices, worldX, y, worldZ, state, currentOffset);
                             currentOffset += 4;
                         }
@@ -168,8 +139,7 @@ public class Chunk {
         float[] transparentAnimationDataArray = convertToFloatArray(transparentAnimationData);
         int[] transparentIndicesArray = convertToIntArray(transparentIndices);
 
-        needsUpdate = false;
-        return new MeshGenerationResult(this, verticesArray, texCoordsArray, tintsArray, animationDataArray, indicesArray,
+        return new MeshGenerationResult(chunk.getChunkX(), chunk.getChunkZ(), verticesArray, texCoordsArray, tintsArray, animationDataArray, indicesArray,
                 transparentVerticesArray, transparentTexCoordsArray, transparentTintsArray, transparentAnimationDataArray, transparentIndicesArray);
     }
 
@@ -189,34 +159,13 @@ public class Chunk {
         return array;
     }
 
-    public void uploadToGPU(MeshGenerationResult result) {
-        if (mesh != null) {
-            mesh.cleanup();
-            mesh = null;
-        }
-
-        if (transparentMesh != null) {
-            transparentMesh.cleanup();
-            transparentMesh = null;
-        }
-
-        if (result.vertices.length > 0) {
-            mesh = new Mesh(result.vertices, result.texCoords, result.tints, result.animationData, result.indices);
-        }
-
-        if (result.transparentVertices.length > 0) {
-            transparentMesh = new Mesh(result.transparentVertices, result.transparentTexCoords, result.transparentTints, result.transparentAnimationData, result.transparentIndices);
-        }
-
-        state = ChunkState.READY;
-    }
-
-    private boolean shouldRenderFace(World world, int x, int y, int z, int dx, int dy, int dz, Block currentBlock) {
-        int neighborStateId = world.getBlockState(x + dx, y + dy, z + dz);
+    private boolean shouldRenderFace(ClientWorld clientWorld, int x, int y, int z, int dx, int dy, int dz, Block currentBlock) {
+        int neighborStateId = clientWorld.getBlockState(x + dx, y + dy, z + dz);
         GlobalPalette palette = GlobalPalette.getInstance();
         BlockState neighborState = palette.getState(neighborStateId);
         Block neighborBlock = neighborState.getBlock();
         
+        int AIR_STATE_ID = 0;
         if (neighborStateId == AIR_STATE_ID) {
             return true;
         }
@@ -278,7 +227,6 @@ public class Chunk {
         }
     }
 
-
     private float[] getTextureCoords(BlockState state, int face) {
         Block block = state.getBlock();
         String textureName = block.getTextureName(face, state);
@@ -330,76 +278,4 @@ public class Chunk {
         
         return 0.0f;
     }
-
-    public void render() {
-        if (mesh == null) {
-            return;
-        }
-        mesh.render();
-    }
-
-    public void renderTransparent() {
-        if (transparentMesh == null) {
-            return;
-        }
-        transparentMesh.render();
-    }
-    
-    public boolean hasMesh() {
-        return mesh != null;
-    }
-
-    public boolean hasTransparentMesh() {
-        return transparentMesh != null;
-    }
-
-    public void cleanup() {
-        if (mesh != null) {
-            mesh.cleanup();
-        }
-        if (transparentMesh != null) {
-            transparentMesh.cleanup();
-        }
-    }
-
-    public int getChunkX() {
-        return chunkX;
-    }
-
-    public int getChunkZ() {
-        return chunkZ;
-    }
-
-    public boolean needsUpdate() {
-        return needsUpdate;
-    }
-
-    public ChunkState getState() {
-        return state;
-    }
-
-    public void setState(ChunkState state) {
-        this.state = state;
-    }
-
-    public BoundingBox getBoundingBox() {
-        return boundingBox;
-    }
-
-    public void markDirty(boolean isDirty) {
-        this.isDirty = isDirty;
-    }
-
-    public boolean isDirty() {
-        return isDirty;
-    }
-
-    public void markEntitiesDirty(boolean entitiesDirty) {
-        this.entitiesDirty = entitiesDirty;
-    }
-
-    public boolean areEntitiesDirty() {
-        return entitiesDirty;
-    }
 }
-

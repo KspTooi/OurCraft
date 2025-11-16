@@ -1,5 +1,7 @@
 package com.ksptool.mycraft.world;
 
+import com.ksptool.mycraft.server.world.ServerChunk;
+import com.ksptool.mycraft.server.world.ServerWorld;
 import com.ksptool.mycraft.world.save.ChunkSerializer;
 import com.ksptool.mycraft.world.save.RegionFile;
 import com.ksptool.mycraft.world.save.RegionManager;
@@ -22,12 +24,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ChunkManager {
     private static final int RENDER_DISTANCE = 8;
     
-    private final World world;
-    private Map<Long, Chunk> chunks;
+    private final ServerWorld world;
+    private Map<Long, ServerChunk> chunks;
     private final BlockingQueue<ChunkGenerationTask> generationQueue;
     private final Map<Long, ChunkGenerationTask> pendingChunks;
     private WorldGenerator worldGenerator;
-    private ChunkMeshGenerator chunkMeshGenerator;
     
     private int lastPlayerChunkX = Integer.MIN_VALUE;
     private int lastPlayerChunkZ = Integer.MIN_VALUE;
@@ -40,7 +41,7 @@ public class ChunkManager {
         return ((long)x << 32) | (z & 0xFFFFFFFFL);
     }
     
-    public ChunkManager(World world) {
+    public ChunkManager(ServerWorld world) {
         this.world = world;
         this.chunks = new ConcurrentHashMap<>();
         this.generationQueue = new LinkedBlockingQueue<>();
@@ -48,7 +49,6 @@ public class ChunkManager {
     }
     
     public void init() {
-        chunkMeshGenerator = new ChunkMeshGenerator(world);
         worldGenerator = new WorldGenerator(world, generationQueue);
         worldGenerator.start();
     }
@@ -58,8 +58,8 @@ public class ChunkManager {
     }
     
     public void update(Vector3f playerPosition) {
-        int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
+        int playerChunkX = (int) Math.floor(playerPosition.x / ServerChunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / ServerChunk.CHUNK_SIZE);
 
         if (playerChunkX != lastPlayerChunkX || playerChunkZ != lastPlayerChunkZ) {
             for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
@@ -78,13 +78,12 @@ public class ChunkManager {
                     long key = getChunkKey(x, z);
                     ChunkGenerationTask task = pendingChunks.get(key);
                     if (task != null && task.isDataGenerated() && task.getChunk() != null) {
-                        Chunk chunk = task.getChunk();
+                        ServerChunk chunk = task.getChunk();
                         if (!chunks.containsKey(key)) {
                             chunks.put(key, chunk);
                         }
-                        if (chunk.getState() == Chunk.ChunkState.DATA_LOADED) {
-                            chunkMeshGenerator.submitMeshTask(chunk);
-                            chunk.setState(Chunk.ChunkState.AWAITING_MESH);
+                        if (chunk.getState() == ServerChunk.ChunkState.DATA_LOADED) {
+                            chunk.setState(ServerChunk.ChunkState.READY);
                         }
                     }
                 }
@@ -92,7 +91,7 @@ public class ChunkManager {
             
             chunks.entrySet().removeIf(entry -> {
                 long key = entry.getKey();
-                Chunk chunk = entry.getValue();
+                ServerChunk chunk = entry.getValue();
                 int chunkX = chunk.getChunkX();
                 int chunkZ = chunk.getChunkZ();
                 int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
@@ -130,9 +129,9 @@ public class ChunkManager {
         }
     }
     
-    public Chunk getChunk(int chunkX, int chunkZ) {
+    public ServerChunk getChunk(int chunkX, int chunkZ) {
         long key = getChunkKey(chunkX, chunkZ);
-        Chunk chunk = chunks.get(key);
+        ServerChunk chunk = chunks.get(key);
         
         if (chunk != null) {
             return chunk;
@@ -149,7 +148,7 @@ public class ChunkManager {
         return null;
     }
     
-    private Chunk loadChunkFromRegion(int chunkX, int chunkZ) {
+    private ServerChunk loadChunkFromRegion(int chunkX, int chunkZ) {
         if (regionManager == null) {
             log.debug("无法加载区块 [{},{}]: 区域管理器未初始化", chunkX, chunkZ);
             return null;
@@ -172,7 +171,7 @@ public class ChunkManager {
                 return null;
             }
             
-            Chunk chunk = ChunkSerializer.deserialize(compressedData, chunkX, chunkZ);
+            ServerChunk chunk = ChunkSerializer.deserialize(compressedData, chunkX, chunkZ);
             
             if (chunk == null) {
                 log.warn("区块 [{},{}] 反序列化失败", chunkX, chunkZ);
@@ -192,67 +191,49 @@ public class ChunkManager {
     }
     
     public int getBlockState(int x, int y, int z) {
-        int chunkX = (int) Math.floor((float) x / Chunk.CHUNK_SIZE);
-        int chunkZ = (int) Math.floor((float) z / Chunk.CHUNK_SIZE);
+        int chunkX = (int) Math.floor((float) x / ServerChunk.CHUNK_SIZE);
+        int chunkZ = (int) Math.floor((float) z / ServerChunk.CHUNK_SIZE);
         long key = getChunkKey(chunkX, chunkZ);
-        Chunk chunk = chunks.get(key);
+        ServerChunk chunk = chunks.get(key);
         if (chunk == null) {
             return 0;
         }
-        int localX = x - chunkX * Chunk.CHUNK_SIZE;
-        int localZ = z - chunkZ * Chunk.CHUNK_SIZE;
+        int localX = x - chunkX * ServerChunk.CHUNK_SIZE;
+        int localZ = z - chunkZ * ServerChunk.CHUNK_SIZE;
         return chunk.getBlockState(localX, y, localZ);
     }
     
     public void setBlockState(int x, int y, int z, int stateId) {
-        int chunkX = (int) Math.floor((float) x / Chunk.CHUNK_SIZE);
-        int chunkZ = (int) Math.floor((float) z / Chunk.CHUNK_SIZE);
+        int chunkX = (int) Math.floor((float) x / ServerChunk.CHUNK_SIZE);
+        int chunkZ = (int) Math.floor((float) z / ServerChunk.CHUNK_SIZE);
         long key = getChunkKey(chunkX, chunkZ);
-        Chunk chunk = chunks.get(key);
+        ServerChunk chunk = chunks.get(key);
         if (chunk == null) {
             chunk = getChunk(chunkX, chunkZ);
             if (chunk == null) {
                 return;
             }
         }
-        int localX = x - chunkX * Chunk.CHUNK_SIZE;
-        int localZ = z - chunkZ * Chunk.CHUNK_SIZE;
+        int localX = x - chunkX * ServerChunk.CHUNK_SIZE;
+        int localZ = z - chunkZ * ServerChunk.CHUNK_SIZE;
         chunk.setBlockState(localX, y, localZ, stateId);
-        if (chunk.getState() == Chunk.ChunkState.READY) {
-            chunk.setState(Chunk.ChunkState.DATA_LOADED);
-        }
-        chunkMeshGenerator.submitMeshTask(chunk);
-        chunk.setState(Chunk.ChunkState.AWAITING_MESH);
-
-        int[][] neighborOffsets = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] offset : neighborOffsets) {
-            long neighborKey = getChunkKey(chunkX + offset[0], chunkZ + offset[1]);
-            Chunk neighborChunk = chunks.get(neighborKey);
-            if (neighborChunk != null) {
-                if (neighborChunk.getState() == Chunk.ChunkState.READY) {
-                    neighborChunk.setState(Chunk.ChunkState.DATA_LOADED);
-                }
-                chunkMeshGenerator.submitMeshTask(neighborChunk);
-                neighborChunk.setState(Chunk.ChunkState.AWAITING_MESH);
-            }
+        if (chunk.getState() == ServerChunk.ChunkState.READY) {
+            chunk.setState(ServerChunk.ChunkState.DATA_LOADED);
         }
     }
     
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
-        Chunk chunk = getChunk(chunkX, chunkZ);
+        ServerChunk chunk = getChunk(chunkX, chunkZ);
 
         if (chunk == null) {
             long key = getChunkKey(chunkX, chunkZ);
-            chunk = new Chunk(chunkX, chunkZ);
+            chunk = new ServerChunk(chunkX, chunkZ);
             world.generateChunkData(chunk);
             chunks.put(key, chunk);
         }
 
-        if (chunk.getState() == Chunk.ChunkState.DATA_LOADED || chunk.getState() == Chunk.ChunkState.NEW) {
-            MeshGenerationResult result = chunk.calculateMeshData(world);
-            if (result != null) {
-                chunk.uploadToGPU(result);
-            }
+        if (chunk.getState() == ServerChunk.ChunkState.DATA_LOADED || chunk.getState() == ServerChunk.ChunkState.NEW) {
+            chunk.setState(ServerChunk.ChunkState.READY);
         }
     }
     
@@ -270,8 +251,8 @@ public class ChunkManager {
         try {
             int dirtyChunkCount = 0;
             
-            for (Map.Entry<Long, Chunk> entry : chunks.entrySet()) {
-                Chunk chunk = entry.getValue();
+            for (Map.Entry<Long, ServerChunk> entry : chunks.entrySet()) {
+                ServerChunk chunk = entry.getValue();
                 if (chunk == null) {
                     continue;
                 }
@@ -318,14 +299,11 @@ public class ChunkManager {
             }
         }
         
-        for (Chunk chunk : chunks.values()) {
+        for (ServerChunk chunk : chunks.values()) {
             chunk.cleanup();
         }
         chunks.clear();
         pendingChunks.clear();
         generationQueue.clear();
-        if (chunkMeshGenerator != null) {
-            chunkMeshGenerator.shutdown();
-        }
     }
 }

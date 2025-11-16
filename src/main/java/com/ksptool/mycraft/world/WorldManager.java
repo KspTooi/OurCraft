@@ -1,6 +1,6 @@
 package com.ksptool.mycraft.world;
 
-import com.ksptool.mycraft.entity.Player;
+import com.ksptool.mycraft.server.entity.ServerPlayer;
 import com.ksptool.mycraft.world.save.RegionManager;
 import com.ksptool.mycraft.world.save.SaveManager;
 import com.ksptool.mycraft.world.save.WorldIndex;
@@ -68,7 +68,7 @@ public class WorldManager {
         return false;
     }
 
-    public void saveWorld(World world, Player player, String saveName, String worldName) {
+    public void saveWorld(World world, ServerPlayer player, String saveName, String worldName) {
         if (StringUtils.isBlank(saveName) || StringUtils.isBlank(worldName) || world == null) {
             log.warn("保存世界失败: 参数无效 saveName={}, worldName={}, world={}", saveName, worldName, world != null);
             return;

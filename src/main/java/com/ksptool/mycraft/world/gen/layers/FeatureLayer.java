@@ -3,7 +3,7 @@ package com.ksptool.mycraft.world.gen.layers;
 import com.ksptool.mycraft.sharedcore.BlockType;
 import com.ksptool.mycraft.world.Block;
 import com.ksptool.mycraft.sharedcore.world.BlockState;
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.server.world.ServerChunk;
 import com.ksptool.mycraft.world.GlobalPalette;
 import com.ksptool.mycraft.world.gen.GenerationContext;
 import com.ksptool.mycraft.world.gen.ITerrainLayer;
@@ -31,8 +31,8 @@ public class FeatureLayer implements ITerrainLayer {
 
         Random random = new Random(context.getSeed() + chunkX * 31L + chunkZ * 17L);
 
-        for (int x = SAFE_MARGIN; x < Chunk.CHUNK_SIZE - SAFE_MARGIN; x++) {
-            for (int z = SAFE_MARGIN; z < Chunk.CHUNK_SIZE - SAFE_MARGIN; z++) {
+        for (int x = SAFE_MARGIN; x < ServerChunk.CHUNK_SIZE - SAFE_MARGIN; x++) {
+            for (int z = SAFE_MARGIN; z < ServerChunk.CHUNK_SIZE - SAFE_MARGIN; z++) {
                 int surfaceY = findSurfaceY(chunkData, x, z, context);
                 if (surfaceY < 0) {
                     continue;
@@ -52,7 +52,7 @@ public class FeatureLayer implements ITerrainLayer {
 
     private int findSurfaceY(int[][][] chunkData, int x, int z, GenerationContext context) {
         GlobalPalette palette = context.getGlobalPalette();
-        for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+        for (int y = ServerChunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
             int stateId = chunkData[x][y][z];
             if (stateId == AIR_STATE_ID) {
                 continue;

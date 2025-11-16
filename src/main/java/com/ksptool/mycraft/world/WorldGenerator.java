@@ -1,5 +1,7 @@
 package com.ksptool.mycraft.world;
 
+import com.ksptool.mycraft.server.world.ServerChunk;
+import com.ksptool.mycraft.server.world.ServerWorld;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.BlockingQueue;
@@ -10,10 +12,10 @@ import java.util.concurrent.BlockingQueue;
 @Slf4j
 public class WorldGenerator extends Thread {
     private final BlockingQueue<ChunkGenerationTask> generationQueue;
-    private final World world;
+    private final ServerWorld world;
     private volatile boolean running = true;
 
-    public WorldGenerator(World world, BlockingQueue<ChunkGenerationTask> generationQueue) {
+    public WorldGenerator(ServerWorld world, BlockingQueue<ChunkGenerationTask> generationQueue) {
         this.world = world;
         this.generationQueue = generationQueue;
         this.setDaemon(true);
@@ -29,9 +31,9 @@ public class WorldGenerator extends Thread {
                     continue;
                 }
 
-                Chunk chunk = new Chunk(task.getChunkX(), task.getChunkZ());
+                ServerChunk chunk = new ServerChunk(task.getChunkX(), task.getChunkZ());
                 world.generateChunkData(chunk);
-                chunk.setState(Chunk.ChunkState.DATA_LOADED);
+                chunk.setState(ServerChunk.ChunkState.DATA_LOADED);
                 task.setChunk(chunk);
                 task.setDataGenerated(true);
             } catch (InterruptedException e) {

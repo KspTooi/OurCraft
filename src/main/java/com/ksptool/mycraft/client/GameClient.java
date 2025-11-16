@@ -1,8 +1,8 @@
 package com.ksptool.mycraft.client;
 
 import com.ksptool.mycraft.sharedcore.GameState;
-import com.ksptool.mycraft.world.World;
-import com.ksptool.mycraft.entity.Player;
+import com.ksptool.mycraft.client.world.ClientWorld;
+import com.ksptool.mycraft.client.entity.ClientPlayer;
 import com.ksptool.mycraft.client.rendering.Renderer;
 import com.ksptool.mycraft.client.rendering.GuiRenderer;
 import com.ksptool.mycraft.client.rendering.WorldRenderer;
@@ -12,24 +12,30 @@ import com.ksptool.mycraft.client.gui.MainMenu;
 import com.ksptool.mycraft.client.gui.SingleplayerMenu;
 import com.ksptool.mycraft.client.gui.CreateWorldMenu;
 import com.ksptool.mycraft.client.gui.UiConstants;
-import com.ksptool.mycraft.world.WorldManager;
 import com.ksptool.mycraft.world.WorldTemplate;
 import com.ksptool.mycraft.world.Registry;
+import com.ksptool.mycraft.sharedcore.events.EventQueue;
+import com.ksptool.mycraft.sharedcore.events.PlayerInputEvent;
+import com.ksptool.mycraft.sharedcore.events.PlayerHotbarSwitchEvent;
+import com.ksptool.mycraft.sharedcore.events.PlayerActionEvent;
+import com.ksptool.mycraft.sharedcore.events.PlayerAction;
+import com.ksptool.mycraft.sharedcore.events.PlayerCameraInputEvent;
+import com.ksptool.mycraft.sharedcore.events.ClientReadyEvent;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 游戏主循环和状态管理类，负责游戏初始化、更新、渲染和状态切换
+ * 游戏客户端，负责渲染、输入处理和事件消费
  */
 @Slf4j
-public class Game {
+public class GameClient {
 
     private Window window;
     private Input input;
     private Renderer renderer;
     private GuiRenderer guiRenderer;
-    private World world;
+    private ClientWorld clientWorld;
     private WorldRenderer worldRenderer;
-    private Player player;
+    private ClientPlayer player;
     private boolean running;
     
     private GameState currentState = GameState.MAIN_MENU;
@@ -37,6 +43,8 @@ public class Game {
     private MainMenu mainMenu;
     private SingleplayerMenu singleplayerMenu;
     private CreateWorldMenu createWorldMenu;
+    
+    private float timeOfDay = 0.0f;
 
     public void init() {
         registerDefaultWorldTemplate();
@@ -109,7 +117,6 @@ public class Game {
     }
 
     private void update(float delta) {
-
         if (currentState == GameState.MAIN_MENU) {
             updateMainMenu();
             return;
@@ -159,7 +166,7 @@ public class Game {
             String selectedSave = singleplayerMenu.getSelectedSave();
             String selectedWorld = singleplayerMenu.getSelectedWorld();
             if (selectedSave != null && selectedWorld != null) {
-                loadWorld(selectedSave, selectedWorld);
+                com.ksptool.mycraft.Launcher.startGameServer(selectedSave, selectedWorld);
             }
         }
     }
@@ -170,7 +177,7 @@ public class Game {
             String worldName = createWorldMenu.getWorldName();
             String saveName = createWorldMenu.getSaveName();
             if (worldName != null && !worldName.isEmpty() && saveName != null && !saveName.isEmpty()) {
-                createNewWorld(saveName, worldName);
+                com.ksptool.mycraft.Launcher.startGameServer(saveName, worldName);
             }
         }
         if (result == 2) {
@@ -186,36 +193,54 @@ public class Game {
             return;
         }
 
-        player.handleMouseInput(input);
-        
-        long worldUpdateStart = System.nanoTime();
-        float tickDelta = 1.0f / world.getTemplate().getTicksPerSecond();
-        world.update(delta, player.getPosition(), () -> {
-            player.update(input, tickDelta);
-        });
-        long worldUpdateTime = System.nanoTime() - worldUpdateStart;
-        
-        long meshUploadStart = System.nanoTime();
-        com.ksptool.mycraft.world.ChunkMeshGenerator meshGenerator = world.getChunkMeshGenerator();
-        if (meshGenerator != null) {
-            java.util.List<java.util.concurrent.Future<com.ksptool.mycraft.world.MeshGenerationResult>> futures = meshGenerator.getPendingFutures();
-            java.util.List<java.util.concurrent.Future<com.ksptool.mycraft.world.MeshGenerationResult>> completedFutures = new java.util.ArrayList<>();
-            for (java.util.concurrent.Future<com.ksptool.mycraft.world.MeshGenerationResult> future : futures) {
-                if (future.isDone()) {
-                    try {
-                        com.ksptool.mycraft.world.MeshGenerationResult result = future.get();
-                        if (result != null) {
-                            result.chunk.uploadToGPU(result);
-                        }
-                    } catch (Exception e) {
-                        log.error("Error uploading mesh to GPU", e);
+        if (player != null && input != null) {
+            org.joml.Vector2d mouseDelta = input.getMouseDelta();
+            if (mouseDelta.x != 0 || mouseDelta.y != 0) {
+                float mouseSensitivity = 0.1f;
+                float deltaYaw = (float) mouseDelta.x * mouseSensitivity;
+                float deltaPitch = (float) mouseDelta.y * mouseSensitivity;
+                EventQueue.getInstance().offerC2S(new PlayerCameraInputEvent(deltaYaw, deltaPitch));
+            }
+            
+            boolean forward = input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_W);
+            boolean backward = input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_S);
+            boolean left = input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_A);
+            boolean right = input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_D);
+            boolean jump = input.isKeyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE);
+            
+            EventQueue eventQueue = EventQueue.getInstance();
+            eventQueue.offerC2S(new PlayerInputEvent(forward, backward, left, right, jump));
+            
+            double scrollY = input.getScrollY();
+            if (scrollY != 0) {
+                eventQueue.offerC2S(new PlayerHotbarSwitchEvent((int) -scrollY));
+            }
+            
+            // 处理数字键1-9切换快捷栏
+            for (int key = org.lwjgl.glfw.GLFW.GLFW_KEY_1; key <= org.lwjgl.glfw.GLFW.GLFW_KEY_9; key++) {
+                if (input.isKeyPressed(key)) {
+                    int slotIndex = key - org.lwjgl.glfw.GLFW.GLFW_KEY_1;
+                    int currentSlot = player.getInventory().getSelectedSlot();
+                    int slotDelta = slotIndex - currentSlot;
+                    if (slotDelta != 0) {
+                        eventQueue.offerC2S(new PlayerHotbarSwitchEvent(slotDelta));
                     }
-                    completedFutures.add(future);
                 }
             }
-            futures.removeAll(completedFutures);
+            
+            if (input.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
+                eventQueue.offerC2S(new PlayerActionEvent(PlayerAction.ATTACK));
+            }
+            if (input.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
+                eventQueue.offerC2S(new PlayerActionEvent(PlayerAction.USE));
+            }
         }
-        long meshUploadTime = System.nanoTime() - meshUploadStart;
+        
+        if (clientWorld != null) {
+            clientWorld.processEvents();
+            clientWorld.processMeshGeneration();
+            timeOfDay = clientWorld.getTimeOfDay();
+        }
     }
 
     private void updatePaused() {
@@ -268,11 +293,11 @@ public class Game {
 
     private void renderMainMenu() {
         if (guiRenderer == null) {
-            log.error("Game: GuiRenderer未初始化");
+            log.error("GameClient: GuiRenderer未初始化");
             return;
         }
         if (mainMenu == null) {
-            log.error("Game: MainMenu未初始化");
+            log.error("GameClient: MainMenu未初始化");
             return;
         }
         mainMenu.render(guiRenderer, window.getWidth(), window.getHeight(), input);
@@ -293,7 +318,7 @@ public class Game {
         if (worldRenderer != null && renderer != null && guiRenderer != null) {
             renderer.initHud(guiRenderer, worldRenderer.getTextureId());
         }
-        if (worldRenderer != null) {
+        if (worldRenderer != null && player != null) {
             renderer.render(worldRenderer, player, window.getWidth(), window.getHeight());
         }
         window.update();
@@ -325,7 +350,7 @@ public class Game {
                 input.setMouseLocked(true);
             }
             if (mainMenuHovered) {
-                cleanupWorld();
+                stopGame();
                 currentState = GameState.MAIN_MENU;
             }
         }
@@ -338,150 +363,47 @@ public class Game {
                mouseY >= buttonY && mouseY <= buttonY + buttonHeight;
     }
 
-    private String currentSaveName = null;
-    private String currentWorldName = null;
-
-    public void startGame(String saveName, String worldName) {
-        if (world == null) {
-            createNewWorld(saveName, worldName);
+    /**
+     * 由Launcher调用，用于设置游戏世界和玩家
+     */
+    public void setGameWorld(ClientWorld clientWorld, WorldRenderer worldRenderer, ClientPlayer player) {
+        this.clientWorld = clientWorld;
+        this.worldRenderer = worldRenderer;
+        this.player = player;
+        clientWorld.setPlayer(player);
+        this.currentState = GameState.IN_GAME;
+        if (input != null) {
+            input.setMouseLocked(true);
         }
         
-        if (world == null) {
-            return;
-        }
-        
-        if (player == null) {
-            float initialX = 8.0f;
-            float initialZ = 8.0f;
-            
-            int playerChunkX = (int) Math.floor(initialX / com.ksptool.mycraft.world.Chunk.CHUNK_SIZE);
-            int playerChunkZ = (int) Math.floor(initialZ / com.ksptool.mycraft.world.Chunk.CHUNK_SIZE);
-            
-            for (int x = playerChunkX - 2; x <= playerChunkX + 2; x++) {
-                for (int z = playerChunkZ - 2; z <= playerChunkZ + 2; z++) {
-                    world.generateChunkSynchronously(x, z);
-                }
-            }
-            
-            int groundHeight = world.getHeightAt((int) initialX, (int) initialZ);
-            float initialY = groundHeight + 1.0f;
-            
-            player = new Player(world);
-            player.getPosition().set(initialX, initialY, initialZ);
-            player.initializeCamera();
-            world.addEntity(player);
-        }
-        
-        currentSaveName = saveName;
-        currentWorldName = worldName;
-        currentState = GameState.IN_GAME;
-        input.setMouseLocked(true);
+        EventQueue.getInstance().offerC2S(new ClientReadyEvent());
     }
 
-    public void loadWorld(String saveName, String worldName) {
-        cleanupWorld();
+    /**
+     * 停止游戏，返回主菜单
+     */
+    public void stopGame() {
+        com.ksptool.mycraft.Launcher.stopGameServer();
         
-        World loadedWorld = WorldManager.getInstance().loadWorld(saveName, worldName);
-        if (loadedWorld == null) {
-            return;
-        }
-        
-        world = loadedWorld;
-        
-        worldRenderer = new WorldRenderer(world);
-        worldRenderer.init();
-        
-        float initialX = 8.0f;
-        float initialZ = 8.0f;
-        
-        int playerChunkX = (int) Math.floor(initialX / com.ksptool.mycraft.world.Chunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(initialZ / com.ksptool.mycraft.world.Chunk.CHUNK_SIZE);
-        
-        for (int x = playerChunkX - 2; x <= playerChunkX + 2; x++) {
-            for (int z = playerChunkZ - 2; z <= playerChunkZ + 2; z++) {
-                world.generateChunkSynchronously(x, z);
-            }
-        }
-        
-        int groundHeight = world.getHeightAt((int) initialX, (int) initialZ);
-        float initialY = groundHeight + 1.0f;
-        
-        java.util.UUID playerUUID = com.ksptool.mycraft.world.save.SaveManager.getInstance().findFirstPlayerUUID(saveName);
-        if (playerUUID == null) {
-            playerUUID = java.util.UUID.randomUUID();
-        }
-        
-        player = new Player(world, playerUUID);
-        player.getPosition().set(initialX, initialY, initialZ);
-        player.initializeCamera();
-        world.addEntity(player);
-        
-        com.ksptool.mycraft.world.save.PlayerIndex playerIndex = com.ksptool.mycraft.world.save.SaveManager.getInstance().loadPlayer(saveName, playerUUID);
-        if (playerIndex != null) {
-            player.loadFromPlayerIndex(playerIndex);
-            if (player.getPosition().y > 0) {
-                initialX = player.getPosition().x;
-                initialY = player.getPosition().y;
-                initialZ = player.getPosition().z;
-            }
-        }
-        
-        currentSaveName = saveName;
-        currentWorldName = worldName;
-        currentState = GameState.IN_GAME;
-        input.setMouseLocked(true);
-    }
-
-    public void createNewWorld(String saveName, String worldName) {
-        cleanupWorld();
-        
-        com.ksptool.mycraft.world.save.SaveManager saveManager = com.ksptool.mycraft.world.save.SaveManager.getInstance();
-        if (!saveManager.saveExists(saveName)) {
-            if (!saveManager.createSave(saveName)) {
-                return;
-            }
-        }
-        
-        WorldTemplate template = Registry.getWorldTemplate("mycraft:overworld");
-        if (template == null) {
-            log.error("无法创建世界: 默认模板未找到");
-            return;
-        }
-        world = new World(template);
-        world.setWorldName(worldName);
-        world.setSeed(System.currentTimeMillis());
-        world.init();
-        
-        worldRenderer = new WorldRenderer(world);
-        worldRenderer.init();
-        
-        WorldManager.getInstance().saveWorld(world, saveName, worldName);
-        
-        startGame(saveName, worldName);
-    }
-
-    private void cleanupWorld() {
         if (worldRenderer != null) {
             worldRenderer.cleanup();
             worldRenderer = null;
         }
-        if (world != null) {
-            if (currentSaveName != null && currentWorldName != null) {
-                WorldManager.getInstance().saveWorld(world, player, currentSaveName, currentWorldName);
-            }
-            world.cleanup();
-            world = null;
+        if (clientWorld != null) {
+            clientWorld.cleanup();
+            clientWorld = null;
         }
         player = null;
-        currentSaveName = null;
-        currentWorldName = null;
+        timeOfDay = 0.0f;
+        
+        if (input != null) {
+            input.setMouseLocked(false);
+        }
     }
 
+
     private void cleanup() {
-        if (world != null) {
-            world.saveAllDirtyData();
-        }
-        cleanupWorld();
+        stopGame();
         if (renderer != null) {
             renderer.cleanup();
         }
@@ -493,3 +415,4 @@ public class Game {
         }
     }
 }
+

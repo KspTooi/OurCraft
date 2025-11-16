@@ -1,16 +1,16 @@
-package com.ksptool.mycraft.entity;
+package com.ksptool.mycraft.server.entity;
 
 import com.ksptool.mycraft.sharedcore.BoundingBox;
-import com.ksptool.mycraft.world.World;
+import com.ksptool.mycraft.server.world.ServerWorld;
 import lombok.Getter;
 import lombok.Setter;
 import org.joml.Vector3f;
 
 /**
- * 生物实体基类，实现重力、物理运动和碰撞检测
+ * 服务端生物实体基类，实现重力、物理运动和碰撞检测
  */
 @Getter
-public abstract class LivingEntity extends Entity {
+public abstract class ServerLivingEntity extends ServerEntity {
 
     //默认重力为 -20F
     protected static final float GRAVITY = -20.0f;
@@ -34,11 +34,11 @@ public abstract class LivingEntity extends Entity {
     @Setter
     protected float eyeHeight = 1.6f;
 
-    public LivingEntity(World world) {
+    public ServerLivingEntity(ServerWorld world) {
         super(world);
     }
 
-    public LivingEntity(World world, java.util.UUID uniqueId) {
+    public ServerLivingEntity(ServerWorld world, java.util.UUID uniqueId) {
         super(world, uniqueId);
     }
 
@@ -66,6 +66,7 @@ public abstract class LivingEntity extends Entity {
             boundingBox = new BoundingBox(position, 0.6f, 1.8f);
         }
         
+        // 服务端实体总是有world，执行完整的碰撞检测
         newPosition.x += movement.x;
         BoundingBox testBox = boundingBox.offset(new Vector3f(movement.x, 0, 0));
         if (!world.canMoveTo(testBox)) {

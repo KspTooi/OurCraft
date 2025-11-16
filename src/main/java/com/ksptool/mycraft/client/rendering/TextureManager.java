@@ -124,9 +124,9 @@ public class TextureManager {
 
         java.util.Collections.sort(textureFiles);
         
-        log.info("Found " + textureFiles.size() + " texture files to load");
+        //log.info("Found " + textureFiles.size() + " texture files to load");
         for (String name : textureFiles) {
-            log.info("  - " + name);
+            //log.info("  - " + name);
         }
 
         atlasPixels = new int[ATLAS_SIZE * ATLAS_SIZE];
@@ -138,7 +138,7 @@ public class TextureManager {
         int rowHeight = 0;
 
         for (String textureName : textureFiles) {
-            log.info("Attempting to load texture: " + textureName);
+            //log.info("Attempting to load texture: " + textureName);
             TextureLoadResult loadResult = loadTexture(texturePath + textureName);
             if (loadResult == null || loadResult.pixels == null) {
                 log.warn("Failed to load texture: " + textureName);
@@ -180,7 +180,7 @@ public class TextureManager {
             int heightForUV = loadResult.isAnimated ? TEXTURE_SIZE : texHeight;
             float v1 = (float) (atlasY + heightForUV) / ATLAS_SIZE - epsilon;
 
-            log.info("Loaded texture: " + textureName);
+            //log.info("Loaded texture: " + textureName);
             textureUVMap.put(textureName, new UVCoords(u0, v0, u1, v1, loadResult.isAnimated, loadResult.frameCount, loadResult.frameTime));
 
             currentX += texWidth;

@@ -1,6 +1,6 @@
 package com.ksptool.mycraft.client.rendering;
 
-import com.ksptool.mycraft.entity.Player;
+import com.ksptool.mycraft.client.entity.ClientPlayer;
 import com.ksptool.mycraft.item.Inventory;
 import com.ksptool.mycraft.sharedcore.item.ItemStack;
 import lombok.Setter;
@@ -61,7 +61,7 @@ public class HotbarRenderer {
         glBindVertexArray(0);
     }
 
-    public void render(Player player, int windowWidth, int windowHeight) {
+    public void render(ClientPlayer player, int windowWidth, int windowHeight) {
         if (uiShader == null) {
             init();
         }

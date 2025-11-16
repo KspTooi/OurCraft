@@ -147,7 +147,7 @@ public class SaveManager {
         }
     }
 
-    public void savePlayer(String saveName, UUID playerUUID, com.ksptool.mycraft.entity.Player player) {
+    public void savePlayer(String saveName, UUID playerUUID, com.ksptool.mycraft.server.entity.ServerPlayer player) {
         if (StringUtils.isBlank(saveName) || playerUUID == null || player == null) {
             return;
         }
@@ -167,13 +167,13 @@ public class SaveManager {
         playerIndex.posX = player.getPosition().x;
         playerIndex.posY = player.getPosition().y;
         playerIndex.posZ = player.getPosition().z;
-        playerIndex.yaw = player.getCamera().getYaw();
-        playerIndex.pitch = player.getCamera().getPitch();
+        playerIndex.yaw = player.getYaw();
+        playerIndex.pitch = player.getPitch();
         playerIndex.health = player.getHealth();
         playerIndex.selectedSlot = player.getInventory().getSelectedSlot();
 
-        ItemStack[] hotbar = player.getInventory().getHotbar();
-        for (ItemStack stack : hotbar) {
+        com.ksptool.mycraft.sharedcore.item.ItemStack[] hotbar = player.getInventory().getHotbar();
+        for (com.ksptool.mycraft.sharedcore.item.ItemStack stack : hotbar) {
             if (stack != null && !stack.isEmpty()) {
                 ItemStackData stackData = new ItemStackData(
                     stack.getItem() != null ? stack.getItem().getId() : null,

@@ -1,9 +1,9 @@
 package com.ksptool.mycraft.client.rendering;
 
-import com.ksptool.mycraft.entity.Camera;
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.client.world.ClientChunk;
+import com.ksptool.mycraft.client.world.ClientWorld;
+import com.ksptool.mycraft.client.entity.Camera;
 import com.ksptool.mycraft.world.ChunkManager;
-import com.ksptool.mycraft.world.World;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -18,12 +18,12 @@ public class WorldRenderer {
 
     private static final int RENDER_DISTANCE = 8;
     
-    private final World world;
+    private final ClientWorld clientWorld;
     private int textureId;
     private final Frustum frustum;
     
-    public WorldRenderer(World world) {
-        this.world = world;
+    public WorldRenderer(ClientWorld clientWorld) {
+        this.clientWorld = clientWorld;
         this.frustum = new Frustum();
     }
     
@@ -64,7 +64,7 @@ public class WorldRenderer {
     }
 
     public void renderOpaque(ShaderProgram shader, Camera camera) {
-        if (world.getChunkManager().getChunks().isEmpty()) {
+        if (clientWorld.getChunks().isEmpty()) {
             return;
         }
         
@@ -75,18 +75,17 @@ public class WorldRenderer {
         shader.setUniform("textureSampler", 0);
 
         Vector3f playerPosition = camera.getPosition();
-        int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
+        int playerChunkX = (int) Math.floor(playerPosition.x / ClientChunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / ClientChunk.CHUNK_SIZE);
 
         for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
                 
-                long key = ChunkManager.getChunkKey(x, z);
-                Chunk chunk = world.getChunkManager().getChunks().get(key);
+                ClientChunk clientChunk = clientWorld.getChunk(x, z);
 
-                if (chunk != null && chunk.hasMesh()) {
-                    if (frustum.intersects(chunk.getBoundingBox())) {
-                        chunk.render();
+                if (clientChunk != null && clientChunk.hasMesh()) {
+                    if (frustum.intersects(clientChunk.getBoundingBox())) {
+                        clientChunk.render();
                     }
                 }
             }
@@ -94,7 +93,7 @@ public class WorldRenderer {
     }
 
     public void renderTransparent(ShaderProgram shader, Camera camera) {
-        if (world.getChunkManager().getChunks().isEmpty()) {
+        if (clientWorld.getChunks().isEmpty()) {
             return;
         }
         
@@ -105,18 +104,17 @@ public class WorldRenderer {
         shader.setUniform("textureSampler", 0);
 
         Vector3f playerPosition = camera.getPosition();
-        int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
+        int playerChunkX = (int) Math.floor(playerPosition.x / ClientChunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / ClientChunk.CHUNK_SIZE);
 
         for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
                 
-                long key = ChunkManager.getChunkKey(x, z);
-                Chunk chunk = world.getChunkManager().getChunks().get(key);
+                ClientChunk clientChunk = clientWorld.getChunk(x, z);
 
-                if (chunk != null && chunk.hasTransparentMesh()) {
-                    if (frustum.intersects(chunk.getBoundingBox())) {
-                        chunk.renderTransparent();
+                if (clientChunk != null && clientChunk.hasTransparentMesh()) {
+                    if (frustum.intersects(clientChunk.getBoundingBox())) {
+                        clientChunk.renderTransparent();
                     }
                 }
             }
@@ -128,7 +126,7 @@ public class WorldRenderer {
     }
 
     public Vector3f getSkyColor() {
-        float t = world.getTimeOfDay();
+        float t = clientWorld.getTimeOfDay();
         
         Vector3f midnight = new Vector3f(ColorPalette.SKY_MIDNIGHT);
         Vector3f sunriseStart = new Vector3f(ColorPalette.SKY_SUNRISE_START);
@@ -192,7 +190,7 @@ public class WorldRenderer {
     }
 
     public Vector3f getAmbientLightColor() {
-        float t = world.getTimeOfDay();
+        float t = clientWorld.getTimeOfDay();
         Vector3f midnight = new Vector3f(ColorPalette.AMBIENT_MIDNIGHT);
         Vector3f noon = new Vector3f(ColorPalette.AMBIENT_NOON);
         

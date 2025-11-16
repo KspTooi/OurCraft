@@ -1,39 +1,40 @@
-package com.ksptool.mycraft.entity;
+package com.ksptool.mycraft.server.entity;
 
-import com.ksptool.mycraft.client.Input;
 import com.ksptool.mycraft.item.Inventory;
-import com.ksptool.mycraft.sharedcore.item.Item;
-import com.ksptool.mycraft.sharedcore.item.ItemStack;
 import com.ksptool.mycraft.sharedcore.BoundingBox;
+import com.ksptool.mycraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.mycraft.world.Block;
 import com.ksptool.mycraft.sharedcore.BlockType;
 import com.ksptool.mycraft.world.GlobalPalette;
 import com.ksptool.mycraft.world.Registry;
 import com.ksptool.mycraft.world.Raycast;
 import com.ksptool.mycraft.world.RaycastResult;
-import com.ksptool.mycraft.world.World;
+import com.ksptool.mycraft.server.world.ServerWorld;
 import com.ksptool.mycraft.world.save.ItemStackData;
 import com.ksptool.mycraft.world.save.PlayerIndex;
 import lombok.Getter;
-import org.joml.Vector2d;
+import lombok.Setter;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
-import org.lwjgl.glfw.GLFW;
 
 /**
- * 玩家实体类，处理玩家移动、相机控制、方块放置和破坏
+ * 服务端玩家实体类，处理玩家移动、方块放置和破坏
  */
 @Getter
-public class Player extends LivingEntity {
-    //相机
-    private final Camera camera;
-
+public class ServerPlayer extends ServerLivingEntity {
     //背包
     private final Inventory inventory;
 
-    //鼠标灵敏度
-    private float mouseSensitivity = 0.1f;
+    //相机朝向（服务端存储，用于同步给客户端）
+    @Setter
+    private float yaw = 0.0f;
+    @Setter
+    private float pitch = 0.0f;
+    @Setter
+    private float previousYaw = 0.0f;
+    @Setter
+    private float previousPitch = 0.0f;
     
     //地面加速度
     private static final float GROUND_ACCELERATION = 40F;
@@ -44,94 +45,66 @@ public class Player extends LivingEntity {
     //最大移动速度
     private static final float MAX_SPEED = 40F;
 
-    private static final java.util.Map<Integer, Integer> KEY_TO_SLOT_MAP = java.util.Map.of(
-        GLFW.GLFW_KEY_1, 0,
-        GLFW.GLFW_KEY_2, 1,
-        GLFW.GLFW_KEY_3, 2,
-        GLFW.GLFW_KEY_4, 3,
-        GLFW.GLFW_KEY_5, 4,
-        GLFW.GLFW_KEY_6, 5,
-        GLFW.GLFW_KEY_7, 6,
-        GLFW.GLFW_KEY_8, 7,
-        GLFW.GLFW_KEY_9, 8
-    );
-
-    public Player(World world) {
+    /**
+     * 服务端构造函数：创建一个与服务端世界关联的玩家对象
+     */
+    public ServerPlayer(ServerWorld world) {
         super(world);
-        this.camera = new Camera();
         this.inventory = new Inventory();
         this.eyeHeight = 1.6f;
         this.boundingBox = new BoundingBox(position, 0.6f, 1.8f);
     }
 
-    public Player(World world, java.util.UUID uniqueId) {
+    /**
+     * 服务端构造函数：创建一个与服务端世界关联的玩家对象（带UUID）
+     */
+    public ServerPlayer(ServerWorld world, java.util.UUID uniqueId) {
         super(world, uniqueId);
-        this.camera = new Camera();
         this.inventory = new Inventory();
         this.eyeHeight = 1.6f;
         this.boundingBox = new BoundingBox(position, 0.6f, 1.8f);
-    }
-
-    public void initializeCamera() {
-        camera.setYaw(0);
-        camera.setPitch(0);
-        updateCamera();
     }
 
     @Override
     public void update(float delta) {
         super.update(delta);
+        // 更新previousYaw和previousPitch用于插值
+        previousYaw = yaw;
+        previousPitch = pitch;
     }
-
-    public void update(Input input, float delta) {
-        handleKeyboard(input, delta);
-        super.update(delta);
-        updateCamera();
-    }
-
-    public void handleMouseInput(Input input) {
-        if (!input.isMouseLocked()) {
-            return;
-        }
-
-        Vector2d mouseDelta = input.getMouseDelta();
-        if (mouseDelta.x != 0 || mouseDelta.y != 0) {
-            float deltaYaw = (float) mouseDelta.x * mouseSensitivity;
-            float deltaPitch = (float) mouseDelta.y * mouseSensitivity;
-
-            camera.setYaw(camera.getYaw() + deltaYaw);
-            camera.setPitch(camera.getPitch() + deltaPitch);
-            markDirty(true);
-        }
-    }
-
-    private void handleKeyboard(Input input, float delta) {
+    
+    /**
+     * 应用玩家输入（移动方向）
+     * 注意：这个方法现在接收的是已经处理过的移动方向，而不是原始输入事件
+     */
+    public void applyInput(PlayerInputEvent event) {
         Vector3f moveDirection = new Vector3f();
-        float yawRad = (float) Math.toRadians(camera.getYaw());
-
-        if (input.isKeyPressed(GLFW.GLFW_KEY_W)) {
+        float yawRad = (float) Math.toRadians(yaw);
+        
+        if (event.isForward()) {
             moveDirection.x += Math.sin(yawRad);
             moveDirection.z -= Math.cos(yawRad);
         }
-        if (input.isKeyPressed(GLFW.GLFW_KEY_S)) {
+        if (event.isBackward()) {
             moveDirection.x -= Math.sin(yawRad);
             moveDirection.z += Math.cos(yawRad);
         }
-        if (input.isKeyPressed(GLFW.GLFW_KEY_A)) {
+        if (event.isLeft()) {
             moveDirection.x -= Math.cos(yawRad);
             moveDirection.z -= Math.sin(yawRad);
         }
-        if (input.isKeyPressed(GLFW.GLFW_KEY_D)) {
+        if (event.isRight()) {
             moveDirection.x += Math.cos(yawRad);
             moveDirection.z += Math.sin(yawRad);
         }
-
+        
         if (moveDirection.length() > 0) {
             moveDirection.normalize();
             
             float acceleration = onGround ? GROUND_ACCELERATION : AIR_ACCELERATION;
-            velocity.x += moveDirection.x * acceleration * delta;
-            velocity.z += moveDirection.z * acceleration * delta;
+            float tickDelta = 1.0f / world.getTemplate().getTicksPerSecond();
+            velocity.x += moveDirection.x * acceleration * tickDelta;
+            velocity.z += moveDirection.z * acceleration * tickDelta;
             
             Vector2f horizontalVelocity = new Vector2f(velocity.x, velocity.z);
             if (horizontalVelocity.lengthSquared() > MAX_SPEED * MAX_SPEED) {
@@ -140,34 +113,25 @@ public class Player extends LivingEntity {
                 velocity.z = horizontalVelocity.y;
             }
         }
-
-        if (input.isKeyPressed(GLFW.GLFW_KEY_SPACE) && onGround) {
+        
+        if (event.isJump() && onGround) {
             velocity.y = JUMP_VELOCITY;
             onGround = false;
         }
-
-        double scrollY = input.getScrollY();
-        if (scrollY != 0) {
-            inventory.scrollSelection((int) -scrollY);
-            markDirty(true);
-        }
-
-        for (java.util.Map.Entry<Integer, Integer> entry : KEY_TO_SLOT_MAP.entrySet()) {
-            if (input.isKeyPressed(entry.getKey())) {
-                inventory.setSelectedSlot(entry.getValue());
-                markDirty(true);
-            }
-        }
-
-        if (input.isMouseButtonPressed(GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
-            handleBlockBreak();
-        }
-        if (input.isMouseButtonPressed(GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-            handleBlockPlace();
-        }
     }
 
-    private void handleBlockBreak() {
+    /**
+     * 更新相机朝向（从客户端接收）
+     */
+    public void updateCameraOrientation(float deltaYaw, float deltaPitch) {
+        this.yaw += deltaYaw;
+        this.pitch += deltaPitch;
+        // 限制pitch范围
+        this.pitch = Math.max(-90, Math.min(90, this.pitch));
+        markDirty(true);
+    }
+
+    public void handleBlockBreak() {
         Vector3f eyePosition = new Vector3f(position);
         eyePosition.y += eyeHeight;
         Vector3f direction = getLookDirection();
@@ -181,8 +145,8 @@ public class Player extends LivingEntity {
         }
     }
 
-    private void handleBlockPlace() {
-        ItemStack selectedStack = inventory.getSelectedItem();
+    public void handleBlockPlace() {
+        com.ksptool.mycraft.sharedcore.item.ItemStack selectedStack = inventory.getSelectedItem();
         if (selectedStack == null || selectedStack.isEmpty()) {
             return;
         }
@@ -211,20 +175,13 @@ public class Player extends LivingEntity {
     }
 
     private Vector3f getLookDirection() {
-        float yawRad = (float) Math.toRadians(camera.getYaw());
-        float pitchRad = (float) Math.toRadians(camera.getPitch());
+        float yawRad = (float) Math.toRadians(yaw);
+        float pitchRad = (float) Math.toRadians(pitch);
         return new Vector3f(
                 (float) (Math.sin(yawRad) * Math.cos(pitchRad)),
                 (float) (-Math.sin(pitchRad)),
                 (float) (-Math.cos(yawRad) * Math.cos(pitchRad))
         );
-    }
-
-    private void updateCamera() {
-        Vector3f eyePosition = new Vector3f(position);
-        eyePosition.y += eyeHeight;
-        camera.setPosition(eyePosition);
-        camera.update();
     }
 
     public void loadFromPlayerIndex(PlayerIndex playerIndex) {
@@ -233,26 +190,27 @@ public class Player extends LivingEntity {
         }
 
         position.set(playerIndex.posX, playerIndex.posY, playerIndex.posZ);
-        camera.setYaw(playerIndex.yaw);
-        camera.setPitch(playerIndex.pitch);
+        this.yaw = playerIndex.yaw;
+        this.pitch = playerIndex.pitch;
+        this.previousYaw = playerIndex.yaw;
+        this.previousPitch = playerIndex.pitch;
         setHealth(playerIndex.health);
         inventory.setSelectedSlot(playerIndex.selectedSlot);
 
         if (playerIndex.hotbar != null) {
-            ItemStack[] hotbar = inventory.getHotbar();
+            com.ksptool.mycraft.sharedcore.item.ItemStack[] hotbar = inventory.getHotbar();
             for (int i = 0; i < Math.min(playerIndex.hotbar.size(), hotbar.length); i++) {
                 ItemStackData stackData = playerIndex.hotbar.get(i);
                 if (stackData != null && stackData.itemId != null && stackData.count != null) {
-                    Item item = Item.getItem(stackData.itemId);
+                    com.ksptool.mycraft.sharedcore.item.Item item = com.ksptool.mycraft.sharedcore.item.Item.getItem(stackData.itemId);
                     if (item != null) {
-                        hotbar[i] = new ItemStack(item, stackData.count);
+                        hotbar[i] = new com.ksptool.mycraft.sharedcore.item.ItemStack(item, stackData.count);
                     }
                 } else {
                     hotbar[i] = null;
                 }
             }
         }
-
-        updateCamera();
     }
 }
+

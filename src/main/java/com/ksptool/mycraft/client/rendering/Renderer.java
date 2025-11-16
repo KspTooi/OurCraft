@@ -1,6 +1,6 @@
 package com.ksptool.mycraft.client.rendering;
 
-import com.ksptool.mycraft.entity.Player;
+import com.ksptool.mycraft.client.entity.ClientPlayer;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,7 +51,7 @@ public class Renderer {
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
     }
 
-    public void render(WorldRenderer worldRenderer, Player player, int width, int height) {
+    public void render(WorldRenderer worldRenderer, ClientPlayer player, int width, int height) {
         if (projectionMatrix == null || projectionMatrix.m00() == 0) {
             resize(width, height);
         }
@@ -62,9 +62,8 @@ public class Renderer {
 
         shader.bind();
         
-        com.ksptool.mycraft.world.World world = player.getWorld();
-        float partialTick = world.getPartialTick();
-        com.ksptool.mycraft.entity.Camera camera = player.getCamera();
+        float partialTick = 0.0f; // 客户端插值，暂时使用0.0f
+        com.ksptool.mycraft.client.entity.Camera camera = player.getCamera();
         
         org.joml.Vector3f interpolatedPos = new org.joml.Vector3f(player.getPreviousPosition()).lerp(player.getPosition(), partialTick);
         float interpolatedYaw = camera.getPreviousYaw() + (camera.getYaw() - camera.getPreviousYaw()) * partialTick;

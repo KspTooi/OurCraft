@@ -2,7 +2,7 @@ package com.ksptool.mycraft.world.gen.layers;
 
 import com.ksptool.mycraft.sharedcore.BlockType;
 import com.ksptool.mycraft.world.Block;
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.server.world.ServerChunk;
 import com.ksptool.mycraft.world.gen.GenerationContext;
 import com.ksptool.mycraft.world.gen.ITerrainLayer;
 
@@ -22,9 +22,9 @@ public class WaterLayer implements ITerrainLayer {
         
         int waterStateId = context.getGlobalPalette().getStateId(waterBlock.getDefaultState());
 
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
+        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
             for (int y = 0; y < SEA_LEVEL; y++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
+                for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
                     if (chunkData[x][y][z] == AIR_STATE_ID) {
                         chunkData[x][y][z] = waterStateId;
                     }

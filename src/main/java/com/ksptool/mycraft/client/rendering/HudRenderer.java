@@ -1,6 +1,6 @@
 package com.ksptool.mycraft.client.rendering;
 
-import com.ksptool.mycraft.entity.Player;
+import com.ksptool.mycraft.client.entity.ClientPlayer;
 import org.joml.Vector4f;
 
 /**
@@ -28,7 +28,7 @@ public class HudRenderer {
         this.hotbarRenderer.setItemRenderer(itemRenderer);
     }
 
-    public void render(Player player, int windowWidth, int windowHeight) {
+    public void render(ClientPlayer player, int windowWidth, int windowHeight) {
         if (player == null) {
             return;
         }
@@ -53,7 +53,7 @@ public class HudRenderer {
             crosshairSize, crosshairThickness, crosshairColor, windowWidth, windowHeight);
     }
 
-    private void renderHealthBar(Player player, int windowWidth, int windowHeight) {
+    private void renderHealthBar(ClientPlayer player, int windowWidth, int windowHeight) {
         float barWidth = 200.0f;
         float barHeight = 24.0f;
         float barX = 20.0f;
@@ -85,7 +85,7 @@ public class HudRenderer {
         textRenderer.renderText(guiRenderer, textX, textY, healthText, textScale, textColor, windowWidth, windowHeight);
     }
 
-    private void renderHungerBar(Player player, int windowWidth, int windowHeight) {
+    private void renderHungerBar(ClientPlayer player, int windowWidth, int windowHeight) {
         float barWidth = 200.0f;
         float barHeight = 24.0f;
         float barX = 20.0f;

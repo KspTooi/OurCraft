@@ -1,6 +1,6 @@
 package com.ksptool.mycraft.world.save;
 
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.server.world.ServerChunk;
 import com.ksptool.mycraft.world.GlobalPalette;
 
 import java.io.ByteArrayOutputStream;
@@ -27,12 +27,12 @@ import java.util.zip.Inflater;
 public class ChunkSerializer {
 
     //区块大小
-    private static final int CHUNK_SIZE = Chunk.CHUNK_SIZE;
+    private static final int CHUNK_SIZE = ServerChunk.CHUNK_SIZE;
 
     //区块高度
-    private static final int CHUNK_HEIGHT = Chunk.CHUNK_HEIGHT;
+    private static final int CHUNK_HEIGHT = ServerChunk.CHUNK_HEIGHT;
     
-    public static byte[] serialize(Chunk chunk) throws IOException {
+    public static byte[] serialize(ServerChunk chunk) throws IOException {
         GlobalPalette globalPalette = GlobalPalette.getInstance();
         
         Map<Integer, Integer> localPalette = new HashMap<>();
@@ -107,7 +107,7 @@ public class ChunkSerializer {
         return compressedBaos.toByteArray();
     }
     
-    public static Chunk deserialize(byte[] compressedData, int chunkX, int chunkZ) throws IOException {
+    public static ServerChunk deserialize(byte[] compressedData, int chunkX, int chunkZ) throws IOException {
         Inflater inflater = new Inflater();
         inflater.setInput(compressedData);
         
@@ -141,7 +141,7 @@ public class ChunkSerializer {
             rleData.add(new RleEntry(localId, count));
         }
         
-        Chunk chunk = new Chunk(chunkX, chunkZ);
+        ServerChunk chunk = new ServerChunk(chunkX, chunkZ);
         
         int index = 0;
         for (RleEntry entry : rleData) {
@@ -155,7 +155,7 @@ public class ChunkSerializer {
             }
         }
         
-        chunk.setState(Chunk.ChunkState.DATA_LOADED);
+        chunk.setState(ServerChunk.ChunkState.DATA_LOADED);
         chunk.markDirty(false);
         return chunk;
     }

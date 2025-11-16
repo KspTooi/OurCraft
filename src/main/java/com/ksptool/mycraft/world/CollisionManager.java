@@ -1,5 +1,6 @@
 package com.ksptool.mycraft.world;
 
+import com.ksptool.mycraft.server.world.ServerWorld;
 import com.ksptool.mycraft.sharedcore.BoundingBox;
 import com.ksptool.mycraft.sharedcore.world.BlockState;
 import org.joml.Vector3f;
@@ -8,9 +9,9 @@ import org.joml.Vector3f;
  * 碰撞管理器，负责物理碰撞检测
  */
 public class CollisionManager {
-    private final World world;
+    private final ServerWorld world;
     
-    public CollisionManager(World world) {
+    public CollisionManager(ServerWorld world) {
         this.world = world;
     }
 

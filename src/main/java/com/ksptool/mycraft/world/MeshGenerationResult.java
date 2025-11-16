@@ -5,6 +5,10 @@ package com.ksptool.mycraft.world;
  */
 public class MeshGenerationResult {
 
+    //区块坐标
+    public final int chunkX;
+    public final int chunkZ;
+
     //顶点坐标
     public final float[] vertices;
 
@@ -35,11 +39,9 @@ public class MeshGenerationResult {
     //透明索引
     public final int[] transparentIndices;
 
-    //区块
-    public final Chunk chunk;
-
-    public MeshGenerationResult(Chunk chunk, float[] vertices, float[] texCoords, float[] tints, int[] indices) {
-        this.chunk = chunk;
+    public MeshGenerationResult(int chunkX, int chunkZ, float[] vertices, float[] texCoords, float[] tints, int[] indices) {
+        this.chunkX = chunkX;
+        this.chunkZ = chunkZ;
         this.vertices = vertices;
         this.texCoords = texCoords;
         this.tints = tints;
@@ -52,9 +54,10 @@ public class MeshGenerationResult {
         this.transparentIndices = new int[0];
     }
 
-    public MeshGenerationResult(Chunk chunk, float[] vertices, float[] texCoords, float[] tints, float[] animationData, int[] indices,
+    public MeshGenerationResult(int chunkX, int chunkZ, float[] vertices, float[] texCoords, float[] tints, float[] animationData, int[] indices,
                                  float[] transparentVertices, float[] transparentTexCoords, float[] transparentTints, float[] transparentAnimationData, int[] transparentIndices) {
-        this.chunk = chunk;
+        this.chunkX = chunkX;
+        this.chunkZ = chunkZ;
         this.vertices = vertices;
         this.texCoords = texCoords;
         this.tints = tints;

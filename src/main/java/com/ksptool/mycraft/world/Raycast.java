@@ -1,5 +1,6 @@
 package com.ksptool.mycraft.world;
 
+import com.ksptool.mycraft.server.world.ServerWorld;
 import com.ksptool.mycraft.sharedcore.world.BlockState;
 import org.joml.Vector3f;
 
@@ -7,7 +8,7 @@ import org.joml.Vector3f;
  * 射线检测类，用于检测射线与方块的碰撞
  */
 public class Raycast {
-    public static RaycastResult cast(World world, Vector3f origin, Vector3f direction, float maxDistance) {
+    public static RaycastResult cast(ServerWorld world, Vector3f origin, Vector3f direction, float maxDistance) {
         RaycastResult result = new RaycastResult();
 
         Vector3f rayDir = new Vector3f(direction).normalize();

@@ -1,4 +1,4 @@
-package com.ksptool.mycraft.entity;
+package com.ksptool.mycraft.client.entity;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -6,7 +6,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 /**
- * 相机类，负责计算视图矩阵和投影矩阵
+ * 相机类，负责计算视图矩阵和投影矩阵（客户端专用）
  */
 @Getter
 public class Camera {

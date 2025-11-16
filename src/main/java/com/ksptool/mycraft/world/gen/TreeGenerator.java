@@ -3,7 +3,7 @@ package com.ksptool.mycraft.world.gen;
 import com.ksptool.mycraft.sharedcore.BlockType;
 import com.ksptool.mycraft.world.Block;
 import com.ksptool.mycraft.sharedcore.world.BlockState;
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.server.world.ServerChunk;
 import com.ksptool.mycraft.world.GlobalPalette;
 import com.ksptool.mycraft.world.Registry;
 import com.ksptool.mycraft.world.blocks.WoodBlock;
@@ -23,10 +23,10 @@ public class TreeGenerator {
     private static final int LEAF_RADIUS = 2;
 
     public static void place(int[][][] chunkData, int x, int y, int z, GenerationContext context) {
-        if (x < 0 || x >= Chunk.CHUNK_SIZE || z < 0 || z >= Chunk.CHUNK_SIZE) {
+        if (x < 0 || x >= ServerChunk.CHUNK_SIZE || z < 0 || z >= ServerChunk.CHUNK_SIZE) {
             return;
         }
-        if (y < 0 || y >= Chunk.CHUNK_HEIGHT) {
+        if (y < 0 || y >= ServerChunk.CHUNK_HEIGHT) {
             return;
         }
 
@@ -51,13 +51,13 @@ public class TreeGenerator {
 
         int treeHeight = TREE_HEIGHT_MIN + (int) (Math.random() * (TREE_HEIGHT_MAX - TREE_HEIGHT_MIN + 1));
 
-        if (y + treeHeight >= Chunk.CHUNK_HEIGHT) {
+        if (y + treeHeight >= ServerChunk.CHUNK_HEIGHT) {
             return;
         }
 
         for (int dy = 0; dy < treeHeight; dy++) {
             int currentY = y + dy;
-            if (currentY >= 0 && currentY < Chunk.CHUNK_HEIGHT) {
+            if (currentY >= 0 && currentY < ServerChunk.CHUNK_HEIGHT) {
                 chunkData[x][currentY][z] = woodStateId;
             }
         }
@@ -66,7 +66,7 @@ public class TreeGenerator {
         int leafEndY = y + treeHeight;
 
         for (int leafY = leafStartY; leafY <= leafEndY; leafY++) {
-            if (leafY < 0 || leafY >= Chunk.CHUNK_HEIGHT) {
+            if (leafY < 0 || leafY >= ServerChunk.CHUNK_HEIGHT) {
                 continue;
             }
 
@@ -81,7 +81,7 @@ public class TreeGenerator {
                     int leafX = x + dx;
                     int leafZ = z + dz;
 
-                    if (leafX < 0 || leafX >= Chunk.CHUNK_SIZE || leafZ < 0 || leafZ >= Chunk.CHUNK_SIZE) {
+                    if (leafX < 0 || leafX >= ServerChunk.CHUNK_SIZE || leafZ < 0 || leafZ >= ServerChunk.CHUNK_SIZE) {
                         continue;
                     }
 

@@ -1,9 +1,9 @@
 package com.ksptool.mycraft.world.gen;
 
 import com.ksptool.mycraft.world.GlobalPalette;
+import com.ksptool.mycraft.server.world.ServerWorld;
 import com.ksptool.mycraft.world.NoiseGenerator;
 import com.ksptool.mycraft.world.Registry;
-import com.ksptool.mycraft.world.World;
 
 /**
  * 地形生成上下文，用于在地形层之间传递共享资源
@@ -14,7 +14,7 @@ public class GenerationContext {
     private final NoiseGenerator noiseGenerator;
 
     //世界
-    private final World world;
+    private final ServerWorld world;
 
     //种子
     private final long seed;
@@ -25,7 +25,7 @@ public class GenerationContext {
     //注册表
     private final Registry registry;
 
-    public GenerationContext(NoiseGenerator noiseGenerator, World world, long seed) {
+    public GenerationContext(NoiseGenerator noiseGenerator, ServerWorld world, long seed) {
         this.noiseGenerator = noiseGenerator;
         this.world = world;
         this.seed = seed;
@@ -37,7 +37,7 @@ public class GenerationContext {
         return noiseGenerator;
     }
 
-    public World getWorld() {
+    public ServerWorld getWorld() {
         return world;
     }
 

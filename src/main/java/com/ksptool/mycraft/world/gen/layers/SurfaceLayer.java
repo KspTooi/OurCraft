@@ -2,7 +2,7 @@ package com.ksptool.mycraft.world.gen.layers;
 
 import com.ksptool.mycraft.sharedcore.BlockType;
 import com.ksptool.mycraft.world.Block;
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.server.world.ServerChunk;
 import com.ksptool.mycraft.world.gen.GenerationContext;
 import com.ksptool.mycraft.world.gen.ITerrainLayer;
 
@@ -26,11 +26,11 @@ public class SurfaceLayer implements ITerrainLayer {
         int dirtStateId = context.getGlobalPalette().getStateId(dirtBlock.getDefaultState());
         int stoneStateId = context.getGlobalPalette().getStateId(stoneBlock.getDefaultState());
 
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
+            for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
+                for (int y = ServerChunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
                     if (chunkData[x][y][z] == stoneStateId) {
-                        if (y + 1 < Chunk.CHUNK_HEIGHT && chunkData[x][y + 1][z] == AIR_STATE_ID) {
+                        if (y + 1 < ServerChunk.CHUNK_HEIGHT && chunkData[x][y + 1][z] == AIR_STATE_ID) {
                             chunkData[x][y][z] = grassStateId;
                             
                             for (int depth = 1; depth <= 3 && y - depth >= 0; depth++) {

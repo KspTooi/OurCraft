@@ -2,7 +2,7 @@ package com.ksptool.mycraft.world.gen.layers;
 
 import com.ksptool.mycraft.sharedcore.BlockType;
 import com.ksptool.mycraft.world.Block;
-import com.ksptool.mycraft.world.Chunk;
+import com.ksptool.mycraft.server.world.ServerChunk;
 import com.ksptool.mycraft.world.gen.GenerationContext;
 import com.ksptool.mycraft.world.gen.ITerrainLayer;
 
@@ -23,12 +23,12 @@ public class BaseDensityLayer implements ITerrainLayer {
         
         int stoneStateId = context.getGlobalPalette().getStateId(stoneBlock.getDefaultState());
 
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                    int worldX = chunkX * Chunk.CHUNK_SIZE + x;
+        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
+            for (int y = 0; y < ServerChunk.CHUNK_HEIGHT; y++) {
+                for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
+                    int worldX = chunkX * ServerChunk.CHUNK_SIZE + x;
                     int worldY = y;
-                    int worldZ = chunkZ * Chunk.CHUNK_SIZE + z;
+                    int worldZ = chunkZ * ServerChunk.CHUNK_SIZE + z;
 
                     double noise = context.getNoiseGenerator().getNoise(worldX * 0.01, worldY * 0.01, worldZ * 0.01);
                     double density = -worldY + 64 + noise * 20;
