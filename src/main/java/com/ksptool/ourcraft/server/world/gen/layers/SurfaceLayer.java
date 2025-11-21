@@ -14,9 +14,9 @@ public class SurfaceLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock grassSharedBlock = context.getRegistry().getBlock(BlockType.GRASS_BLOCK.getNamespacedId());
-        SharedBlock dirtSharedBlock = context.getRegistry().getBlock(BlockType.DIRT.getNamespacedId());
-        SharedBlock stoneSharedBlock = context.getRegistry().getBlock(BlockType.STONE.getNamespacedId());
+        SharedBlock grassSharedBlock = context.getRegistry().getBlock(BlockType.GRASS_BLOCK.getStdRegName());
+        SharedBlock dirtSharedBlock = context.getRegistry().getBlock(BlockType.DIRT.getStdRegName());
+        SharedBlock stoneSharedBlock = context.getRegistry().getBlock(BlockType.STONE.getStdRegName());
         
         if (grassSharedBlock == null || dirtSharedBlock == null || stoneSharedBlock == null) {
             return;

@@ -29,10 +29,15 @@ import java.util.List;
  */
 @Getter
 public class ServerWorld implements SharedWorld {
+
     private static final int TICKS_PER_DAY = 24000;
     
     private final WorldTemplateOld template;
+
     private double timeAccumulator = 0.0;
+
+
+
     
     private final ChunkManager chunkManager;
     private final EntityManager entityManager;

@@ -301,7 +301,7 @@ public class GameClient {
             String selectedSave = singleplayerMenu.getSelectedSave();
             String selectedWorld = singleplayerMenu.getSelectedWorld();
             if (selectedSave != null && selectedWorld != null) {
-                ClientLauncher.startGameServer(selectedSave, selectedWorld);
+                //ClientLauncher.startGameServer(selectedSave, selectedWorld);
             }
         }
     }
@@ -312,7 +312,7 @@ public class GameClient {
             String worldName = createWorldMenu.getWorldName();
             String saveName = createWorldMenu.getSaveName();
             if (worldName != null && !worldName.isEmpty() && saveName != null && !saveName.isEmpty()) {
-                ClientLauncher.startGameServer(saveName, worldName);
+                //ClientLauncher.startGameServer(saveName, worldName);
             }
         }
         if (result == 2) {
@@ -612,7 +612,7 @@ public class GameClient {
      * 停止游戏，返回主菜单
      */
     public void stopGame() {
-        ClientLauncher.stopGameServer();
+        //ClientLauncher.stopGameServer();
         
         if (serverConnection != null) {
             serverConnection.disconnect();

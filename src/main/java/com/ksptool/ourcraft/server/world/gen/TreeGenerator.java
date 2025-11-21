@@ -31,8 +31,8 @@ public class TreeGenerator {
         com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = context.getGlobalPalette();
         com.ksptool.ourcraft.sharedcore.world.Registry registry = context.getRegistry();
 
-        SharedBlock woodSharedBlock = registry.getBlock(BlockType.WOOD.getNamespacedId());
-        SharedBlock leavesSharedBlock = registry.getBlock(BlockType.LEAVES.getNamespacedId());
+        SharedBlock woodSharedBlock = registry.getBlock(BlockType.WOOD.getStdRegName());
+        SharedBlock leavesSharedBlock = registry.getBlock(BlockType.LEAVES.getStdRegName());
 
         if (woodSharedBlock == null || leavesSharedBlock == null) {
             return;

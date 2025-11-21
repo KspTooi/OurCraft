@@ -13,6 +13,7 @@ import com.ksptool.ourcraft.sharedcore.world.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+
 import java.io.File;
 import java.util.UUID;
 
@@ -21,13 +22,18 @@ import java.util.UUID;
  * 用法: java -jar our-craft.jar server <saveName> <worldName>
  */
 @Slf4j
-public class ServerLauncher {
+public class ServerLauncherNew {
     
     private static OurCraftServerInstance ourCraftServerInstance;
+
     private static ServerWorld serverWorld;
+
     private static ServerPlayer serverPlayer;
+
     private static String currentSaveName;
+
     private static String currentWorldName;
+
     private static volatile boolean running = true;
     
     public static void main(String[] args) {
@@ -118,40 +124,9 @@ public class ServerLauncher {
     private static boolean startServer(String saveName, String worldName) {
         currentSaveName = saveName;
         currentWorldName = worldName;
-        
-        log.info("加载世界: saveName={}, worldName={}", saveName, worldName);
-        
-        SaveManager saveManager = SaveManager.getInstance();
-        WorldIndex index = saveManager.loadWorldIndex(saveName);
-        boolean isNewWorld = true;
-        
-        if (index != null && index.worlds != null) {
-            for (WorldMetadata metadata : index.worlds) {
-                if (metadata != null && worldName.equals(metadata.name)) {
-                    isNewWorld = false;
-                    break;
-                }
-            }
-        }
-        
-        if (isNewWorld) {
-            if (!createNewWorld(saveName, worldName)) {
-                return false;
-            }
-        } else {
-            if (!loadWorld(saveName, worldName)) {
-                return false;
-            }
-        }
-        
-        if (serverWorld == null || serverPlayer == null) {
-            log.error("启动服务器失败: 世界或玩家创建失败");
-            return false;
-        }
-        
+
         // 启动GameServer
-        ourCraftServerInstance = new OurCraftServerInstance();
-        ourCraftServerInstance.init(serverWorld);
+        ourCraftServerInstance = new OurCraftServerInstance(null);
         ourCraftServerInstance.start();
         
         log.info("服务器启动完成");

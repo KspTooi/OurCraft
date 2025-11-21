@@ -37,95 +37,6 @@ public class ClientLauncher {
         gameClient.run();
     }
 
-    /**
-     * 启动游戏服务器（由GameClient调用）
-     */
-    public static void startGameServer(String saveName, String worldName) {
-
-        if (StringUtils.isBlank(saveName) || StringUtils.isBlank(worldName)) {
-            log.error("启动游戏服务器失败: 参数无效");
-            return;
-        }
-
-        stopGameServer();
-
-        log.info("启动游戏服务器: saveName={}, worldName={}", saveName, worldName);
-
-        SaveManager saveManager = SaveManager.getInstance();
-        WorldIndex index = saveManager.loadWorldIndex(saveName);
-        boolean isNewWorld = true;
-        if (index != null && index.worlds != null) {
-            for (WorldMetadata metadata : index.worlds) {
-                if (metadata != null && worldName.equals(metadata.name)) {
-                    isNewWorld = false;
-                    break;
-                }
-            }
-        }
-        
-        if (isNewWorld) {
-            createNewWorld(saveName, worldName);
-        } else {
-            loadWorld(saveName, worldName);
-        }
-
-        if (serverWorld == null || serverPlayer == null) {
-            log.error("启动游戏服务器失败: 世界或玩家创建失败");
-            return;
-        }
-
-        ourCraftServerInstance = new OurCraftServerInstance();
-        ourCraftServerInstance.init(serverWorld);
-        ourCraftServerInstance.start();
-
-        WorldTemplateOld template = serverWorld.getTemplate();
-        ClientWorld clientWorld = new ClientWorld(template);
-        WorldRenderer worldRenderer = new WorldRenderer(clientWorld);
-        worldRenderer.init();
-
-        // 创建 ClientPlayer（需要 ClientWorld）
-        if (clientPlayer == null) {
-            org.joml.Vector3f spawnPos = serverPlayer.getPosition();
-            clientPlayer = new ClientPlayer(clientWorld);
-            clientPlayer.setPosition(spawnPos);
-            // 同步服务器玩家的朝向（ServerPlayer 有 @Getter，会自动生成 getYaw() 和 getPitch()）
-            clientPlayer.setYaw(serverPlayer.getYaw());
-            clientPlayer.setPitch(serverPlayer.getPitch());
-            clientPlayer.initializeCamera();
-        }
-
-        gameClient.setGameWorld(clientWorld, worldRenderer, clientPlayer);
-
-        currentSaveName = saveName;
-        currentWorldName = worldName;
-
-        log.info("游戏服务器启动完成");
-    }
-
-    /**
-     * 停止游戏服务器（由GameClient调用）
-     */
-    public static void stopGameServer() {
-        if (ourCraftServerInstance != null) {
-            log.info("停止游戏服务器");
-            ourCraftServerInstance.cleanup();
-            ourCraftServerInstance = null;
-        }
-
-        if (serverWorld != null && currentSaveName != null && currentWorldName != null) {
-            saveWorld();
-        }
-
-        if (serverWorld != null) {
-            serverWorld.cleanup();
-            serverWorld = null;
-        }
-
-        serverPlayer = null;
-        clientPlayer = null;
-        currentSaveName = null;
-        currentWorldName = null;
-    }
 
     private static void createNewWorld(String saveName, String worldName) {
         log.info("创建新世界: saveName={}, worldName={}", saveName, worldName);
@@ -194,7 +105,7 @@ public class ClientLauncher {
         serverPlayer = new ServerPlayer(serverWorld);
         serverPlayer.getPosition().set(initialX, initialY, initialZ);
         serverWorld.addEntity(serverPlayer);
-        
+
         // ClientPlayer 将在 startGameServer 中创建，因为需要 ClientWorld
     }
 
@@ -221,7 +132,8 @@ public class ClientLauncher {
             return;
         }
 
-        com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = com.ksptool.ourcraft.sharedcore.world.GlobalPalette.getInstance();
+        com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = com.ksptool.ourcraft.sharedcore.world.GlobalPalette
+                .getInstance();
         if (!palette.isBaked()) {
             if (!saveManager.loadPalette(saveName, palette)) {
                 log.debug("调色板文件不存在，使用默认调色板");
@@ -230,7 +142,7 @@ public class ClientLauncher {
                 log.debug("已加载调色板");
             }
         }
-        
+
         WorldTemplateOld template = Registry.getWorldTemplateOld(metadata.templateId);
         if (template == null) {
             log.warn("找不到世界模板 '{}', 使用默认模板", metadata.templateId);
@@ -240,27 +152,27 @@ public class ClientLauncher {
                 return;
             }
         }
-        
+
         serverWorld = new ServerWorld(template);
         serverWorld.setWorldName(worldName);
         serverWorld.setSeed(metadata.seed);
         serverWorld.setGameTime(metadata.worldTime);
         serverWorld.setSaveName(saveName);
-        
+
         File chunksDir = saveManager.getWorldChunkDir(saveName, worldName);
         if (chunksDir != null) {
             RegionManager regionManager = new RegionManager(chunksDir, ".sca", "SCAF");
             serverWorld.setRegionManager(regionManager);
             log.debug("已设置区块区域管理器");
         }
-        
+
         File entityDir = saveManager.getWorldEntityDir(saveName, worldName);
         if (entityDir != null) {
             RegionManager entityRegionManager = new RegionManager(entityDir, ".sce", "SCEF");
             serverWorld.setEntityRegionManager(entityRegionManager);
             log.debug("已设置实体区域管理器");
         }
-        
+
         serverWorld.init();
 
         float initialX = 8.0f;
@@ -287,7 +199,8 @@ public class ClientLauncher {
         serverPlayer.getPosition().set(initialX, initialY, initialZ);
         serverWorld.addEntity(serverPlayer);
 
-        com.ksptool.ourcraft.server.world.save.PlayerIndex playerIndex = SaveManager.getInstance().loadPlayer(saveName, playerUUID);
+        com.ksptool.ourcraft.server.world.save.PlayerIndex playerIndex = SaveManager.getInstance().loadPlayer(saveName,
+                playerUUID);
         if (playerIndex != null) {
             serverPlayer.loadFromPlayerIndex(playerIndex);
             if (serverPlayer.getPosition().y > 0) {
@@ -296,7 +209,7 @@ public class ClientLauncher {
                 initialZ = serverPlayer.getPosition().z;
             }
         }
-        
+
         // ClientPlayer 将在 startGameServer 中创建，因为需要 ClientWorld
     }
 
@@ -306,7 +219,7 @@ public class ClientLauncher {
         }
 
         log.info("保存世界: saveName={}, worldName={}", currentSaveName, currentWorldName);
-        
+
         SaveManager saveManager = SaveManager.getInstance();
         WorldIndex index = saveManager.loadWorldIndex(currentSaveName);
         if (index == null) {
@@ -333,9 +246,9 @@ public class ClientLauncher {
 
         saveManager.saveWorldIndex(currentSaveName, index);
         saveManager.savePalette(currentSaveName, com.ksptool.ourcraft.sharedcore.world.GlobalPalette.getInstance());
-        
+
         serverWorld.saveAllDirtyData();
-        
+
         if (serverPlayer != null) {
             saveManager.savePlayer(currentSaveName, serverPlayer.getUniqueId(), serverPlayer);
         }

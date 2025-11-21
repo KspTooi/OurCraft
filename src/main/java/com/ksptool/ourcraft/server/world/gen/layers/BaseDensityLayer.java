@@ -16,7 +16,7 @@ public class BaseDensityLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock stoneSharedBlock = context.getRegistry().getBlock(BlockType.STONE.getNamespacedId());
+        SharedBlock stoneSharedBlock = context.getRegistry().getBlock(BlockType.STONE.getStdRegName());
         if (stoneSharedBlock == null) {
             return;
         }

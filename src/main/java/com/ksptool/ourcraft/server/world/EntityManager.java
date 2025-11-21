@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 实体管理器，负责实体的生命周期管理
@@ -22,13 +23,13 @@ public class EntityManager {
     private static final Logger logger = LoggerFactory.getLogger(EntityManager.class);
     
     private final ServerWorld world;
-    private final List<ServerEntity> entities;
+    private final CopyOnWriteArrayList<ServerEntity> entities;
     private RegionManager entityRegionManager;
     private String saveName;
     
     public EntityManager(ServerWorld world) {
         this.world = world;
-        this.entities = new ArrayList<>();
+        this.entities = new CopyOnWriteArrayList<>();
     }
     
     public void setSaveName(String saveName) {

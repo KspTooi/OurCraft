@@ -21,7 +21,7 @@ public class FeatureLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock grassSharedBlock = context.getRegistry().getBlock(BlockType.GRASS_BLOCK.getNamespacedId());
+        SharedBlock grassSharedBlock = context.getRegistry().getBlock(BlockType.GRASS_BLOCK.getStdRegName());
         if (grassSharedBlock == null) {
             return;
         }

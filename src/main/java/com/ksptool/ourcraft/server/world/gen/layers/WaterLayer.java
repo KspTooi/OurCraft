@@ -15,7 +15,7 @@ public class WaterLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock waterSharedBlock = context.getRegistry().getBlock(BlockType.WATER.getNamespacedId());
+        SharedBlock waterSharedBlock = context.getRegistry().getBlock(BlockType.WATER.getStdRegName());
         if (waterSharedBlock == null) {
             return;
         }
