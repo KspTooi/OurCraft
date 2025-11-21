@@ -8,7 +8,7 @@ import lombok.Value;
  */
 @Value
 @Builder
-public class WorldTemplate {
+public class WorldTemplateOld {
     /**
      * 模板的唯一ID，用于注册和保存
      */

@@ -2,8 +2,8 @@ package com.ksptool.ourcraft.server.entity;
 
 import com.ksptool.ourcraft.server.item.ServerInventory;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.BlockType;
 import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
@@ -139,7 +139,7 @@ public class ServerPlayer extends ServerLivingEntity {
         if (result.isHit()) {
             GlobalPalette palette = GlobalPalette.getInstance();
             Registry registry = Registry.getInstance();
-            SharedBlock airSharedBlock = registry.get(BlockType.AIR.getNamespacedId());
+            SharedBlock airSharedBlock = registry.getBlock(BlockType.AIR.getStdRegName());
             int airStateId = palette.getStateId(airSharedBlock.getDefaultState());
             world.setBlockState(result.getBlockPosition().x, result.getBlockPosition().y, result.getBlockPosition().z, airStateId);
         }
@@ -162,7 +162,7 @@ public class ServerPlayer extends ServerLivingEntity {
                 if (blockId != null) {
                     GlobalPalette palette = GlobalPalette.getInstance();
                     Registry registry = Registry.getInstance();
-                    SharedBlock sharedBlock = registry.get(blockId);
+                    SharedBlock sharedBlock = registry.getBlock(blockId);
                     if (sharedBlock != null) {
                         int stateId = palette.getStateId(sharedBlock.getDefaultState());
                         world.setBlockState(placePos.x, placePos.y, placePos.z, stateId);

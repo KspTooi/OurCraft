@@ -1,12 +1,13 @@
 package com.ksptool.ourcraft.client;
 
+import com.ksptool.ourcraft.ClientLauncher;
 import com.ksptool.ourcraft.sharedcore.GameState;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.rendering.Renderer;
 import com.ksptool.ourcraft.client.rendering.GuiRenderer;
 import com.ksptool.ourcraft.client.rendering.WorldRenderer;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.client.gui.MainMenu;
 import com.ksptool.ourcraft.client.gui.SingleplayerMenu;
 import com.ksptool.ourcraft.client.gui.CreateWorldMenu;
@@ -22,7 +23,7 @@ import com.ksptool.ourcraft.sharedcore.events.ClientReadyEvent;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
-import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -101,12 +102,12 @@ public class GameClient {
     }
 
     private void registerDefaultWorldTemplate() {
-        WorldTemplate overworldTemplate = WorldTemplate.builder()
+        WorldTemplateOld overworldTemplateOld = WorldTemplateOld.builder()
             .templateId("mycraft:overworld")
             .ticksPerSecond(20)
             .gravity(-9.8f)
             .build();
-        Registry.registerWorldTemplate(overworldTemplate);
+        Registry.registerWorldTemplateOld(overworldTemplateOld);
     }
 
     public void run() {
@@ -300,7 +301,7 @@ public class GameClient {
             String selectedSave = singleplayerMenu.getSelectedSave();
             String selectedWorld = singleplayerMenu.getSelectedWorld();
             if (selectedSave != null && selectedWorld != null) {
-                com.ksptool.ourcraft.Launcher.startGameServer(selectedSave, selectedWorld);
+                ClientLauncher.startGameServer(selectedSave, selectedWorld);
             }
         }
     }
@@ -311,7 +312,7 @@ public class GameClient {
             String worldName = createWorldMenu.getWorldName();
             String saveName = createWorldMenu.getSaveName();
             if (worldName != null && !worldName.isEmpty() && saveName != null && !saveName.isEmpty()) {
-                com.ksptool.ourcraft.Launcher.startGameServer(saveName, worldName);
+                ClientLauncher.startGameServer(saveName, worldName);
             }
         }
         if (result == 2) {
@@ -528,7 +529,7 @@ public class GameClient {
         }
         
         // 获取默认世界模板
-        WorldTemplate template = Registry.getWorldTemplate("mycraft:overworld");
+        WorldTemplateOld template = Registry.getWorldTemplateOld("mycraft:overworld");
         if (template == null) {
             log.error("无法初始化多人游戏世界: 默认模板未找到");
             return;
@@ -611,7 +612,7 @@ public class GameClient {
      * 停止游戏，返回主菜单
      */
     public void stopGame() {
-        com.ksptool.ourcraft.Launcher.stopGameServer();
+        ClientLauncher.stopGameServer();
         
         if (serverConnection != null) {
             serverConnection.disconnect();

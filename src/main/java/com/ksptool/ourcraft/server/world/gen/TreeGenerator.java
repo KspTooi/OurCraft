@@ -1,10 +1,10 @@
 package com.ksptool.ourcraft.server.world.gen;
 
 import com.ksptool.ourcraft.sharedcore.BlockType;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.WoodBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.server.world.ServerChunk;
-import com.ksptool.ourcraft.sharedcore.blocks.WoodBlock;
 
 /**
  * 树木生成器类，负责生成树木结构
@@ -31,8 +31,8 @@ public class TreeGenerator {
         com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = context.getGlobalPalette();
         com.ksptool.ourcraft.sharedcore.world.Registry registry = context.getRegistry();
 
-        SharedBlock woodSharedBlock = registry.get(BlockType.WOOD.getNamespacedId());
-        SharedBlock leavesSharedBlock = registry.get(BlockType.LEAVES.getNamespacedId());
+        SharedBlock woodSharedBlock = registry.getBlock(BlockType.WOOD.getNamespacedId());
+        SharedBlock leavesSharedBlock = registry.getBlock(BlockType.LEAVES.getNamespacedId());
 
         if (woodSharedBlock == null || leavesSharedBlock == null) {
             return;

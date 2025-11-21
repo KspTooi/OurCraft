@@ -1,14 +1,17 @@
 package com.ksptool.ourcraft.sharedcore.world;
 
 import com.ksptool.ourcraft.sharedcore.BlockType;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
-import com.ksptool.ourcraft.sharedcore.world.BlockState;
+import com.ksptool.ourcraft.sharedcore.StdRegName;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.*;
 
 /**
  * 全局方块状态调色板类，管理所有方块状态到ID的映射
  */
+@Getter
 public class GlobalPalette {
 
     //实例
@@ -21,6 +24,7 @@ public class GlobalPalette {
     private final Map<BlockState, Integer> stateToId;
 
     //是否已烘焙
+    @Setter
     private boolean baked = false;
 
     private GlobalPalette() {
@@ -38,9 +42,9 @@ public class GlobalPalette {
         }
 
         Registry registry = Registry.getInstance();
-        Map<String, SharedBlock> blocks = registry.getAllBlocks();
+        Map<StdRegName, SharedBlock> blocks = registry.getAllBlocks();
 
-        SharedBlock airSharedBlock = registry.get(BlockType.AIR.getNamespacedId());
+        SharedBlock airSharedBlock = registry.getBlock(BlockType.AIR.getStdRegName());
         if (airSharedBlock == null) {
             throw new IllegalStateException("Air block must be registered before baking palette!");
         }
@@ -63,8 +67,7 @@ public class GlobalPalette {
             }
         }
         
-        Collections.sort(otherStates, (a, b) -> 
-            a.getSharedBlock().getNamespacedID().compareTo(b.getSharedBlock().getNamespacedID()));
+        otherStates.sort(Comparator.comparing(a -> a.getSharedBlock().getStdRegName().getValue()));
         
         sortedStates.addAll(airStates);
         sortedStates.addAll(otherStates);
@@ -95,7 +98,7 @@ public class GlobalPalette {
             throw new IllegalStateException("Palette must be baked before use!");
         }
         if (id < 0 || id >= stateList.size()) {
-            return stateList.get(0);
+            return stateList.getFirst();
         }
         return stateList.get(id);
     }
@@ -104,27 +107,11 @@ public class GlobalPalette {
         return stateList.size();
     }
 
-    public boolean isBaked() {
-        return baked;
-    }
-
     public void clear() {
         stateList.clear();
         stateToId.clear();
         baked = false;
     }
-    
-    public List<BlockState> getStateList() {
-        return stateList;
-    }
-    
-    public Map<BlockState, Integer> getStateToId() {
-        return stateToId;
-    }
-    
-    public void setBaked(boolean baked) {
-        this.baked = baked;
-    }
-    
+
 }
 

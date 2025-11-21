@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.blocks;
 
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.BlockType;
@@ -10,7 +10,7 @@ import com.ksptool.ourcraft.sharedcore.BlockType;
  */
 public class LeavesBlock extends SharedBlock {
     public LeavesBlock() {
-        super(BlockType.LEAVES.getNamespacedId(), 0.2f, 0);
+        super(BlockType.LEAVES.getStdRegName(), 0.2f, 0);
     }
 
     @Override

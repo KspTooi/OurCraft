@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
 import com.ksptool.ourcraft.sharedcore.BlockType;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.server.world.ServerChunk;
 import com.ksptool.ourcraft.server.world.gen.GenerationContext;
 import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
@@ -16,7 +16,7 @@ public class BaseDensityLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock stoneSharedBlock = context.getRegistry().get(BlockType.STONE.getNamespacedId());
+        SharedBlock stoneSharedBlock = context.getRegistry().getBlock(BlockType.STONE.getNamespacedId());
         if (stoneSharedBlock == null) {
             return;
         }

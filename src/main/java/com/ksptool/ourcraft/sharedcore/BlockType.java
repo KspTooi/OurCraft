@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore;
 
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.blocks.*;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
 import lombok.Getter;
@@ -11,19 +11,23 @@ import lombok.SneakyThrows;
  */
 @Getter
 public enum BlockType {
-    AIR("mycraft:air", AirBlock.class),
-    GRASS_BLOCK("mycraft:grass_block", GrassBlock.class),
-    DIRT("mycraft:dirt", DirtBlock.class),
-    STONE("mycraft:stone", StoneBlock.class),
-    WOOD("mycraft:wood", WoodBlock.class),
-    LEAVES("mycraft:leaves", LeavesBlock.class),
-    WATER("mycraft:water", WaterBlock.class);
 
-    private final String namespacedId;
+    AIR(StdRegName.of("mycraft:air"), AirBlock.class),
+    GRASS_BLOCK(StdRegName.of("mycraft:grass_block"), GrassBlock.class),
+    DIRT(StdRegName.of("mycraft:dirt"), DirtBlock.class),
+    STONE(StdRegName.of("mycraft:stone"), StoneBlock.class),
+    WOOD(StdRegName.of("mycraft:wood"), WoodBlock.class),
+    LEAVES(StdRegName.of("mycraft:leaves"), LeavesBlock.class),
+    WATER(StdRegName.of("mycraft:water"), WaterBlock.class);
+
+    private final StdRegName stdRegName;
     private final Class<? extends SharedBlock> blockClass;
 
-    BlockType(String namespacedId, Class<? extends SharedBlock> blockClass) {
-        this.namespacedId = namespacedId;
+    BlockType(StdRegName stdRegName, Class<? extends SharedBlock> blockClass) {
+        if(stdRegName == null){
+            throw new IllegalArgumentException("StdRegName is null!");
+        }
+        this.stdRegName = stdRegName;
         this.blockClass = blockClass;
     }
 
@@ -34,7 +38,7 @@ public enum BlockType {
 
     public static void registerBlocks(Registry registry) {
         for (BlockType type : values()) {
-            registry.register(type.createInstance());
+            registry.registerBlock(type.createInstance());
         }
     }
 }

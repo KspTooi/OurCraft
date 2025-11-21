@@ -3,12 +3,12 @@ package com.ksptool.ourcraft;
 import com.ksptool.ourcraft.client.GameClient;
 import com.ksptool.ourcraft.client.rendering.WorldRenderer;
 import com.ksptool.ourcraft.client.world.ClientWorld;
+import com.ksptool.ourcraft.server.OurCraftServerInstance;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
-import com.ksptool.ourcraft.server.GameServer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
-import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
 import com.ksptool.ourcraft.server.world.save.SaveManager;
 import com.ksptool.ourcraft.server.world.save.WorldIndex;
@@ -23,9 +23,9 @@ import java.util.UUID;
  * 程序入口类，负责启动游戏并管理GameServer和GameClient的生命周期
  */
 @Slf4j
-public class Launcher {
+public class ClientLauncher {
     private static GameClient gameClient;
-    private static GameServer gameServer;
+    private static OurCraftServerInstance ourCraftServerInstance;
     private static ServerWorld serverWorld;
     private static ServerPlayer serverPlayer;
     private static ClientPlayer clientPlayer;
@@ -74,11 +74,11 @@ public class Launcher {
             return;
         }
 
-        gameServer = new GameServer();
-        gameServer.init(serverWorld);
-        gameServer.start();
+        ourCraftServerInstance = new OurCraftServerInstance();
+        ourCraftServerInstance.init(serverWorld);
+        ourCraftServerInstance.start();
 
-        WorldTemplate template = serverWorld.getTemplate();
+        WorldTemplateOld template = serverWorld.getTemplate();
         ClientWorld clientWorld = new ClientWorld(template);
         WorldRenderer worldRenderer = new WorldRenderer(clientWorld);
         worldRenderer.init();
@@ -106,10 +106,10 @@ public class Launcher {
      * 停止游戏服务器（由GameClient调用）
      */
     public static void stopGameServer() {
-        if (gameServer != null) {
+        if (ourCraftServerInstance != null) {
             log.info("停止游戏服务器");
-            gameServer.cleanup();
-            gameServer = null;
+            ourCraftServerInstance.cleanup();
+            ourCraftServerInstance = null;
         }
 
         if (serverWorld != null && currentSaveName != null && currentWorldName != null) {
@@ -138,7 +138,7 @@ public class Launcher {
             }
         }
 
-        WorldTemplate template = Registry.getWorldTemplate("mycraft:overworld");
+        WorldTemplateOld template = Registry.getWorldTemplateOld("mycraft:overworld");
         if (template == null) {
             log.error("无法创建世界: 默认模板未找到");
             return;
@@ -231,7 +231,7 @@ public class Launcher {
             }
         }
         
-        WorldTemplate template = Registry.getWorldTemplate(metadata.templateId);
+        WorldTemplateOld template = Registry.getWorldTemplateOld(metadata.templateId);
         if (template == null) {
             log.warn("找不到世界模板 '{}', 使用默认模板", metadata.templateId);
             template = Registry.getDefaultTemplate();

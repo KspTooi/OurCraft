@@ -20,11 +20,11 @@ public class Item {
     private static final int DEFAULT_MAX_STACK_SIZE = 64;
 
     static {
-        registerItem(1, "Grass Block", BlockType.GRASS_BLOCK.getNamespacedId());
-        registerItem(2, "Dirt", BlockType.DIRT.getNamespacedId());
-        registerItem(3, "Stone", BlockType.STONE.getNamespacedId());
-        registerItem(4, "Wood", BlockType.WOOD.getNamespacedId());
-        registerItem(5, "Leaves", BlockType.LEAVES.getNamespacedId());
+        registerItem(1, "Grass Block", BlockType.GRASS_BLOCK.getStdRegName().getValue());
+        registerItem(2, "Dirt", BlockType.DIRT.getStdRegName().getValue());
+        registerItem(3, "Stone", BlockType.STONE.getStdRegName().getValue());
+        registerItem(4, "Wood", BlockType.WOOD.getStdRegName().getValue());
+        registerItem(5, "Leaves", BlockType.LEAVES.getStdRegName().getValue());
     }
 
     private static void registerItem(int id, String name, String blockNamespacedID) {

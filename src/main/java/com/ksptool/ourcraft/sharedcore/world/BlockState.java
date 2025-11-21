@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.world;
 
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
 import lombok.Getter;
 
@@ -81,7 +81,7 @@ public class BlockState {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(sharedBlock.getNamespacedID());
+        sb.append(sharedBlock.getStdRegName());
         if (!properties.isEmpty()) {
             sb.append("[");
             boolean first = true;

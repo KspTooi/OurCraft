@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.blocks;
 
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.BlockType;
@@ -11,7 +11,7 @@ import com.ksptool.ourcraft.sharedcore.BlockType;
 public class DirtBlock extends SharedBlock {
 
     public DirtBlock() {
-        super(BlockType.DIRT.getNamespacedId(), 0.5f, 0);
+        super(BlockType.DIRT.getStdRegName(), 0.5f, 0);
     }
 
     @Override

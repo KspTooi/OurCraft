@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.blocks;
 
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.BlockType;
@@ -13,7 +13,7 @@ public class GrassBlock extends SharedBlock {
     public static final BooleanProperty SNOWY = BooleanProperty.create("snowy");
 
     public GrassBlock() {
-        super(BlockType.GRASS_BLOCK.getNamespacedId(), 0.6f, 0);
+        super(BlockType.GRASS_BLOCK.getStdRegName(), 0.6f, 0);
     }
 
     @Override

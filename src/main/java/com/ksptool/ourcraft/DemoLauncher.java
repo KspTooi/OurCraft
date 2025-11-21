@@ -18,7 +18,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ByteBuffer;
 
-public class LaunchTest {
+public class DemoLauncher {
 
     private long window;
     private ShaderProgram shaderProgram;
@@ -41,7 +41,7 @@ public class LaunchTest {
     private boolean mouseLeftPressed = false; // 鼠标左键是否被按下
 
     public static void main(String[] args) {
-        new LaunchTest().run();
+        new DemoLauncher().run();
     }
 
     public void run() {

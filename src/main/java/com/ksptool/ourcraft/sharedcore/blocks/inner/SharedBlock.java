@@ -1,5 +1,6 @@
-package com.ksptool.ourcraft.sharedcore.block;
+package com.ksptool.ourcraft.sharedcore.blocks.inner;
 
+import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
@@ -13,32 +14,37 @@ import java.util.*;
 @Getter
 public abstract class SharedBlock {
 
-    //方块命名空间ID
-    private final String namespacedID;
+    //标准注册名
+    private final StdRegName stdRegName;
 
-    //方块耐久度
+    //耐久度
     private final float durability;
 
-    //方块挖掘等级
+    //挖掘等级
     private final int miningLevel;
 
-    //方块质量(以KG计) 默认1000KG
-    private final float mass = 1000;
+    //质量(以KG计) 默认1000KG
+    private final double mass = 1000;
     
-    //方块体积(以L计)  默认1000L
-    private final float volume = 1000;
+    //体积(以L计)  默认1000L
+    private final double volume = 1000;
 
-    //方块属性列表
+    //属性列表
     private final List<BlockProperty<?>> properties;
 
-    //方块默认状态
+    //默认状态
     private BlockState defaultState;
     
-    //方块所有状态
+    //所有状态
     private List<BlockState> allStates;
 
-    public SharedBlock(String namespacedID, float durability, int miningLevel) {
-        this.namespacedID = Objects.requireNonNull(namespacedID);
+    public SharedBlock(StdRegName stdRegName, float durability, int miningLevel) {
+
+        if(stdRegName == null){
+            throw new IllegalArgumentException("StdRegName is null!");
+        }
+
+        this.stdRegName = stdRegName;
         this.durability = durability;
         this.miningLevel = miningLevel;
         this.properties = new ArrayList<>();

@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
 import com.ksptool.ourcraft.sharedcore.BlockType;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.server.world.ServerChunk;
 import com.ksptool.ourcraft.server.world.gen.GenerationContext;
 import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
@@ -15,7 +15,7 @@ public class WaterLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock waterSharedBlock = context.getRegistry().get(BlockType.WATER.getNamespacedId());
+        SharedBlock waterSharedBlock = context.getRegistry().getBlock(BlockType.WATER.getNamespacedId());
         if (waterSharedBlock == null) {
             return;
         }

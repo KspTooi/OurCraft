@@ -8,11 +8,8 @@ import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.server.world.ChunkManager;
-import com.ksptool.ourcraft.server.world.EntityManager;
 import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
-import com.ksptool.ourcraft.server.world.NoiseGenerator;
-import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.server.world.gen.GenerationContext;
 import com.ksptool.ourcraft.server.world.gen.TerrainPipeline;
@@ -28,13 +25,13 @@ import org.joml.Vector3f;
 import java.util.List;
 
 /**
- * 服务端世界类，负责所有游戏逻辑，不包含任何渲染相关代码
+ * 服务端世界类，负责所有逻辑，不包含任何渲染相关代码
  */
 @Getter
 public class ServerWorld implements SharedWorld {
     private static final int TICKS_PER_DAY = 24000;
     
-    private final WorldTemplate template;
+    private final WorldTemplateOld template;
     private double timeAccumulator = 0.0;
     
     private final ChunkManager chunkManager;
@@ -61,7 +58,7 @@ public class ServerWorld implements SharedWorld {
     
     private final EventQueue eventQueue;
     
-    public ServerWorld(WorldTemplate template) {
+    public ServerWorld(WorldTemplateOld template) {
         this.template = template;
         this.chunkManager = new ChunkManager(this);
         this.entityManager = new EntityManager(this);

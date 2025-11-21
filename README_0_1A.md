@@ -66,7 +66,7 @@ mvn clean compile
 ### 运行项目
 
 ```bash
-mvn exec:java -Dexec.mainClass="com.ksptool.ourcraft.Launcher"
+mvn exec:java -Dexec.mainClass="com.ksptool.ourcraft.ClientLauncher"
 ```
 
 或者打包成可执行 JAR：

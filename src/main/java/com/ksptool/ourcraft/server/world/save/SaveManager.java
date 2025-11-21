@@ -2,7 +2,7 @@ package com.ksptool.ourcraft.server.world.save;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
 import org.apache.commons.lang3.StringUtils;
@@ -380,14 +380,13 @@ public class SaveManager {
         for (int i = 0; i < palette.getStateCount(); i++) {
             BlockState state = palette.getState(i);
             BlockStateData stateData = new BlockStateData();
-            stateData.blockId = state.getSharedBlock().getNamespacedID();
+            stateData.setStdRegName(state.getSharedBlock().getStdRegName().getValue());
             
             java.util.Map<String, String> propsMap = new java.util.HashMap<>();
             for (java.util.Map.Entry<BlockProperty<?>, Comparable<?>> entry : state.getProperties().entrySet()) {
                 propsMap.put(entry.getKey().getName(), entry.getValue().toString());
             }
-            stateData.properties = propsMap;
-            
+            stateData.setProperties(propsMap);
             paletteIndex.states.add(stateData);
         }
         
@@ -424,18 +423,18 @@ public class SaveManager {
             com.ksptool.ourcraft.sharedcore.world.Registry registry = com.ksptool.ourcraft.sharedcore.world.Registry.getInstance();
             
             for (BlockStateData stateData : paletteIndex.states) {
-                if (stateData == null || StringUtils.isBlank(stateData.blockId)) {
+                if (stateData == null || StringUtils.isBlank(stateData.getStdRegName())) {
                     continue;
                 }
                 
-                SharedBlock sharedBlock = registry.get(stateData.blockId);
+                SharedBlock sharedBlock = registry.getBlock(stateData.getStdRegName());
                 if (sharedBlock == null) {
                     continue;
                 }
                 
                 java.util.Map<BlockProperty<?>, Comparable<?>> properties = new java.util.HashMap<>();
-                if (stateData.properties != null) {
-                    for (java.util.Map.Entry<String, String> propEntry : stateData.properties.entrySet()) {
+                if (stateData.getProperties() != null) {
+                    for (java.util.Map.Entry<String, String> propEntry : stateData.getProperties().entrySet()) {
                         String propName = propEntry.getKey();
                         String propValueStr = propEntry.getValue();
                         

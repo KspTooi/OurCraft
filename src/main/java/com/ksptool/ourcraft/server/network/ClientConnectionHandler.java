@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.network;
 
-import com.ksptool.ourcraft.server.GameServer;
+import com.ksptool.ourcraft.server.OurCraftServerInstance;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
 import lombok.Getter;
@@ -20,7 +20,7 @@ import java.net.Socket;
 public class ClientConnectionHandler implements Runnable {
     
     private final Socket socket;
-    private final GameServer gameServer;
+    private final OurCraftServerInstance ourCraftServerInstance;
     private final InputStream inputStream;
     private final OutputStream outputStream;
     private volatile boolean running = true;
@@ -41,9 +41,9 @@ public class ClientConnectionHandler implements Runnable {
     @Setter
     private volatile boolean playerInitialized = false;
     
-    public ClientConnectionHandler(Socket socket, GameServer gameServer) throws IOException {
+    public ClientConnectionHandler(Socket socket, OurCraftServerInstance ourCraftServerInstance) throws IOException {
         this.socket = socket;
-        this.gameServer = gameServer;
+        this.ourCraftServerInstance = ourCraftServerInstance;
         this.inputStream = socket.getInputStream();
         this.outputStream = socket.getOutputStream();
     }
@@ -59,7 +59,7 @@ public class ClientConnectionHandler implements Runnable {
                     Object packet = KryoManager.readObject(inputStream);
                     
                     // 将数据包分发给GameServer处理
-                    gameServer.handlePacket(this, packet);
+                    ourCraftServerInstance.handlePacket(this, packet);
                 } catch (IOException e) {
                     if (running) {
                         log.warn("读取客户端数据包时发生错误: {}", e.getMessage());
@@ -114,8 +114,8 @@ public class ClientConnectionHandler implements Runnable {
         running = false;
         
         // 如果有关联的玩家实体，通知GameServer移除
-        if (player != null && gameServer != null) {
-            gameServer.onClientDisconnected(this);
+        if (player != null && ourCraftServerInstance != null) {
+            ourCraftServerInstance.onClientDisconnected(this);
         }
         
         try {

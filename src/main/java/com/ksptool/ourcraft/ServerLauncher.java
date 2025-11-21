@@ -1,19 +1,18 @@
 package com.ksptool.ourcraft;
 
-import com.ksptool.ourcraft.server.GameServer;
+import com.ksptool.ourcraft.server.OurCraftServerInstance;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
 import com.ksptool.ourcraft.server.world.save.SaveManager;
 import com.ksptool.ourcraft.server.world.save.WorldIndex;
 import com.ksptool.ourcraft.server.world.save.WorldMetadata;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
-import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-
 import java.io.File;
 import java.util.UUID;
 
@@ -24,7 +23,7 @@ import java.util.UUID;
 @Slf4j
 public class ServerLauncher {
     
-    private static GameServer gameServer;
+    private static OurCraftServerInstance ourCraftServerInstance;
     private static ServerWorld serverWorld;
     private static ServerPlayer serverPlayer;
     private static String currentSaveName;
@@ -97,12 +96,12 @@ public class ServerLauncher {
         log.info("初始化基础系统...");
         
         // 注册默认世界模板
-        WorldTemplate overworldTemplate = WorldTemplate.builder()
+        WorldTemplateOld overworldTemplateOld = WorldTemplateOld.builder()
             .templateId("mycraft:overworld")
             .ticksPerSecond(20)
             .gravity(-9.8f)
             .build();
-        Registry.registerWorldTemplate(overworldTemplate);
+        Registry.registerWorldTemplateOld(overworldTemplateOld);
         
         // 注册方块
         SharedBlock.registerBlocks();
@@ -151,9 +150,9 @@ public class ServerLauncher {
         }
         
         // 启动GameServer
-        gameServer = new GameServer();
-        gameServer.init(serverWorld);
-        gameServer.start();
+        ourCraftServerInstance = new OurCraftServerInstance();
+        ourCraftServerInstance.init(serverWorld);
+        ourCraftServerInstance.start();
         
         log.info("服务器启动完成");
         return true;
@@ -173,7 +172,7 @@ public class ServerLauncher {
             }
         }
         
-        WorldTemplate template = Registry.getWorldTemplate("mycraft:overworld");
+        WorldTemplateOld template = Registry.getWorldTemplateOld("mycraft:overworld");
         if (template == null) {
             log.error("无法创建世界: 默认模板未找到");
             return false;
@@ -269,7 +268,7 @@ public class ServerLauncher {
             }
         }
         
-        WorldTemplate template = Registry.getWorldTemplate(metadata.templateId);
+        WorldTemplateOld template = Registry.getWorldTemplateOld(metadata.templateId);
         if (template == null) {
             log.warn("找不到世界模板 '{}', 使用默认模板", metadata.templateId);
             template = Registry.getDefaultTemplate();
@@ -344,10 +343,10 @@ public class ServerLauncher {
     private static void stopServer() {
         running = false;
         
-        if (gameServer != null) {
+        if (ourCraftServerInstance != null) {
             log.info("停止游戏服务器");
-            gameServer.cleanup();
-            gameServer = null;
+            ourCraftServerInstance.cleanup();
+            ourCraftServerInstance = null;
         }
         
         if (serverWorld != null && currentSaveName != null && currentWorldName != null) {

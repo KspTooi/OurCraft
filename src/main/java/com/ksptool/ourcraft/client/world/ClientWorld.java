@@ -11,7 +11,7 @@ import com.ksptool.ourcraft.sharedcore.events.GameEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import com.ksptool.ourcraft.sharedcore.world.ChunkUtils;
 import lombok.Getter;
 
@@ -33,7 +33,7 @@ public class ClientWorld implements SharedWorld {
     private final EventQueue eventQueue;
     
     //世界模板
-    private final WorldTemplate template;
+    private final WorldTemplateOld template;
     
     private float timeOfDay = 0.0f;
 
@@ -42,7 +42,7 @@ public class ClientWorld implements SharedWorld {
     private ChunkMeshGenerator chunkMeshGenerator;
     private final List<ClientChunk> dirtyChunks = new ArrayList<>();
     
-    public ClientWorld(WorldTemplate template) {
+    public ClientWorld(WorldTemplateOld template) {
         this.template = template;
         this.eventQueue = EventQueue.getInstance();
         this.chunkMeshGenerator = new ChunkMeshGenerator(this);

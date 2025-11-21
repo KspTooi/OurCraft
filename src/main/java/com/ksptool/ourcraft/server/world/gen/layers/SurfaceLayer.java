@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
 import com.ksptool.ourcraft.sharedcore.BlockType;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.server.world.ServerChunk;
 import com.ksptool.ourcraft.server.world.gen.GenerationContext;
 import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
@@ -14,9 +14,9 @@ public class SurfaceLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock grassSharedBlock = context.getRegistry().get(BlockType.GRASS_BLOCK.getNamespacedId());
-        SharedBlock dirtSharedBlock = context.getRegistry().get(BlockType.DIRT.getNamespacedId());
-        SharedBlock stoneSharedBlock = context.getRegistry().get(BlockType.STONE.getNamespacedId());
+        SharedBlock grassSharedBlock = context.getRegistry().getBlock(BlockType.GRASS_BLOCK.getNamespacedId());
+        SharedBlock dirtSharedBlock = context.getRegistry().getBlock(BlockType.DIRT.getNamespacedId());
+        SharedBlock stoneSharedBlock = context.getRegistry().getBlock(BlockType.STONE.getNamespacedId());
         
         if (grassSharedBlock == null || dirtSharedBlock == null || stoneSharedBlock == null) {
             return;

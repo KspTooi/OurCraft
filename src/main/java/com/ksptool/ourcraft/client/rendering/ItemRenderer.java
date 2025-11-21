@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.client.rendering;
 
 import com.ksptool.ourcraft.sharedcore.item.Item;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
@@ -42,7 +42,7 @@ public class ItemRenderer {
         }
 
         Registry registry = Registry.getInstance();
-        SharedBlock sharedBlock = registry.get(blockId);
+        SharedBlock sharedBlock = registry.getBlock(blockId);
         if (sharedBlock == null) {
             return;
         }

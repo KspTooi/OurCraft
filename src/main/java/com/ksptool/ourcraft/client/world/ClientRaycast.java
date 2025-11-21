@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.client.world;
 
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.RaycastResult;
 import org.joml.Vector3f;

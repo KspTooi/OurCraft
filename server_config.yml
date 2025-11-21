@@ -1,0 +1,5 @@
+port: 25564
+mainWorldName: earth_like
+serverName: A OurCraft Server
+saveName: our_craft
+bindAddress: 0.0.0.0

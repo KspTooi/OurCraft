@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.blocks;
 
-import com.ksptool.ourcraft.sharedcore.block.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.BlockType;
@@ -17,7 +17,7 @@ public class WoodBlock extends SharedBlock {
     }
 
     public WoodBlock() {
-        super(BlockType.WOOD.getNamespacedId(), 2.0f, 0);
+        super(BlockType.WOOD.getStdRegName(), 2.0f, 0);
     }
 
     @Override
