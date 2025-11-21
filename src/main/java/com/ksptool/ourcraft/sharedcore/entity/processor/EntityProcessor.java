@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.entity.processor;
 
-import com.ksptool.ourcraft.sharedcore.entity.inner.SharedEntity;
+import com.ksptool.ourcraft.sharedcore.entity.SharedEntity;
 
 import java.util.List;
 

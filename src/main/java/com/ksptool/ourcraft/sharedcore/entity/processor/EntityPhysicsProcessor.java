@@ -1,11 +1,9 @@
 package com.ksptool.ourcraft.sharedcore.entity.processor;
 
 
-import com.ksptool.ourcraft.server.world.ServerWorld;
+import com.ksptool.ourcraft.sharedcore.entity.SharedEntity;
 import com.ksptool.ourcraft.sharedcore.entity.components.PhysicsComponent;
 import com.ksptool.ourcraft.sharedcore.entity.components.TransformComponent;
-import com.ksptool.ourcraft.sharedcore.BoundingBox;
-import com.ksptool.ourcraft.sharedcore.entity.inner.SharedEntity;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import org.joml.Vector3d;
 

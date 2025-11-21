@@ -1,4 +1,4 @@
-package com.ksptool.ourcraft.sharedcore.entity;
+package com.ksptool.ourcraft.server.manager;
 
 import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
@@ -15,7 +15,7 @@ public class EcsEntityManager {
     }
 
     public void createEntity(StdRegName regName, Vector3d pos) {
-
+        
     }
 
 }

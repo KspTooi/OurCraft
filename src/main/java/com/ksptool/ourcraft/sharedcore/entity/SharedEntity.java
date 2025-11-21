@@ -1,4 +1,4 @@
-package com.ksptool.ourcraft.sharedcore.entity.inner;
+package com.ksptool.ourcraft.sharedcore.entity;
 
 import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.entity.components.EntityComponent;
