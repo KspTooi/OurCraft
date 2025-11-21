@@ -54,3 +54,16 @@ logs/**
 .mvn
 .mvn/**
 
+#忽略.idea文件夹
+.idea
+.idea/**
+#忽略.cursor文件夹
+.cursor
+.cursor/**
+#忽略logs文件夹
+logs
+logs/**
+#忽略stories/.obsidian文件夹
+stories/.obsidian
+stories/.obsidian/**
+
