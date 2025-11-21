@@ -66,4 +66,7 @@ logs/**
 #忽略stories/.obsidian文件夹
 stories/.obsidian
 stories/.obsidian/**
+#忽略saves文件夹
+saves
+saves/**
 
