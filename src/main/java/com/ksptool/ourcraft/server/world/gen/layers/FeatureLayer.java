@@ -1,6 +1,7 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
 import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.server.world.ServerChunk;
@@ -50,7 +51,7 @@ public class FeatureLayer implements ITerrainLayer {
     }
 
     private int findSurfaceY(int[][][] chunkData, int x, int z, GenerationContext context) {
-        com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = context.getGlobalPalette();
+        GlobalPalette palette = context.getGlobalPalette();
         for (int y = ServerChunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
             int stateId = chunkData[x][y][z];
             if (stateId == AIR_STATE_ID) {

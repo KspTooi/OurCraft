@@ -1,12 +1,12 @@
 package com.ksptool.ourcraft.server.manager;
 
-import com.ksptool.ourcraft.server.OurCraftServerInstance;
+import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
 import com.ksptool.ourcraft.server.world.save.SaveManager;
 import com.ksptool.ourcraft.server.world.save.WorldIndex;
 import com.ksptool.ourcraft.server.world.save.WorldMetadata;
-import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import lombok.Getter;
@@ -38,12 +38,12 @@ public class ServerWorldManager {
     private final Map<String, ServerWorldExecutionUnit> worldExecutors = new ConcurrentHashMap<>();
 
     // 暂时直接使用OurCraftServerInstance的引用来获取网络连接(因为网络层还未完成，目前它是全局的)
-    private final OurCraftServerInstance serverInstance;
+    private final OurCraftServer serverInstance;
 
     // 用于执行世界逻辑的线程池
     private final ExecutorService executorService;
 
-    public ServerWorldManager(OurCraftServerInstance serverInstance, String saveName) {
+    public ServerWorldManager(OurCraftServer serverInstance, String saveName) {
 
         if (StringUtils.isBlank(saveName)) {
             log.error("归档名称不能为空");

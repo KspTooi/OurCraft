@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.manager;
 
-import com.ksptool.ourcraft.server.OurCraftServerInstance;
+import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
 import com.ksptool.ourcraft.server.world.ServerChunk;
@@ -19,7 +19,6 @@ import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -33,14 +32,14 @@ public class ServerWorldExecutionUnit implements Runnable {
     
     private final ServerWorld serverWorld;
 
-    private final OurCraftServerInstance serverInstance; // 需要引用以访问连接的客户端
+    private final OurCraftServer serverInstance; // 需要引用以访问连接的客户端
 
     private static final int INITIAL_RENDER_DISTANCE = 8; // 也可以从配置读取
 
     @Getter
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    public ServerWorldExecutionUnit(ServerWorld serverWorld, OurCraftServerInstance serverInstance) {
+    public ServerWorldExecutionUnit(ServerWorld serverWorld, OurCraftServer serverInstance) {
         this.worldName = serverWorld.getWorldName();
         this.serverWorld = serverWorld;
         this.serverInstance = serverInstance;

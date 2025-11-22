@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft;
 
-import com.ksptool.ourcraft.server.OurCraftServerInstance;
+import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
@@ -8,7 +8,7 @@ import com.ksptool.ourcraft.server.world.save.SaveManager;
 import com.ksptool.ourcraft.server.world.save.WorldIndex;
 import com.ksptool.ourcraft.server.world.save.WorldMetadata;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
-import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import java.util.UUID;
 @Slf4j
 public class ServerLauncherNew {
     
-    private static OurCraftServerInstance ourCraftServerInstance;
+    private static OurCraftServer ourCraftServer;
 
     private static ServerWorld serverWorld;
 
@@ -126,8 +126,8 @@ public class ServerLauncherNew {
         currentWorldName = worldName;
 
         // 启动GameServer
-        ourCraftServerInstance = new OurCraftServerInstance(null);
-        ourCraftServerInstance.start();
+        ourCraftServer = new OurCraftServer(null);
+        ourCraftServer.start();
         
         log.info("服务器启动完成");
         return true;
@@ -318,10 +318,10 @@ public class ServerLauncherNew {
     private static void stopServer() {
         running = false;
         
-        if (ourCraftServerInstance != null) {
+        if (ourCraftServer != null) {
             log.info("停止游戏服务器");
-            ourCraftServerInstance.cleanup();
-            ourCraftServerInstance = null;
+            ourCraftServer.cleanup();
+            ourCraftServer = null;
         }
         
         if (serverWorld != null && currentSaveName != null && currentWorldName != null) {

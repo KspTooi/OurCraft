@@ -1,5 +1,6 @@
 package com.ksptool.ourcraft.server;
 
+import com.ksptool.ourcraft.server.archive.ArchiveManager;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.manager.ServerWorldManager;
 import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
@@ -25,20 +26,27 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 @Slf4j
 @Getter
-public class OurCraftServerInstance {
+public class OurCraftServer {
 
     private static final int INITIAL_RENDER_DISTANCE = 8;
     private static final int NETWORK_PORT = 25564;
 
     private final ServerWorldManager worldManager;
+
     private final String worldName = "earth_like";
 
     private Thread networkListenerThread;
+
     private ServerSocket serverSocket;
+
     private final CopyOnWriteArrayList<ClientConnectionHandler> connectedClients = new CopyOnWriteArrayList<>();
+
     private final ConcurrentHashMap<Integer, ClientConnectionHandler> sessionIdToHandler = new ConcurrentHashMap<>();
 
-    public OurCraftServerInstance(String saveName) {
+    //归档管理器
+    private final ArchiveManager archiveManager;
+
+    public OurCraftServer(String saveName) {
 
         var _saveName = saveName;
 
@@ -47,9 +55,19 @@ public class OurCraftServerInstance {
             log.warn("使用默认的归档: {}", _saveName);
         }
 
-        // 创建世界管理器
-        this.worldManager = new ServerWorldManager(this, _saveName);
+        //初始化归档管理器
+        this.archiveManager = new ArchiveManager();
 
+        //创建世界管理器
+        this.worldManager = new ServerWorldManager(this, _saveName);
+        
+        //读取现有归档
+        if(!archiveManager.existsArchive(_saveName)){
+            archiveManager.createArchive(_saveName);
+        }
+
+        //打开归档索引数据库连接
+        archiveManager.connectArchiveIndex();
     }
 
     public void start() {

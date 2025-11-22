@@ -1,6 +1,7 @@
 package com.ksptool.ourcraft.client.network;
 
 import com.ksptool.ourcraft.client.GameClient;
+import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
@@ -223,7 +224,7 @@ public class ServerConnection {
 
             log.info("ServerSyncEntityPositionAndRotationNVo X:{} Y:{} Z:{} P:{} R:{}",packet.x(),packet.y(),packet.z(),packet.pitch(),packet.yaw());
 
-            com.ksptool.ourcraft.client.entity.ClientPlayer player = gameClient.getPlayer();
+            ClientPlayer player = gameClient.getPlayer();
             if (player != null) {
                 org.joml.Vector3f serverPos = new org.joml.Vector3f((float) packet.x(), (float) packet.y(), (float) packet.z());
                 float distance = player.getPosition().distance(serverPos);
@@ -233,22 +234,30 @@ public class ServerConnection {
                     player.setPosition(serverPos); // 使用setPosition确保previousPosition也被正确初始化
                     player.setYaw(packet.yaw());
                     player.setPitch(packet.pitch());
-                } else {
+                    return;
+                }
+
+                //如果玩家已初始化 校准位置
+                if(gameClient.isPlayerInitialized()){
                     // 服务端协调：平滑地校正客户端预测位置
                     // 保存当前位置用于插值
                     player.getPreviousPosition().set(player.getPosition());
-                    
-                    // 如果差异较大，直接同步（可能是网络延迟或预测错误）
+
+                    // 本地与远程位置差异较大，直接同步人物到服务端位置（可能是网络延迟或客户端预测错误）
                     if (distance > 1.0f) {
                         player.getPosition().set(serverPos);
                         // 同时重置速度，避免继续预测错误的方向
                         player.getVelocity().set(0, 0, 0);
-                    } else if (distance > 0.1f) {
-                        // 差异较小，平滑插值到服务器位置
-                        player.getPosition().lerp(serverPos, 0.5f);
+                        return;
                     }
+
+                    // 本地与远程位置差异较小，平滑插值到服务器位置
+                    if(distance > 0.1f){
+                        player.getPosition().lerp(serverPos, 0.5f);
+                        return;
+                    }
+
                     // 如果差异很小（<0.1），不进行校正，保持客户端预测
-                    
                     // 同步相机朝向（服务端是权威的）
                     player.setYaw(packet.yaw());
                     player.setPitch(packet.pitch());
@@ -285,7 +294,7 @@ public class ServerConnection {
             // 假设一天有24000 tick（与ServerWorld的TICKS_PER_DAY一致）
             long ticksPerDay = 24000L;
             float timeOfDay = (float) (packet.worldTime() % ticksPerDay) / ticksPerDay;
-            clientWorld.setTimeOfDay(timeOfDay);
+            clientWorld.setTimeOfDay(12000);
             log.debug("收到世界时间更新: {} -> {}", packet.worldTime(), timeOfDay);
         }
     }

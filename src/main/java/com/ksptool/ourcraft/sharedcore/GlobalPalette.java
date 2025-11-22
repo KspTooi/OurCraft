@@ -1,8 +1,8 @@
-package com.ksptool.ourcraft.sharedcore.world;
+package com.ksptool.ourcraft.sharedcore;
 
-import com.ksptool.ourcraft.sharedcore.BlockType;
-import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.world.BlockState;
+import com.ksptool.ourcraft.sharedcore.world.Registry;
 import lombok.Getter;
 import lombok.Setter;
 

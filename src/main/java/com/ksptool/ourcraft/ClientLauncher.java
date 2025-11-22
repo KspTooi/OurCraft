@@ -1,12 +1,11 @@
 package com.ksptool.ourcraft;
 
 import com.ksptool.ourcraft.client.GameClient;
-import com.ksptool.ourcraft.client.rendering.WorldRenderer;
-import com.ksptool.ourcraft.client.world.ClientWorld;
-import com.ksptool.ourcraft.server.OurCraftServerInstance;
+import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
@@ -14,7 +13,6 @@ import com.ksptool.ourcraft.server.world.save.SaveManager;
 import com.ksptool.ourcraft.server.world.save.WorldIndex;
 import com.ksptool.ourcraft.server.world.save.WorldMetadata;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.UUID;
@@ -25,7 +23,7 @@ import java.util.UUID;
 @Slf4j
 public class ClientLauncher {
     private static GameClient gameClient;
-    private static OurCraftServerInstance ourCraftServerInstance;
+    private static OurCraftServer ourCraftServer;
     private static ServerWorld serverWorld;
     private static ServerPlayer serverPlayer;
     private static ClientPlayer clientPlayer;
@@ -85,7 +83,7 @@ public class ClientLauncher {
         metadata.templateId = serverWorld.getTemplate().getTemplateId();
         index.worlds.add(metadata);
         saveManager.saveWorldIndex(saveName, index);
-        saveManager.savePalette(saveName, com.ksptool.ourcraft.sharedcore.world.GlobalPalette.getInstance());
+        saveManager.savePalette(saveName, GlobalPalette.getInstance());
 
         float initialX = 8.0f;
         float initialZ = 8.0f;
@@ -132,7 +130,7 @@ public class ClientLauncher {
             return;
         }
 
-        com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = com.ksptool.ourcraft.sharedcore.world.GlobalPalette
+        GlobalPalette palette = GlobalPalette
                 .getInstance();
         if (!palette.isBaked()) {
             if (!saveManager.loadPalette(saveName, palette)) {
@@ -245,7 +243,7 @@ public class ClientLauncher {
         metadata.templateId = serverWorld.getTemplate().getTemplateId();
 
         saveManager.saveWorldIndex(currentSaveName, index);
-        saveManager.savePalette(currentSaveName, com.ksptool.ourcraft.sharedcore.world.GlobalPalette.getInstance());
+        saveManager.savePalette(currentSaveName, GlobalPalette.getInstance());
 
         serverWorld.saveAllDirtyData();
 

@@ -1,6 +1,7 @@
 package com.ksptool.ourcraft.server.world.gen;
 
 import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.blocks.WoodBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
@@ -28,7 +29,7 @@ public class TreeGenerator {
             return;
         }
 
-        com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette = context.getGlobalPalette();
+        GlobalPalette palette = context.getGlobalPalette();
         com.ksptool.ourcraft.sharedcore.world.Registry registry = context.getRegistry();
 
         SharedBlock woodSharedBlock = registry.getBlock(BlockType.WOOD.getStdRegName());

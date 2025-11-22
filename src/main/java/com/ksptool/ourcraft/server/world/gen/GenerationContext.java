@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.world.gen;
 
-import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.world.Registry;

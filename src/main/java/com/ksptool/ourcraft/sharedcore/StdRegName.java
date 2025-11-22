@@ -1,5 +1,7 @@
 package com.ksptool.ourcraft.sharedcore;
 
+import lombok.Getter;
+
 import java.util.regex.Pattern;
 
 /**
@@ -7,6 +9,7 @@ import java.util.regex.Pattern;
  * 用于规范化注册表名的格式 namespace:itemName
  * 例如：core:stone
  */
+@Getter
 public class StdRegName {
 
     /**
@@ -33,10 +36,6 @@ public class StdRegName {
 
     public static StdRegName of(String namespace, String item) {
         return new StdRegName(namespace + ":" + item);
-    }
-
-    public String getValue() {
-        return value;
     }
 
     public String getNamespace() {

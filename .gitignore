@@ -69,4 +69,5 @@ stories/.obsidian/**
 #忽略saves文件夹
 saves
 saves/**
+archives/**
 

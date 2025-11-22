@@ -2,6 +2,7 @@ package com.ksptool.ourcraft.server.world.save;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
@@ -364,7 +365,7 @@ public class SaveManager {
         return entityDir;
     }
     
-    public void savePalette(String saveName, com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette) {
+    public void savePalette(String saveName, GlobalPalette palette) {
         if (StringUtils.isBlank(saveName) || palette == null || !palette.isBaked()) {
             return;
         }
@@ -398,7 +399,7 @@ public class SaveManager {
         }
     }
     
-    public boolean loadPalette(String saveName, com.ksptool.ourcraft.sharedcore.world.GlobalPalette palette) {
+    public boolean loadPalette(String saveName, GlobalPalette palette) {
         if (StringUtils.isBlank(saveName) || palette == null) {
             return false;
         }

@@ -8,7 +8,7 @@ import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.server.world.gen.GenerationContext;
@@ -37,8 +37,6 @@ public class ServerWorld implements SharedWorld {
     private double timeAccumulator = 0.0;
 
 
-
-    
     private final ChunkManager chunkManager;
     private final EntityManager entityManager;
     private final ServerCollisionManager collisionManager;

@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
+import com.ksptool.ourcraft.server.archive.model.GlobalPaletteProperty;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,6 +43,7 @@ public class KryoManager {
         kryo.addDefaultSerializer(short.class, new DefaultSerializers.ShortSerializer());
         kryo.addDefaultSerializer(byte.class, new DefaultSerializers.ByteSerializer());
         kryo.addDefaultSerializer(char.class, new DefaultSerializers.CharSerializer());
+        
         
         registerAllPackets(kryo);
         return kryo;
@@ -110,6 +112,9 @@ public class KryoManager {
         kryo.register(int.class, id++);
         kryo.register(long.class, id++);
         kryo.register(short.class, id++);
+
+        //注册全局调色板
+        kryo.register(GlobalPaletteProperty.class, id++);
 
         log.debug("KryoManager: 已注册{}个类，ID范围: 0-{}", id, id - 1);
     }

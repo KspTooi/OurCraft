@@ -1,6 +1,5 @@
 package com.ksptool.ourcraft.client;
 
-import com.ksptool.ourcraft.ClientLauncher;
 import com.ksptool.ourcraft.sharedcore.GameState;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
@@ -21,7 +20,7 @@ import com.ksptool.ourcraft.sharedcore.events.PlayerAction;
 import com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.ClientReadyEvent;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
-import com.ksptool.ourcraft.sharedcore.world.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
 import lombok.extern.slf4j.Slf4j;
@@ -80,7 +79,7 @@ public class GameClient {
         SharedBlock.registerBlocks();
         GlobalPalette.getInstance().bake();
         
-        window = new Window(1280, 720, "OurCraft 1.1Z1 \uD83E\uDD86 内部预览版");
+        window = new Window(1280, 720, "OurCraft 1.2E2 \uD83E\uDD86 内部预览版");
         window.init();
         input = new Input(window.getWindowHandle());
         input.setMouseLocked(false);
