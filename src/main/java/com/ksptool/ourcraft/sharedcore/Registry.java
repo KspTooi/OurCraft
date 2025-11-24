@@ -6,6 +6,7 @@ import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.template.ItemTemplate;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.gen.TerrainGenerator;
 import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,11 +27,15 @@ public class Registry {
 
     private final Map<StdRegName, SharedEntity> entities;
 
+    private final Map<StdRegName, TerrainGenerator> terrainGenerators;
+
+
     private Registry() {
         this.blocks = new HashMap<>();
         this.worldTemplates = new HashMap<>();
         this.items = new HashMap<>();
         this.entities = new HashMap<>();
+        this.terrainGenerators = new HashMap<>();
     }
 
     public static Registry getInstance() {
@@ -123,12 +128,37 @@ public class Registry {
     }
 
     /**
-     * 注册所有引擎原版的内容 这包括方块、物品、世界模板、实体
+     * 注册地形生成器
+     * @param terrainGenerator 地形生成器
      */
-    public void registerAllDefaultContent() {
-        BlockEnums.registerBlocks(this);
-        WorldTemplateEnums.registerWorldTemplate(this);
+    public void registerTerrainGenerator(TerrainGenerator terrainGenerator) {
+
+        if (terrainGenerator == null) {
+            throw new IllegalArgumentException("TerrainGenerator is null!");
+        }
+
+        log.info("注册地形生成器: {}", terrainGenerator.getStdRegName());
+        terrainGenerators.put(terrainGenerator.getStdRegName(), terrainGenerator);
     }
+
+    /**
+     * 获取地形生成器
+     * @param stdRegName 标准注册名(字符串化)
+     * @return 地形生成器
+     */
+    public TerrainGenerator getTerrainGenerator(String stdRegName) {
+        return terrainGenerators.get(StdRegName.of(stdRegName));
+    }
+
+    /**
+     * 获取地形生成器
+     * @param stdRegName 标准注册名
+     * @return 地形生成器
+     */
+    public TerrainGenerator getTerrainGenerator(StdRegName stdRegName) {
+        return terrainGenerators.get(stdRegName);
+    }
+
 
 }
 

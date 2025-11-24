@@ -1,9 +1,10 @@
-package com.ksptool.ourcraft.server.world.gen;
+package com.ksptool.ourcraft.sharedcore.world.gen;
+
 
 /**
  * 地形层接口，定义地形生成的标准接口
  */
-public interface ITerrainLayer {
+public interface TerrainLayer {
     /**
      * 对区块生成做出贡献
      * @param chunkData 一个临时的方块ID数组，用于读写

@@ -1,11 +1,14 @@
-package com.ksptool.ourcraft.server.world;
+package com.ksptool.ourcraft.server.world.gen;
+
+import com.ksptool.ourcraft.sharedcore.world.gen.TerrainNoiseGenerator;
+import lombok.Getter;
 
 import java.util.Random;
 
 /**
  * 噪声生成器类，用于生成地形噪声
  */
-public class NoiseGenerator {
+public class NoiseGenerator implements TerrainNoiseGenerator {
 
     //倍频
     private static final int OCTAVES = 4;
@@ -17,6 +20,7 @@ public class NoiseGenerator {
     private static final double SCALE = 0.01;
 
     //种子
+    @Getter
     private final String seed;
 
     //数值种子（用于Random初始化）
@@ -25,13 +29,9 @@ public class NoiseGenerator {
     //排列
     private final int[] p;
 
-    //随机数生成器
-    private final Random random;
-
     public NoiseGenerator(String seed) {
         this.seed = seed;
         this.numericSeed = parseSeed(seed);
-        this.random = new Random(this.numericSeed);
         this.p = new int[512];
         
         int[] permutation = {151, 160, 137, 91, 90, 15,
@@ -139,13 +139,6 @@ public class NoiseGenerator {
         return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
     }
 
-    public String getSeed() {
-        return seed;
-    }
-
-    public long getNumericSeed() {
-        return numericSeed;
-    }
 
     private long parseSeed(String seed) {
         if (seed == null || seed.isEmpty()) {

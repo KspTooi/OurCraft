@@ -1,20 +1,21 @@
-package com.ksptool.ourcraft.server.world.gen;
+package com.ksptool.ourcraft.sharedcore.world.gen;
 
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.server.world.ServerWorld;
-import com.ksptool.ourcraft.server.world.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.Registry;
+import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
+import lombok.Getter;
 
 /**
  * 地形生成上下文，用于在地形层之间传递共享资源
  */
+@Getter
 public class GenerationContext {
 
     //噪声生成器
-    private final NoiseGenerator noiseGenerator;
+    private final TerrainNoiseGenerator noiseGenerator;
 
     //世界
-    private final ServerWorld world;
+    private final SharedWorld world;
 
     //种子
     private final String seed;
@@ -28,29 +29,13 @@ public class GenerationContext {
     //注册表
     private final Registry registry;
 
-    public GenerationContext(NoiseGenerator noiseGenerator, ServerWorld world, String seed) {
+    public GenerationContext(TerrainNoiseGenerator noiseGenerator, SharedWorld world, String seed) {
         this.noiseGenerator = noiseGenerator;
         this.world = world;
         this.seed = seed;
         this.numericSeed = parseSeed(seed);
         this.globalPalette = GlobalPalette.getInstance();
         this.registry = Registry.getInstance();
-    }
-
-    public NoiseGenerator getNoiseGenerator() {
-        return noiseGenerator;
-    }
-
-    public ServerWorld getWorld() {
-        return world;
-    }
-
-    public String getSeed() {
-        return seed;
-    }
-
-    public long getNumericSeed() {
-        return numericSeed;
     }
 
     private long parseSeed(String seed) {
@@ -62,14 +47,6 @@ public class GenerationContext {
         } catch (NumberFormatException e) {
             return (long) seed.hashCode();
         }
-    }
-
-    public GlobalPalette getGlobalPalette() {
-        return globalPalette;
-    }
-
-    public Registry getRegistry() {
-        return registry;
     }
 }
 

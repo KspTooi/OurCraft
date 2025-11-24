@@ -5,8 +5,8 @@ import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
-import com.ksptool.ourcraft.server.world.gen.GenerationContext;
-import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
+import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
+import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
 import com.ksptool.ourcraft.server.world.gen.TreeGenerator;
 
 import java.util.Random;
@@ -14,7 +14,7 @@ import java.util.Random;
 /**
  * 地物层，负责在世界中生成树木等结构
  */
-public class FeatureLayer implements ITerrainLayer {
+public class FeatureLayer implements TerrainLayer {
     
     private static final int AIR_STATE_ID = 0;
     private static final int SAFE_MARGIN = 3;

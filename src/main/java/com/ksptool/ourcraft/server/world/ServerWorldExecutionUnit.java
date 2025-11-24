@@ -342,7 +342,7 @@ public class ServerWorldExecutionUnit implements Runnable {
             for (int lx = 0; lx < ServerChunk.CHUNK_SIZE; lx++) {
                 for (int y = 0; y < ServerChunk.CHUNK_HEIGHT; y++) {
                     for (int lz = 0; lz < ServerChunk.CHUNK_SIZE; lz++) {
-                        blockStates[lx][y][lz] = chunk.getBlockState(lx, y, lz);
+                        blockStates[lx][y][lz] = chunk.getBlockStateId(lx, y, lz);
                     }
                 }
             }

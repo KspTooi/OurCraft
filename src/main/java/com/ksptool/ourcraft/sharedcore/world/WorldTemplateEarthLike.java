@@ -33,8 +33,8 @@ public class WorldTemplateEarthLike extends WorldTemplate {
         setSkyLightLevel(15.0);                                         //天空光照等级
         setAmbientLightLevel(0.0);                                      //环境光照等级
         setTps(20);                                                     //该世界的TPS
-        setChunkSizeX(16);                                              //该世界的TPS
-        setChunkSizeY(320);                                              //该世界的TPS
-        setChunkSizeZ(16);                                              //该世界的TPS
+        setChunkSizeX(16);                                              //区块大小X轴
+        setChunkSizeY(320);                                             //区块大小Y轴
+        setChunkSizeZ(16);                                              //区块大小Z轴
     }
 }

@@ -7,6 +7,7 @@ import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.blocks.WoodBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 
 /**
  * 树木生成器类，负责生成树木结构

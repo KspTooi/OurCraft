@@ -4,24 +4,18 @@ import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.archive.ArchiveManager;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.server.world.chunk.ServerSuperChunkManager;
+import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
-import com.ksptool.ourcraft.sharedcore.events.BlockUpdateEvent;
-import com.ksptool.ourcraft.sharedcore.events.ChunkUpdateEvent;
+import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.events.EventQueue;
 import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
-import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.server.world.gen.GenerationContext;
-import com.ksptool.ourcraft.server.world.gen.TerrainPipeline;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
-import com.ksptool.ourcraft.server.world.gen.layers.BaseDensityLayer;
-import com.ksptool.ourcraft.server.world.gen.layers.FeatureLayer;
-import com.ksptool.ourcraft.server.world.gen.layers.SurfaceLayer;
-import com.ksptool.ourcraft.server.world.gen.layers.WaterLayer;
+import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
+import com.ksptool.ourcraft.sharedcore.world.gen.TerrainGenerator;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -66,12 +60,12 @@ public class ServerWorld implements SharedWorld {
     @Getter
     private RegionManager entityRegionManager;
 
-    private NoiseGenerator noiseGenerator;
-
-    private TerrainPipeline terrainPipeline;
-
     private GenerationContext generationContext;
-    
+
+    //地形生成器
+    private final TerrainGenerator terrainGenerator;
+
+
     private final EventQueue eventQueue;
 
     @Setter
@@ -86,6 +80,17 @@ public class ServerWorld implements SharedWorld {
         this.eventQueue = EventQueue.getInstance();
         this.sscm = new ServerSuperChunkManager(server,this);
         this.server = server;
+
+        //从注册表获取地形生成器
+        TerrainGenerator terrainGenerator = Registry.getInstance().getTerrainGenerator(template.getTerrainGenerator());
+
+        if(terrainGenerator == null){
+            throw new IllegalArgumentException("无法初始化世界: " + template.getStdRegName() + " 因为地形生成器未注册: " + template.getTerrainGenerator());
+        }
+
+        this.terrainGenerator = terrainGenerator;
+        var noiseGenerator = new NoiseGenerator(seed);
+        this.generationContext = new GenerationContext(noiseGenerator, this, seed);
     }
     
     public void setSaveName(String saveName) {
@@ -106,14 +111,6 @@ public class ServerWorld implements SharedWorld {
 
     public void init() {
         chunkManager.init();
-        
-        noiseGenerator = new NoiseGenerator(seed);
-        terrainPipeline = new TerrainPipeline();
-        terrainPipeline.addLayer(new BaseDensityLayer());
-        terrainPipeline.addLayer(new WaterLayer());
-        terrainPipeline.addLayer(new SurfaceLayer());
-        terrainPipeline.addLayer(new FeatureLayer());
-        generationContext = new GenerationContext(noiseGenerator, this, seed);
     }
 
     /**
@@ -183,36 +180,18 @@ public class ServerWorld implements SharedWorld {
     }
 
     public void generateChunkData(ServerChunk chunk) {
-        if (terrainPipeline == null || generationContext == null) {
+        if (terrainGenerator == null || generationContext == null) {
             return;
         }
-        terrainPipeline.execute(chunk, generationContext);
+        terrainGenerator.execute(chunk, generationContext);
     }
     
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
         chunkManager.generateChunkSynchronously(chunkX, chunkZ);
     }
     
-    public int getHeightAt(int worldX, int worldZ) {
-        if (noiseGenerator == null) {
-            return 64;
-        }
-        long numericSeed = parseSeedToLong(seed);
-        double noiseValue = noiseGenerator.noise(worldX * 0.05 + numericSeed, worldZ * 0.05 + numericSeed);
-        return (int) (64 + noiseValue * 20);
-    }
 
-    private long parseSeedToLong(String seed) {
-        if (seed == null || seed.isEmpty()) {
-            return new java.util.Random().nextLong();
-        }
-        try {
-            return Long.parseLong(seed);
-        } catch (NumberFormatException e) {
-            return (long) seed.hashCode();
-        }
-    }
-    
+
     public int getChunkCount() {
         return chunkManager.getChunkCount();
     }
@@ -224,43 +203,9 @@ public class ServerWorld implements SharedWorld {
     public ServerChunk getChunk(int chunkX, int chunkZ) {
         return chunkManager.getChunk(chunkX, chunkZ);
     }
-    
-    public ChunkManager getChunkManager() {
-        return chunkManager;
-    }
-    
-    public EntityManager getEntityManager() {
-        return entityManager;
-    }
-    
+
     public void setBlockState(int x, int y, int z, int stateId) {
-        //int oldStateId = getBlockState(x, y, z);
         chunkManager.setBlockState(x, y, z, stateId);
-        
-        //if (oldStateId != stateId) {
-        //    GlobalPalette palette = GlobalPalette.getInstance();
-        //    BlockState oldState = palette.getState(oldStateId);
-        //    BlockState newState = palette.getState(stateId);
-        //
-        //    if (oldState != null) {
-        //        oldState.getSharedBlock().onBlockRemoved(this, x, y, z, oldState);
-        //    }
-        //
-        //    if (newState != null) {
-        //        newState.getSharedBlock().onBlockAdded(this, x, y, z, newState);
-        //    }
-        //
-        //    eventQueue.offerS2C(new BlockUpdateEvent(x, y, z, stateId, oldStateId));
-        //
-        //    int chunkX = (int) Math.floor((float) x / ServerChunk.CHUNK_SIZE);
-        //    int chunkZ = (int) Math.floor((float) z / ServerChunk.CHUNK_SIZE);
-        //    eventQueue.offerS2C(new ChunkUpdateEvent(chunkX, chunkZ));
-        //
-        //    int[][] neighborOffsets = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        //    for (int[] offset : neighborOffsets) {
-        //        eventQueue.offerS2C(new ChunkUpdateEvent(chunkX + offset[0], chunkZ + offset[1]));
-        //    }
-        //}
     }
 
     public boolean canMoveTo(Vector3f position, float height) {

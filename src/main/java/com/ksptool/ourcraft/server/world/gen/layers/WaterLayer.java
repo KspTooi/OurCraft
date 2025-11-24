@@ -3,13 +3,13 @@ package com.ksptool.ourcraft.server.world.gen.layers;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
-import com.ksptool.ourcraft.server.world.gen.GenerationContext;
-import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
+import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
+import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
 
 /**
  * 水体层，在特定高度填充水
  */
-public class WaterLayer implements ITerrainLayer {
+public class WaterLayer implements TerrainLayer {
     private static final int AIR_STATE_ID = 0;
     private static final int SEA_LEVEL = 63;
 

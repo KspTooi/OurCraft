@@ -8,14 +8,22 @@ import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorldManager;
 import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.gen.layers.BaseDensityLayer;
+import com.ksptool.ourcraft.server.world.gen.layers.FeatureLayer;
+import com.ksptool.ourcraft.server.world.gen.layers.SurfaceLayer;
+import com.ksptool.ourcraft.server.world.gen.layers.WaterLayer;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.Registry;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
+import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
+import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3f;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -56,6 +64,12 @@ public class OurCraftServer {
             _archiveName = "our_craft";
             log.warn("使用默认的归档: {}", _archiveName);
         }
+
+        //注册全部原版内容
+        this.registerAllDefaultContent();
+
+        //初始化全局调色板
+        GlobalPalette.getInstance().bake();
 
         //初始化归档管理器
         this.archiveManager = new ArchiveManager();
@@ -497,7 +511,7 @@ public class OurCraftServer {
                     for (int localX = 0; localX < com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE; localX++) {
                         for (int y = 0; y < com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_HEIGHT; y++) {
                             for (int localZ = 0; localZ < ServerChunk.CHUNK_SIZE; localZ++) {
-                                blockStates[localX][y][localZ] = chunk.getBlockState(localX, y, localZ);
+                                blockStates[localX][y][localZ] = chunk.getBlockStateId(localX, y, localZ);
                             }
                         }
                     }
@@ -562,6 +576,25 @@ public class OurCraftServer {
 
         //断开归档索引数据库连接
         archiveManager.disconnectArchiveIndex();
+    }
+
+    /**
+     * 注册所有引擎原版的内容(服务端) 这包括方块、物品、世界模板、实体
+     */
+    public void registerAllDefaultContent() {
+
+        var registry = Registry.getInstance();
+
+        BlockEnums.registerBlocks(registry);
+        WorldTemplateEnums.registerWorldTemplate(registry);
+
+        //注册地形生成器
+        var gen = new DefaultTerrainGenerator();
+        gen.addLayer(new BaseDensityLayer());
+        gen.addLayer(new WaterLayer());
+        gen.addLayer(new SurfaceLayer());
+        gen.addLayer(new FeatureLayer());
+        registry.registerTerrainGenerator(gen);
     }
 
 }

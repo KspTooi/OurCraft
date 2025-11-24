@@ -11,6 +11,9 @@ import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Getter
 public class ServerSuperChunk {
 
@@ -21,6 +24,12 @@ public class ServerSuperChunk {
         READY,           //正常
         AWAITING_UNLOAD, //等待区块卸载并保存到SCA
     }
+
+    //物理位置在这个区块内的玩家 UUID
+    private final Set<String> playersInside = ConcurrentHashMap.newKeySet();
+
+    //视距包含这个区块的玩家 UUID
+    private final Set<String> playersWatching = ConcurrentHashMap.newKeySet();
 
     //区块状态
     @Setter
@@ -49,6 +58,7 @@ public class ServerSuperChunk {
 
     //所属世界
     private ServerWorld world;
+
 
     /**
      * 构造函数
@@ -99,6 +109,34 @@ public class ServerSuperChunk {
         return blockData.getBlock(x,y,z);
     }
 
+    public void addPlayerInside(String playerUUID) {
+        playersInside.add(playerUUID);
+        // 这里可以触发 "玩家进入区块" 事件
+    }
+
+    public void removePlayerInside(String playerUUID) {
+        playersInside.remove(playerUUID);
+        // 这里可以触发 "玩家离开区块" 事件
+    }
+
+    public void addWatcher(String playerUUID) {
+        playersWatching.add(playerUUID);
+        // 如果这是第一个观看者，可能需要初始化某些网络同步状态
+    }
+
+    public void removeWatcher(String playerUUID) {
+        playersWatching.remove(playerUUID);
+        // 如果集合变空，可以将此区块标记为 "待卸载"
+    }
+
+
+    public boolean hasWatchers() {
+        return !playersWatching.isEmpty();
+    }
+
+    public int getPlayersCount() {
+        return playersInside.size();
+    }
 
     /**
      * 判断一个坐标是否超出该区块的范围

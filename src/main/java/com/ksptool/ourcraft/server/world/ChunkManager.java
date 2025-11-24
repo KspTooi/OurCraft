@@ -203,7 +203,7 @@ public class ChunkManager {
         }
         int localX = x - chunkX * ServerChunk.CHUNK_SIZE;
         int localZ = z - chunkZ * ServerChunk.CHUNK_SIZE;
-        return chunk.getBlockState(localX, y, localZ);
+        return chunk.getBlockStateId(localX, y, localZ);
     }
     
     public void setBlockState(int x, int y, int z, int stateId) {

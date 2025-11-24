@@ -72,5 +72,7 @@ public abstract class WorldTemplate {
     private int chunkSizeX = 16;
     private int chunkSizeZ = 16;
     private int chunkSizeY = 256;
+
+    private StdRegName terrainGenerator = StdRegName.of("ourcraft:terrain_generator:earth_like");
 }
 

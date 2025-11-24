@@ -65,6 +65,13 @@ public class ArchiveManager {
         this.worldManager = new ArchiveWorldManager(this, this.paletteManager, this.chunkManager);
     }
 
+    /**
+     * 判断是否连接到归档索引
+     * @return 是否连接到归档索引
+     */
+    public boolean isConnectedArchiveIndex(){
+        return dataSource != null;
+    }
 
     /**
      * 连接归档索引

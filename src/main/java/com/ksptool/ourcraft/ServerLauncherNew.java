@@ -32,12 +32,6 @@ public class ServerLauncherNew {
         log.info("世界名称: {}", worldName);
         log.info("========================================");
 
-        //注册所有引擎原版内容
-        Registry.getInstance().registerAllDefaultContent();
-
-        //初始化全局调色板
-        GlobalPalette.getInstance().bake();
-
         // 启动GameServer
         ourCraftServer = new OurCraftServer(archiveName);
         ourCraftServer.start();

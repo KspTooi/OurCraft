@@ -3,13 +3,13 @@ package com.ksptool.ourcraft.server.world.gen.layers;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
-import com.ksptool.ourcraft.server.world.gen.GenerationContext;
-import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
+import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
+import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
 
 /**
  * 地表层，生成草地和泥土层
  */
-public class SurfaceLayer implements ITerrainLayer {
+public class SurfaceLayer implements TerrainLayer {
     private static final int AIR_STATE_ID = 0;
 
     @Override

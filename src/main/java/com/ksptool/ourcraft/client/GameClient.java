@@ -1,5 +1,10 @@
 package com.ksptool.ourcraft.client;
 
+import com.ksptool.ourcraft.server.world.gen.layers.BaseDensityLayer;
+import com.ksptool.ourcraft.server.world.gen.layers.FeatureLayer;
+import com.ksptool.ourcraft.server.world.gen.layers.SurfaceLayer;
+import com.ksptool.ourcraft.server.world.gen.layers.WaterLayer;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.enums.GameState;
 import com.ksptool.ourcraft.client.world.ClientWorld;
@@ -12,6 +17,7 @@ import com.ksptool.ourcraft.client.gui.SingleplayerMenu;
 import com.ksptool.ourcraft.client.gui.CreateWorldMenu;
 import com.ksptool.ourcraft.client.gui.UiConstants;
 import com.ksptool.ourcraft.client.network.ServerConnection;
+import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.events.EventQueue;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerHotbarSwitchEvent;
@@ -23,6 +29,7 @@ import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -77,7 +84,7 @@ public class GameClient {
     public void init() {
 
         //注册所有引擎原版内容
-        Registry.getInstance().registerAllDefaultContent();
+        registerAllDefaultContent();
 
         GlobalPalette.getInstance().bake();
         
@@ -642,6 +649,25 @@ public class GameClient {
         if (window != null) {
             window.cleanup();
         }
+    }
+
+    /**
+     * 注册所有引擎原版的内容(服务端) 这包括方块、物品、世界模板、实体
+     */
+    public void registerAllDefaultContent() {
+
+        var registry = Registry.getInstance();
+
+        BlockEnums.registerBlocks(registry);
+        WorldTemplateEnums.registerWorldTemplate(registry);
+
+        //注册地形生成器
+        var gen = new DefaultTerrainGenerator();
+        gen.addLayer(new BaseDensityLayer());
+        gen.addLayer(new WaterLayer());
+        gen.addLayer(new SurfaceLayer());
+        gen.addLayer(new FeatureLayer());
+        registry.registerTerrainGenerator(gen);
     }
 }
 

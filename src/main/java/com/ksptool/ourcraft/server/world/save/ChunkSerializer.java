@@ -39,7 +39,7 @@ public class ChunkSerializer {
         for (int x = 0; x < CHUNK_SIZE; x++) {
             for (int y = 0; y < CHUNK_HEIGHT; y++) {
                 for (int z = 0; z < CHUNK_SIZE; z++) {
-                    int globalStateId = chunk.getBlockState(x, y, z);
+                    int globalStateId = chunk.getBlockStateId(x, y, z);
                     if (!localPalette.containsKey(globalStateId)) {
                         localPalette.put(globalStateId, paletteList.size());
                         paletteList.add(globalStateId);
@@ -67,7 +67,7 @@ public class ChunkSerializer {
                         continue;
                     }
                     
-                    int state = chunk.getBlockState(x, y, z);
+                    int state = chunk.getBlockStateId(x, y, z);
                     int localId = localPalette.get(state);
                     
                     if (localId == currentLocalId && currentCount < 32767) {

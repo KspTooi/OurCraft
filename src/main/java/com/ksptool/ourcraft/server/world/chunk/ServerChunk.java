@@ -1,11 +1,16 @@
 package com.ksptool.ourcraft.server.world.chunk;
 
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.world.BlockState;
+import com.ksptool.ourcraft.sharedcore.world.chunk.SharedChunk;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 服务端区块类，只负责存储和管理方块数据，不包含任何渲染相关代码
  */
-public class ServerChunk {
+public class ServerChunk implements SharedChunk {
 
     //区块大小
     public static final int CHUNK_SIZE = 16;
@@ -21,13 +26,21 @@ public class ServerChunk {
         READY
     }
 
+    @Setter
+    @Getter
     private int[][][] blockStates;
+    @Getter
     private int chunkX;
+    @Getter
     private int chunkZ;
     private boolean needsUpdate;
+    @Setter
+    @Getter
     private ChunkState state;
+    @Getter
     private BoundingBox boundingBox;
     private static final int AIR_STATE_ID = 0;
+    @Getter
     private boolean isDirty = false;
     private boolean entitiesDirty = false;
 
@@ -45,6 +58,16 @@ public class ServerChunk {
         this.boundingBox = new BoundingBox(minX, 0, minZ, maxX, CHUNK_HEIGHT, maxZ);
     }
 
+    @Override
+    public boolean isServerSide() {
+        return true;
+    }
+
+    @Override
+    public boolean isClientSide() {
+        return false;
+    }
+
     public void setBlockState(int x, int y, int z, int stateId) {
         if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT && z >= 0 && z < CHUNK_SIZE) {
             blockStates[x][y][z] = stateId;
@@ -53,46 +76,62 @@ public class ServerChunk {
         }
     }
 
-    public int getBlockState(int x, int y, int z) {
+    @Override
+    public void setBlockState(int x, int y, int z, BlockState state) {
+
+    }
+
+    @Override
+    public int getBlockStateId(int x, int y, int z) {
         if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT && z >= 0 && z < CHUNK_SIZE) {
             return blockStates[x][y][z];
         }
         return AIR_STATE_ID;
     }
 
-    public void cleanup() {
+    @Override
+    public BlockState getBlockState(int x, int y, int z) {
+        if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT && z >= 0 && z < CHUNK_SIZE) {
+            return GlobalPalette.getInstance().getState(blockStates[x][y][z]);
+        }
+        return GlobalPalette.getInstance().getState(AIR_STATE_ID);
     }
 
-    public int getChunkX() {
+
+    @Override
+    public int getX() {
         return chunkX;
     }
 
-    public int getChunkZ() {
+    @Override
+    public int getZ() {
         return chunkZ;
+    }
+
+    @Override
+    public int getSizeX() {
+        return CHUNK_SIZE;
+    }
+
+    @Override
+    public int getSizeY() {
+        return CHUNK_HEIGHT;
+    }
+
+    @Override
+    public int getSizeZ() {
+        return CHUNK_SIZE;
+    }
+
+    public void cleanup() {
     }
 
     public boolean needsUpdate() {
         return needsUpdate;
     }
 
-    public ChunkState getState() {
-        return state;
-    }
-
-    public void setState(ChunkState state) {
-        this.state = state;
-    }
-
-    public BoundingBox getBoundingBox() {
-        return boundingBox;
-    }
-
     public void markDirty(boolean isDirty) {
         this.isDirty = isDirty;
-    }
-
-    public boolean isDirty() {
-        return isDirty;
     }
 
     public void markEntitiesDirty(boolean entitiesDirty) {
@@ -102,13 +141,6 @@ public class ServerChunk {
     public boolean areEntitiesDirty() {
         return entitiesDirty;
     }
-    
-    public int[][][] getBlockStates() {
-        return blockStates;
-    }
-    
-    public void setBlockStates(int[][][] blockStates) {
-        this.blockStates = blockStates;
-    }
+
 }
 

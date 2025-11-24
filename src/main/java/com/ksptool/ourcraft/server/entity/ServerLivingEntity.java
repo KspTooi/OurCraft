@@ -32,7 +32,8 @@ public abstract class ServerLivingEntity extends ServerEntity {
 
     //眼睛高度
     @Setter
-    protected float eyeHeight = 1.6f;
+    protected float eyeHeight = 1.7F;
+
 
     public ServerLivingEntity(ServerWorld world) {
         super(world);

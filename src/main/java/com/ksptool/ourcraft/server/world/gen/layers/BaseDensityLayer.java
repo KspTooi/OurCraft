@@ -3,13 +3,13 @@ package com.ksptool.ourcraft.server.world.gen.layers;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
-import com.ksptool.ourcraft.server.world.gen.GenerationContext;
-import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
+import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
+import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
 
 /**
  * 基础密度层，生成世界的3D基础形状（石头和空气）
  */
-public class BaseDensityLayer implements ITerrainLayer {
+public class BaseDensityLayer implements TerrainLayer {
 
     //空气状态ID
     private static final int AIR_STATE_ID = 0;

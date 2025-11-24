@@ -15,9 +15,10 @@ public class StdRegName {
     /**
      * 预编译正则表达式，提高性能
      * 允许字符：a-z, A-Z, 0-9, 下划线(_), 点(.), 减号(-)
-     * 必须包含且仅包含一个冒号(:)
+     * 允许包含多个冒号(:)，但冒号不能连续，且不能出现在开头或结尾
+     * 例如：valid:name:test 是合法的，但 valid::name 或 :name 是非法的
      */
-    private static final Pattern STD_REG_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+$");
+    private static final Pattern STD_REG_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.-]+(:[a-zA-Z0-9_.-]+)+$");
 
     private final String value;
 
