@@ -4,6 +4,7 @@ import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplateEarthLike;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplateSpawnPlatform;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
@@ -13,7 +14,11 @@ import lombok.SneakyThrows;
 @Getter
 public enum WorldTemplateEnums {
 
-    EARTH_LIKE(StdRegName.of("ourcraft:earth_like"), WorldTemplateEarthLike.class);
+    //类地世界模板
+    EARTH_LIKE(StdRegName.of("ourcraft:earth_like"), WorldTemplateEarthLike.class),
+
+    //出生平台世界模板
+    SPAWN_PLATFORM(StdRegName.of("ourcraft:spawn_platform"), WorldTemplateSpawnPlatform.class);
 
     private final StdRegName stdRegName;
     

@@ -20,6 +20,8 @@ import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
+import com.ksptool.ourcraft.sharedcore.world.gen.SpawnPlatformGenerator;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -83,15 +85,18 @@ public class OurCraftServer {
 
     public void start() {
 
-        worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, EngineDefault.DEFAULT_WORLD_TEMPLATE);
+        //worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, EngineDefault.DEFAULT_WORLD_TEMPLATE);
 
-        // 加载世界
+        //创建世界
+        worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, "ourcraft:spawn_platform");
+
+        //加载世界
         worldManager.loadWorld(EngineDefault.DEFAULT_WORLD_NAME);
 
-        // 启动世界
+        //启动世界
         worldManager.runWorld(EngineDefault.DEFAULT_WORLD_NAME);
 
-        // 启动网络监听器
+        //启动网络监听器
         startNetworkListener();
     }
 
@@ -595,6 +600,10 @@ public class OurCraftServer {
         gen.addLayer(new SurfaceLayer());
         gen.addLayer(new FeatureLayer());
         registry.registerTerrainGenerator(gen);
+        
+        //注册出生平台生成器
+        var spawnPlatformGen = new SpawnPlatformGenerator();
+        registry.registerTerrainGenerator(spawnPlatformGen);
     }
 
 }

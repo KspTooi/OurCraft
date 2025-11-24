@@ -36,5 +36,8 @@ public class WorldTemplateEarthLike extends WorldTemplate {
         setChunkSizeX(16);                                              //区块大小X轴
         setChunkSizeY(320);                                             //区块大小Y轴
         setChunkSizeZ(16);                                              //区块大小Z轴
+
+        // 指定使用类地生成器
+        setTerrainGenerator(StdRegName.of("ourcraft:terrain_generator:earth_like"));
     }
 }

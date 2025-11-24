@@ -30,6 +30,8 @@ import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
+import com.ksptool.ourcraft.sharedcore.world.gen.SpawnPlatformGenerator;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -668,6 +670,10 @@ public class GameClient {
         gen.addLayer(new SurfaceLayer());
         gen.addLayer(new FeatureLayer());
         registry.registerTerrainGenerator(gen);
+        
+        //注册出生平台生成器
+        var spawnPlatformGen = new SpawnPlatformGenerator();
+        registry.registerTerrainGenerator(spawnPlatformGen);
     }
 }
 
