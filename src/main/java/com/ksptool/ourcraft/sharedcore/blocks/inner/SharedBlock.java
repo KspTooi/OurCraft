@@ -1,10 +1,11 @@
 package com.ksptool.ourcraft.sharedcore.blocks.inner;
 
 import com.ksptool.ourcraft.sharedcore.StdRegName;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
-import com.ksptool.ourcraft.sharedcore.world.Registry;
+import com.ksptool.ourcraft.sharedcore.Registry;
 import lombok.Getter;
 import java.util.*;
 
@@ -144,8 +145,4 @@ public abstract class SharedBlock {
         return results;
     }
 
-    public static void registerBlocks() {
-        Registry registry = Registry.getInstance();
-        com.ksptool.ourcraft.sharedcore.BlockType.registerBlocks(registry);
-    }
 }

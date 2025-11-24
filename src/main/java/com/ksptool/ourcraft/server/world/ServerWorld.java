@@ -1,5 +1,9 @@
 package com.ksptool.ourcraft.server.world;
 
+import com.ksptool.ourcraft.server.OurCraftServer;
+import com.ksptool.ourcraft.server.archive.ArchiveManager;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerSuperChunkManager;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.events.BlockUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.events.ChunkUpdateEvent;
@@ -9,7 +13,7 @@ import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.server.world.gen.GenerationContext;
 import com.ksptool.ourcraft.server.world.gen.TerrainPipeline;
@@ -20,58 +24,72 @@ import com.ksptool.ourcraft.server.world.gen.layers.SurfaceLayer;
 import com.ksptool.ourcraft.server.world.gen.layers.WaterLayer;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector3f;
-
 import java.util.List;
 
 /**
  * 服务端世界类，负责所有逻辑，不包含任何渲染相关代码
  */
 @Getter
+@Slf4j
 public class ServerWorld implements SharedWorld {
 
     private static final int TICKS_PER_DAY = 24000;
+
+    private final OurCraftServer server;
     
-    private final WorldTemplateOld template;
+    private final WorldTemplate template;
 
     private double timeAccumulator = 0.0;
 
-
     private final ChunkManager chunkManager;
+
+    private final ServerSuperChunkManager sscm;
+
     private final EntityManager entityManager;
+
     private final ServerCollisionManager collisionManager;
     
     @Setter
     private long gameTime = 0;
     
     @Setter
-    private String worldName;
+    private String name;
+
     @Setter
-    private long seed;
+    private String seed;
+
     @Getter
     private RegionManager regionManager;
+
     @Getter
     private RegionManager entityRegionManager;
-    @Getter
-    private String saveName;
-    
+
     private NoiseGenerator noiseGenerator;
+
     private TerrainPipeline terrainPipeline;
+
     private GenerationContext generationContext;
     
     private final EventQueue eventQueue;
+
+    @Setter
+    private ArchiveManager archiveManager; //归档管理器
     
-    public ServerWorld(WorldTemplateOld template) {
+    public ServerWorld(OurCraftServer server,WorldTemplate template) {
         this.template = template;
         this.chunkManager = new ChunkManager(this);
         this.entityManager = new EntityManager(this);
         this.collisionManager = new ServerCollisionManager(this);
-        this.seed = System.currentTimeMillis();
+        this.seed = String.valueOf(System.currentTimeMillis());
         this.eventQueue = EventQueue.getInstance();
+        this.sscm = new ServerSuperChunkManager(server,this);
+        this.server = server;
     }
     
     public void setSaveName(String saveName) {
-        this.saveName = saveName;
+        //this.saveName = saveName;
         this.chunkManager.setSaveName(saveName);
         this.entityManager.setSaveName(saveName);
     }
@@ -104,7 +122,7 @@ public class ServerWorld implements SharedWorld {
      * 否则使用累加器模式处理可变时间增量（向后兼容）
      */
     public void update(float deltaTime, Vector3f playerPosition, Runnable playerTickCallback) {
-        double tickTime = 1.0 / template.getTicksPerSecond();
+        double tickTime = 1.0 / template.getTps();
         
         // 如果传入的时间增量等于tickTime（固定时间步长），直接执行一次tick
         if (Math.abs(deltaTime - tickTime) < 0.001) {
@@ -138,7 +156,7 @@ public class ServerWorld implements SharedWorld {
         
         eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
         
-        float tickDelta = 1.0f / template.getTicksPerSecond();
+        float tickDelta = 1.0f / template.getTps();
         
         if (playerTickCallback != null) {
             playerTickCallback.run();
@@ -157,10 +175,10 @@ public class ServerWorld implements SharedWorld {
      * @return 0.0 到 1.0 之间的值，表示距离下一次tick的进度
      */
     public float getPartialTick() {
-        if (template.getTicksPerSecond() == 0) {
+        if (template.getTps() == 0) {
             return 0.0f;
         }
-        double tickTime = 1.0 / template.getTicksPerSecond();
+        double tickTime = 1.0 / template.getTps();
         return (float) (timeAccumulator / tickTime);
     }
 
@@ -179,8 +197,20 @@ public class ServerWorld implements SharedWorld {
         if (noiseGenerator == null) {
             return 64;
         }
-        double noiseValue = noiseGenerator.noise(worldX * 0.05 + seed, worldZ * 0.05 + seed);
+        long numericSeed = parseSeedToLong(seed);
+        double noiseValue = noiseGenerator.noise(worldX * 0.05 + numericSeed, worldZ * 0.05 + numericSeed);
         return (int) (64 + noiseValue * 20);
+    }
+
+    private long parseSeedToLong(String seed) {
+        if (seed == null || seed.isEmpty()) {
+            return new java.util.Random().nextLong();
+        }
+        try {
+            return Long.parseLong(seed);
+        } catch (NumberFormatException e) {
+            return (long) seed.hashCode();
+        }
     }
     
     public int getChunkCount() {
@@ -204,33 +234,33 @@ public class ServerWorld implements SharedWorld {
     }
     
     public void setBlockState(int x, int y, int z, int stateId) {
-        int oldStateId = getBlockState(x, y, z);
+        //int oldStateId = getBlockState(x, y, z);
         chunkManager.setBlockState(x, y, z, stateId);
         
-        if (oldStateId != stateId) {
-            GlobalPalette palette = GlobalPalette.getInstance();
-            BlockState oldState = palette.getState(oldStateId);
-            BlockState newState = palette.getState(stateId);
-            
-            if (oldState != null) {
-                oldState.getSharedBlock().onBlockRemoved(this, x, y, z, oldState);
-            }
-            
-            if (newState != null) {
-                newState.getSharedBlock().onBlockAdded(this, x, y, z, newState);
-            }
-            
-            eventQueue.offerS2C(new BlockUpdateEvent(x, y, z, stateId, oldStateId));
-            
-            int chunkX = (int) Math.floor((float) x / ServerChunk.CHUNK_SIZE);
-            int chunkZ = (int) Math.floor((float) z / ServerChunk.CHUNK_SIZE);
-            eventQueue.offerS2C(new ChunkUpdateEvent(chunkX, chunkZ));
-            
-            int[][] neighborOffsets = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-            for (int[] offset : neighborOffsets) {
-                eventQueue.offerS2C(new ChunkUpdateEvent(chunkX + offset[0], chunkZ + offset[1]));
-            }
-        }
+        //if (oldStateId != stateId) {
+        //    GlobalPalette palette = GlobalPalette.getInstance();
+        //    BlockState oldState = palette.getState(oldStateId);
+        //    BlockState newState = palette.getState(stateId);
+        //
+        //    if (oldState != null) {
+        //        oldState.getSharedBlock().onBlockRemoved(this, x, y, z, oldState);
+        //    }
+        //
+        //    if (newState != null) {
+        //        newState.getSharedBlock().onBlockAdded(this, x, y, z, newState);
+        //    }
+        //
+        //    eventQueue.offerS2C(new BlockUpdateEvent(x, y, z, stateId, oldStateId));
+        //
+        //    int chunkX = (int) Math.floor((float) x / ServerChunk.CHUNK_SIZE);
+        //    int chunkZ = (int) Math.floor((float) z / ServerChunk.CHUNK_SIZE);
+        //    eventQueue.offerS2C(new ChunkUpdateEvent(chunkX, chunkZ));
+        //
+        //    int[][] neighborOffsets = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        //    for (int[] offset : neighborOffsets) {
+        //        eventQueue.offerS2C(new ChunkUpdateEvent(chunkX + offset[0], chunkZ + offset[1]));
+        //    }
+        //}
     }
 
     public boolean canMoveTo(Vector3f position, float height) {
@@ -258,17 +288,7 @@ public class ServerWorld implements SharedWorld {
     }
 
 
-    public void saveAllDirtyData() {
-        chunkManager.saveAllDirtyChunks();
-        entityManager.saveAllDirtyEntities();
-    }
-    
-    public void saveToFile(String chunksDirPath) {
-        saveAllDirtyData();
-    }
 
-    public void loadFromFile(String chunksDirPath) {
-    }
     
     public float getTimeOfDay() {
         return (float) (gameTime % TICKS_PER_DAY) / TICKS_PER_DAY;

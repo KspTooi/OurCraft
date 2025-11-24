@@ -1,12 +1,12 @@
 package com.ksptool.ourcraft.client;
 
-import com.ksptool.ourcraft.sharedcore.GameState;
+import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
+import com.ksptool.ourcraft.sharedcore.enums.GameState;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.rendering.Renderer;
 import com.ksptool.ourcraft.client.rendering.GuiRenderer;
 import com.ksptool.ourcraft.client.rendering.WorldRenderer;
-import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.client.gui.MainMenu;
 import com.ksptool.ourcraft.client.gui.SingleplayerMenu;
 import com.ksptool.ourcraft.client.gui.CreateWorldMenu;
@@ -21,8 +21,8 @@ import com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.ClientReadyEvent;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.sharedcore.world.Registry;
-import com.ksptool.ourcraft.sharedcore.world.WorldTemplateOld;
+import com.ksptool.ourcraft.sharedcore.Registry;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -75,8 +75,10 @@ public class GameClient {
     }
 
     public void init() {
-        registerDefaultWorldTemplate();
-        SharedBlock.registerBlocks();
+
+        //注册所有引擎原版内容
+        Registry.getInstance().registerAllDefaultContent();
+
         GlobalPalette.getInstance().bake();
         
         window = new Window(1280, 720, "OurCraft 1.2E2 \uD83E\uDD86 内部预览版");
@@ -98,15 +100,6 @@ public class GameClient {
         serverConnection = new ServerConnection(this);
 
         running = true;
-    }
-
-    private void registerDefaultWorldTemplate() {
-        WorldTemplateOld overworldTemplateOld = WorldTemplateOld.builder()
-            .templateId("mycraft:overworld")
-            .ticksPerSecond(20)
-            .gravity(-9.8f)
-            .build();
-        Registry.registerWorldTemplateOld(overworldTemplateOld);
     }
 
     public void run() {
@@ -137,7 +130,7 @@ public class GameClient {
             
             // 如果世界已加载，使用世界的tickRate
             if (clientWorld != null && clientWorld.getTemplate() != null) {
-                tickRate = clientWorld.getTemplate().getTicksPerSecond();
+                tickRate = clientWorld.getTemplate().getTps();
                 tickTime = 1.0 / tickRate;
             }
             
@@ -526,14 +519,17 @@ public class GameClient {
             log.warn("游戏世界已存在，先清理");
             stopGame();
         }
-        
+
+
+
         // 获取默认世界模板
-        WorldTemplateOld template = Registry.getWorldTemplateOld("mycraft:overworld");
+        WorldTemplate template = Registry.getInstance().getWorldTemplate(EngineDefault.DEFAULT_WORLD_TEMPLATE);
+
         if (template == null) {
             log.error("无法初始化多人游戏世界: 默认模板未找到");
             return;
         }
-        
+
         // 创建客户端世界
         ClientWorld newClientWorld = new ClientWorld(template);
         WorldRenderer newWorldRenderer = new WorldRenderer(newClientWorld);

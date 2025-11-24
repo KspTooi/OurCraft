@@ -3,6 +3,7 @@ package com.ksptool.ourcraft.server.world.save;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
@@ -16,9 +17,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 存档管理器，负责管理存档文件夹结构和世界/玩家数据的保存与加载
@@ -27,11 +25,8 @@ public class SaveManager {
     private static final Logger logger = LoggerFactory.getLogger(SaveManager.class);
     private static final String SAVES_DIR = "saves";
     private static final String WORLD_INDEX_FILE = "world.index";
-    private static final String PLAYERS_DIR = "players";
-    private static final String PLAYER_UUID_MAP_FILE = "player_uuids.json";
     private static SaveManager instance;
     private final Gson gson;
-    private final Map<String, Map<String, UUID>> savePlayerUuidCache = new ConcurrentHashMap<>();
 
     private SaveManager() {
         this.gson = new GsonBuilder().setPrettyPrinting().create();
@@ -48,76 +43,6 @@ public class SaveManager {
         return instance;
     }
 
-    private static class PlayerUUIDMap {
-        Map<String, String> nameToUuid = new ConcurrentHashMap<>();
-    }
-
-    public UUID getOrCreatePlayerUUID(String saveName, String playerName) {
-        if (StringUtils.isBlank(saveName) || StringUtils.isBlank(playerName)) {
-            return UUID.randomUUID();
-        }
-
-        Map<String, UUID> uuidMap = savePlayerUuidCache.computeIfAbsent(saveName, this::loadPlayerUUIDs);
-        UUID playerUUID = uuidMap.get(playerName);
-
-        if (playerUUID == null) {
-            playerUUID = UUID.randomUUID();
-            uuidMap.put(playerName, playerUUID);
-            savePlayerUUIDs(saveName, uuidMap);
-            logger.info("为新玩家 '{}' 创建了新的 UUID: {}", playerName, playerUUID);
-        }
-
-        return playerUUID;
-    }
-
-    private Map<String, UUID> loadPlayerUUIDs(String saveName) {
-        Map<String, UUID> result = new ConcurrentHashMap<>();
-        File saveDir = new File(SAVES_DIR, saveName);
-        if (!saveDir.exists()) {
-            return result;
-        }
-
-        File uuidFile = new File(saveDir, PLAYER_UUID_MAP_FILE);
-        if (!uuidFile.exists()) {
-            return result;
-        }
-
-        try (FileReader reader = new FileReader(uuidFile)) {
-            PlayerUUIDMap uuidMapData = gson.fromJson(reader, PlayerUUIDMap.class);
-            if (uuidMapData != null && uuidMapData.nameToUuid != null) {
-                for (Map.Entry<String, String> entry : uuidMapData.nameToUuid.entrySet()) {
-                    result.put(entry.getKey(), UUID.fromString(entry.getValue()));
-                }
-            }
-            logger.debug("成功加载 {} 的玩家UUID映射", saveName);
-        } catch (IOException e) {
-            logger.error("加载玩家UUID映射失败: saveName={}", saveName, e);
-        }
-        return result;
-    }
-
-    private void savePlayerUUIDs(String saveName, Map<String, UUID> uuidMap) {
-        File saveDir = new File(SAVES_DIR, saveName);
-        if (!saveDir.exists()) {
-            if (!saveDir.mkdirs()) {
-                logger.error("无法创建存档目录: {}", saveName);
-                return;
-            }
-        }
-
-        File uuidFile = new File(saveDir, PLAYER_UUID_MAP_FILE);
-        PlayerUUIDMap uuidMapData = new PlayerUUIDMap();
-        for (Map.Entry<String, UUID> entry : uuidMap.entrySet()) {
-            uuidMapData.nameToUuid.put(entry.getKey(), entry.getValue().toString());
-        }
-
-        try (FileWriter writer = new FileWriter(uuidFile)) {
-            gson.toJson(uuidMapData, writer);
-            logger.debug("成功保存 {} 的玩家UUID映射", saveName);
-        } catch (IOException e) {
-            logger.error("保存玩家UUID映射失败: saveName={}", saveName, e);
-        }
-    }
 
     public List<String> getSaveList() {
         List<String> saves = new ArrayList<>();
@@ -156,9 +81,6 @@ public class SaveManager {
         if (!saveDir.mkdirs()) {
             return false;
         }
-
-        File playersDir = new File(saveDir, PLAYERS_DIR);
-        playersDir.mkdirs();
 
         WorldIndex index = new WorldIndex();
         return saveWorldIndex(saveName, index);
@@ -223,111 +145,6 @@ public class SaveManager {
         }
     }
 
-    public void savePlayer(String saveName, UUID playerUUID, com.ksptool.ourcraft.server.entity.ServerPlayer player) {
-        if (StringUtils.isBlank(saveName) || playerUUID == null || player == null) {
-            return;
-        }
-
-        File saveDir = new File(SAVES_DIR, saveName);
-        if (!saveDir.exists()) {
-            return;
-        }
-
-        File playersDir = new File(saveDir, PLAYERS_DIR);
-        if (!playersDir.exists()) {
-            playersDir.mkdirs();
-        }
-
-        PlayerIndex playerIndex = new PlayerIndex();
-        playerIndex.uuid = playerUUID;
-        playerIndex.posX = player.getPosition().x;
-        playerIndex.posY = player.getPosition().y;
-        playerIndex.posZ = player.getPosition().z;
-        playerIndex.yaw = player.getYaw();
-        playerIndex.pitch = player.getPitch();
-        playerIndex.health = player.getHealth();
-        playerIndex.selectedSlot = player.getInventory().getSelectedSlot();
-
-        com.ksptool.ourcraft.sharedcore.item.ItemStack[] hotbar = player.getInventory().getHotbar();
-        for (com.ksptool.ourcraft.sharedcore.item.ItemStack stack : hotbar) {
-            if (stack != null && !stack.isEmpty()) {
-                ItemStackData stackData = new ItemStackData(
-                    stack.getItem() != null ? stack.getItem().getId() : null,
-                    stack.getCount()
-                );
-                playerIndex.hotbar.add(stackData);
-            } else {
-                playerIndex.hotbar.add(new ItemStackData(null, null));
-            }
-        }
-
-        File playerFile = new File(playersDir, playerUUID.toString() + ".index");
-        try (FileWriter writer = new FileWriter(playerFile)) {
-            gson.toJson(playerIndex, writer);
-            logger.debug("保存玩家数据成功: UUID={}", playerUUID);
-        } catch (IOException e) {
-            logger.error("保存玩家数据失败: UUID={}", playerUUID, e);
-        }
-    }
-
-    public UUID findFirstPlayerUUID(String saveName) {
-        if (StringUtils.isBlank(saveName)) {
-            return null;
-        }
-
-        File saveDir = new File(SAVES_DIR, saveName);
-        if (!saveDir.exists()) {
-            return null;
-        }
-
-        File playersDir = new File(saveDir, PLAYERS_DIR);
-        if (!playersDir.exists()) {
-            return null;
-        }
-
-        File[] files = playersDir.listFiles((dir, name) -> name.endsWith(".index"));
-        if (files == null || files.length == 0) {
-            return null;
-        }
-
-        String fileName = files[0].getName();
-        String uuidStr = fileName.substring(0, fileName.length() - 6);
-        try {
-            return UUID.fromString(uuidStr);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    public PlayerIndex loadPlayer(String saveName, UUID playerUUID) {
-        if (StringUtils.isBlank(saveName) || playerUUID == null) {
-            return null;
-        }
-
-        File saveDir = new File(SAVES_DIR, saveName);
-        if (!saveDir.exists()) {
-            return null;
-        }
-
-        File playersDir = new File(saveDir, PLAYERS_DIR);
-        if (!playersDir.exists()) {
-            return null;
-        }
-
-        File playerFile = new File(playersDir, playerUUID.toString() + ".index");
-        if (!playerFile.exists()) {
-            return null;
-        }
-
-        try (FileReader reader = new FileReader(playerFile)) {
-            PlayerIndex playerIndex = gson.fromJson(reader, PlayerIndex.class);
-            logger.debug("加载玩家数据成功: UUID={}", playerUUID);
-            return playerIndex;
-        } catch (IOException e) {
-            logger.error("加载玩家数据失败: UUID={}", playerUUID, e);
-            return null;
-        }
-    }
 
     public File getWorldChunkDir(String saveName, String worldName) {
         if (StringUtils.isBlank(saveName) || StringUtils.isBlank(worldName)) {
@@ -421,7 +238,7 @@ public class SaveManager {
             }
             
             palette.clear();
-            com.ksptool.ourcraft.sharedcore.world.Registry registry = com.ksptool.ourcraft.sharedcore.world.Registry.getInstance();
+            Registry registry = Registry.getInstance();
             
             for (BlockStateData stateData : paletteIndex.states) {
                 if (stateData == null || StringUtils.isBlank(stateData.getStdRegName())) {

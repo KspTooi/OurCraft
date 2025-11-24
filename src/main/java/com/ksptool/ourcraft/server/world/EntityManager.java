@@ -2,8 +2,7 @@ package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.server.world.ServerChunk;
-import com.ksptool.ourcraft.server.world.ServerWorld;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.server.world.save.EntitySerializer;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
 import com.ksptool.ourcraft.server.world.save.RegionManager;

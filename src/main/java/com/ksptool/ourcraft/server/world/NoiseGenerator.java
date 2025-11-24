@@ -17,7 +17,10 @@ public class NoiseGenerator {
     private static final double SCALE = 0.01;
 
     //种子
-    private final long seed;
+    private final String seed;
+
+    //数值种子（用于Random初始化）
+    private final long numericSeed;
 
     //排列
     private final int[] p;
@@ -25,9 +28,10 @@ public class NoiseGenerator {
     //随机数生成器
     private final Random random;
 
-    public NoiseGenerator(long seed) {
+    public NoiseGenerator(String seed) {
         this.seed = seed;
-        this.random = new Random(seed);
+        this.numericSeed = parseSeed(seed);
+        this.random = new Random(this.numericSeed);
         this.p = new int[512];
         
         int[] permutation = {151, 160, 137, 91, 90, 15,
@@ -135,8 +139,23 @@ public class NoiseGenerator {
         return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
     }
 
-    public long getSeed() {
+    public String getSeed() {
         return seed;
+    }
+
+    public long getNumericSeed() {
+        return numericSeed;
+    }
+
+    private long parseSeed(String seed) {
+        if (seed == null || seed.isEmpty()) {
+            return new java.util.Random().nextLong();
+        }
+        try {
+            return Long.parseLong(seed);
+        } catch (NumberFormatException e) {
+            return (long) seed.hashCode();
         }
     }
+}
 

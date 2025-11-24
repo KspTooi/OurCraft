@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
 /**
  * Kryo序列化管理器，负责所有网络数据包的序列化和反序列化
@@ -115,6 +116,7 @@ public class KryoManager {
 
         //注册全局调色板
         kryo.register(GlobalPaletteProperty.class, id++);
+        kryo.register(ArrayList.class, id++);
 
         log.debug("KryoManager: 已注册{}个类，ID范围: 0-{}", id, id - 1);
     }

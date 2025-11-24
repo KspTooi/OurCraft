@@ -1,21 +1,22 @@
 package com.ksptool.ourcraft.server.world;
 
-import com.ksptool.ourcraft.server.world.ServerChunk;
-import com.ksptool.ourcraft.server.world.ServerWorld;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.server.world.save.ChunkSerializer;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
-import com.ksptool.ourcraft.sharedcore.world.ChunkUtils;
+import com.ksptool.ourcraft.sharedcore.utils.ChunkUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3f;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 /**
  * 区块管理器，负责区块的加载、卸载、缓存和存盘
@@ -35,6 +36,7 @@ public class ChunkManager {
     private int lastPlayerChunkZ = Integer.MIN_VALUE;
     
     private RegionManager regionManager;
+
     @Setter
     private String saveName;
     
@@ -289,7 +291,19 @@ public class ChunkManager {
             log.error("保存区块失败", e);
         }
     }
-    
+
+
+
+    /**
+     * 获取脏区块快照
+     * @return 所有脏区块的快照数据
+     */
+    public List<ServerChunk> getDirtyChunkSnapshot() {
+        return chunks.values().stream()
+            .filter(ServerChunk::isDirty)
+            .collect(Collectors.toList());
+    }
+
     public void cleanup() {
         if (worldGenerator != null) {
             worldGenerator.stopGenerator();

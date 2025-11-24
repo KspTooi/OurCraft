@@ -3,14 +3,14 @@ package com.ksptool.ourcraft.sharedcore.blocks;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 
 /**
  * 石头方块类
  */
 public class StoneBlock extends SharedBlock {
     public StoneBlock() {
-        super(BlockType.STONE.getStdRegName(), 1.5f, 1);
+        super(BlockEnums.STONE.getStdRegName(), 1.5f, 1);
     }
 
     @Override

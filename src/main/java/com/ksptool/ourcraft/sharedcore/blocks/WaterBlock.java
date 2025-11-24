@@ -1,14 +1,14 @@
 package com.ksptool.ourcraft.sharedcore.blocks;
 
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.BlockType;
 
 public class WaterBlock extends SharedBlock {
 
     public WaterBlock() {
-        super(BlockType.WATER.getStdRegName(), 0, 0);
+        super(BlockEnums.WATER.getStdRegName(), 0, 0);
     }
 
     @Override

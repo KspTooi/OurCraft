@@ -1,10 +1,10 @@
 package com.ksptool.ourcraft.sharedcore.utils;
 
-import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.sharedcore.world.Registry;
+import com.ksptool.ourcraft.sharedcore.Registry;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import lombok.Getter;
@@ -132,7 +132,7 @@ public class ChunkBlockData {
 
     private int getAirGlobalId() {
         if (CACHED_AIR_GLOBAL_ID == -1) {
-            SharedBlock airBlock = Registry.getInstance().getBlock(BlockType.AIR.getStdRegName());
+            SharedBlock airBlock = Registry.getInstance().getBlock(BlockEnums.AIR.getStdRegName());
             if (airBlock == null) throw new IllegalStateException("Air block missing");
             if (!GlobalPalette.getInstance().isBaked()) throw new IllegalStateException("GlobalPalette not baked");
             CACHED_AIR_GLOBAL_ID = GlobalPalette.getInstance().getStateId(airBlock.getDefaultState());

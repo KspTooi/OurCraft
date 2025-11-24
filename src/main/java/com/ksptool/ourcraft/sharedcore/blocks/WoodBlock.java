@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.sharedcore.blocks;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.world.properties.EnumProperty;
 
 /**
@@ -17,7 +17,7 @@ public class WoodBlock extends SharedBlock {
     }
 
     public WoodBlock() {
-        super(BlockType.WOOD.getStdRegName(), 2.0f, 0);
+        super(BlockEnums.WOOD.getStdRegName(), 2.0f, 0);
     }
 
     @Override

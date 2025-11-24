@@ -4,7 +4,7 @@ import com.ksptool.ourcraft.sharedcore.item.Item;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.world.Registry;
+import com.ksptool.ourcraft.sharedcore.Registry;
 import org.apache.commons.lang3.StringUtils;
 
 /**

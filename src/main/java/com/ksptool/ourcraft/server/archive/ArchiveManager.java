@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import javax.sql.DataSource;
 import com.ksptool.ourcraft.server.archive.model.ArchiveVo;
+import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
+
 import org.apache.commons.lang3.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -54,86 +56,51 @@ public class ArchiveManager {
     private ArchiveWorldManager worldManager;
 
     //归档区块管理器
-    private ArchiveChunkManager chunkManager;
+    private ArchiveSuperChunkManager chunkManager;
 
     public ArchiveManager(){
         this.paletteManager = new ArchivePaletteManager(this);
         this.playerManager = new ArchivePlayerManager(this);
-        this.chunkManager = new ArchiveChunkManager(this);
+        this.chunkManager = new ArchiveSuperChunkManager(this);
         this.worldManager = new ArchiveWorldManager(this, this.paletteManager, this.chunkManager);
     }
 
-    /**
-     * 创建游戏归档
-     * @param name 归档名称
-     */
-    public void createArchive(String name) {
 
-        if(StringUtils.isBlank(name)){
-            log.error("归档名称不能为空");
+    /**
+     * 连接归档索引
+     */
+    public void connectArchiveIndex(String archiveName){
+
+        if(dataSource != null){
+            log.warn("归档管理器当前已连接到一个归档索引,如果要连接到另一个归档索引,请先断开当前连接");
             return;
         }
 
-        //检查归档Root
-        Path archiveRootDir = Paths.get(CURRENT_RUN_DIR, ARCHIVE_DIR, name);
 
-        //不存在则创建
-        if(!Files.exists(archiveRootDir)){
-            try {
-                Files.createDirectories(archiveRootDir);
-                log.info("创建新的归档根目录: {}", archiveRootDir.toString());
-            } catch (IOException e) {
-                log.error("创建归档根目录失败: {}", archiveRootDir.toString(), e);
-                return;
-            }
+        //检查归档根目录是否存在
+        if(!existsArchive(archiveName)){
+            createArchiveRootDir();
         }
 
-        currentArchiveName = name;
-        
-        //连接归档数据库
-        connectArchiveIndex();
+        this.currentArchiveName = archiveName;
+
+        var jdbcUrl = "jdbc:h2:file:" + getArchiveIndexAbsolutePath() + ";MODE=MySQL;AUTO_SERVER=TRUE";
+
+        log.info("正在连接归档索引数据库: {}", jdbcUrl);
+        HikariConfig config = new HikariConfig();
+        // 使用 H2 文件模式，AUTO_SERVER=TRUE 允许在游戏运行时外部工具也能连接查看数据
+        config.setJdbcUrl(jdbcUrl); 
+        config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("prepStmtCacheSize", "250");
+        dataSource = new HikariDataSource(config);
+
+        //创建归档索引数据库表
         createTables();
 
-        //初始化归档信息
-        var version = "1.2E3";
-        var createTime = LocalDateTime.now();
-        var updateTime = LocalDateTime.now();
-
-        //写入归档信息
-        try(Connection conn = dataSource.getConnection()){
-            if(conn == null || conn.isClosed()){
-                log.error("数据库连接异常，无法写入归档信息");
-                return;
-            }
-
-            //统计是否已有归档信息
-            String countSql = "SELECT COUNT(*) FROM ARCHIVE_INFO";
-
-            try(Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(countSql)){
-                if(rs.next()){
-                    int count = rs.getInt(1);
-                    if(count > 0){
-                        log.warn("归档信息已存在.");
-                        return;
-                    }
-                }
-            }
-
-            try(PreparedStatement stmt = conn.prepareStatement("INSERT INTO ARCHIVE_INFO (NAME, VERSION, CREATE_TIME, UPDATE_TIME) VALUES (?, ?, ?, ?)")){
-                stmt.setString(1, name);
-                stmt.setString(2, version);
-                stmt.setTimestamp(3, Timestamp.from(createTime.toInstant(ZoneOffset.UTC)));
-                stmt.setTimestamp(4, Timestamp.from(updateTime.toInstant(ZoneOffset.UTC)));
-                stmt.executeUpdate();
-            }
-
-            log.info("写入归档信息成功");
-            
-        }catch(SQLException e){
-            log.error("写入归档信息失败", e);
-            return;
-        }
-
+        //写入归档基础信息
+        createArchiveInfo();
+        
+        log.info("归档索引数据库连接成功 地址: {}", jdbcUrl);
     }
 
     /**
@@ -153,7 +120,7 @@ public class ArchiveManager {
         }
 
         //打开归档索引
-        connectArchiveIndex();
+        connectArchiveIndex(archiveName);
 
         //创建归档索引数据库表
         createTables();
@@ -185,27 +152,7 @@ public class ArchiveManager {
 
     }
 
-    /**
-     * 连接归档索引
-     */
-    public void connectArchiveIndex(){
 
-        if(dataSource != null){
-            log.warn("归档管理器当前已连接到一个归档索引,如果要连接到另一个归档索引,请先断开当前连接");
-            return;
-        }
-
-        var jdbcUrl = "jdbc:h2:file:" + getArchiveIndexAbsolutePath() + ";MODE=MySQL;AUTO_SERVER=TRUE";
-
-        log.info("正在连接归档索引数据库: {}", jdbcUrl);
-        HikariConfig config = new HikariConfig();
-        // 使用 H2 文件模式，AUTO_SERVER=TRUE 允许在游戏运行时外部工具也能连接查看数据
-        config.setJdbcUrl(jdbcUrl); 
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        dataSource = new HikariDataSource(config);
-        log.info("归档索引数据库连接成功 地址: {}", jdbcUrl);
-    }
 
     /**
      * 断开归档索引
@@ -284,22 +231,6 @@ public class ArchiveManager {
     }
 
     /**
-     * 获取归档索引数据库文件绝对路径(不包含后缀mv.db)
-     * @return 归档索引数据库文件绝对路径
-     */
-    public String getArchiveIndexAbsolutePath(){
-        return CURRENT_RUN_DIR + File.separator + ARCHIVE_DIR + File.separator + currentArchiveName + File.separator + ARCHIVE_INDEX_DB_NAME;
-    }
-
-    /**
-     * 获取归档根目录绝对路径
-     * @return 归档根目录绝对路径
-     */
-    public String getArchiveRootDirAbsolutePath(){
-        return CURRENT_RUN_DIR + File.separator + ARCHIVE_DIR + File.separator + currentArchiveName;
-    }
-
-    /**
      * 创建归档索引数据库表 如果表不存在则创建
      */
     public void createTables(){
@@ -317,7 +248,7 @@ public class ArchiveManager {
 
             try(Statement stmt = conn.createStatement()){
 
-                String createArchiveInfoTable = """
+                var createArchiveInfoTable = """
                     CREATE TABLE IF NOT EXISTS PUBLIC.ARCHIVE_INFO (
                         ID BIGINT NOT NULL AUTO_INCREMENT,
                         NAME VARCHAR(128) NOT NULL,
@@ -328,18 +259,17 @@ public class ArchiveManager {
                     )
                     """;
 
-                String createGlobalPaletteTable = """
+                var createGlobalPaletteTable = """
                     CREATE TABLE IF NOT EXISTS PUBLIC.GLOBAL_PALETTE (
                         ID BIGINT NOT NULL AUTO_INCREMENT,
                         STD_REG_NAME VARCHAR(512) NOT NULL,
                         PROPERTIES BLOB,
                         CREATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
-                        CONSTRAINT GLOBAL_PALETTE_PK PRIMARY KEY (ID),
-                        CONSTRAINT GLOBAL_PALETTE_UNIQUE UNIQUE (STD_REG_NAME)
+                        CONSTRAINT GLOBAL_PALETTE_PK PRIMARY KEY (ID)
                     )
                     """;
 
-                String createPlayerIndexTable = """
+                var createPlayerIndexTable = """
                     CREATE TABLE IF NOT EXISTS PUBLIC.PLAYER_INDEX (
                         ID BIGINT NOT NULL AUTO_INCREMENT,
                         UUID VARCHAR(128) NOT NULL,
@@ -358,7 +288,7 @@ public class ArchiveManager {
                     )
                     """;
 
-                String createWorldIndexTable = """
+                var createWorldIndexTable = """
                     CREATE TABLE PUBLIC.WORLD_INDEX (
                     	ID BIGINT NOT NULL AUTO_INCREMENT,
                     	NAME CHARACTER VARYING(128) NOT NULL,
@@ -371,6 +301,26 @@ public class ArchiveManager {
                     	CONSTRAINT WORLD_INDEX_PK PRIMARY KEY (ID)
                     );
                     CREATE UNIQUE INDEX PRIMARY_KEY_A ON PUBLIC.WORLD_INDEX (ID);
+                    """;
+
+                var createChunkEntityTable = """
+                        CREATE TABLE PUBLIC.CHUNK_ENTITY (
+                        ID BIGINT NOT NULL AUTO_INCREMENT,
+                        WORLD_ID BIGINT NOT NULL,
+                        WORLD_NAME CHARACTER VARYING(128) NOT NULL,
+                        CHUNK_X INTEGER NOT NULL,
+                        CHUNK_Z INTEGER NOT NULL,
+                        -- 甚至可以记录关联的 SCA 文件名，方便调试
+                        SCA_FILE_NAME CHARACTER VARYING(128) NOT NULL,
+                        ENTITY_COUNT INTEGER,
+                        ENTITY_BIN_DATA BINARY LARGE OBJECT, -- 实体数据的序列化二进制
+                        VERSION CHARACTER VARYING(32) NOT NULL,
+                        CREATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
+                        UPDATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
+                        CONSTRAINT CHUNK_ENTITY_PK PRIMARY KEY (ID)
+                    );
+                    -- 唯一索引确保一个区块只有一条实体记录
+                    CREATE UNIQUE INDEX IDX_UNI_CHUNK_ENTITY_WORLD_ID_NAME_X_Z ON PUBLIC.CHUNK_ENTITY (WORLD_ID, WORLD_NAME, CHUNK_X, CHUNK_Z);
                     """;
 
                 if(!tableExists(stmt, "ARCHIVE_INFO")){
@@ -393,6 +343,11 @@ public class ArchiveManager {
                     log.info("创建表 WORLD_INDEX 成功");
                 }
 
+                if(!tableExists(stmt, "CHUNK_ENTITY")){
+                    stmt.execute(createChunkEntityTable);
+                    log.info("创建表 CHUNK_ENTITY 成功");
+                }
+
             }
 
         } catch(SQLException e){
@@ -400,6 +355,58 @@ public class ArchiveManager {
         }
 
     }
+
+    /**
+     * 向ARCHIVE_INFO表写入归档基础信息
+     */
+    public void createArchiveInfo(){
+        
+        if(dataSource == null){
+            log.error("数据源未连接，无法写入归档基础信息");
+            return;
+        }
+
+        //初始化归档信息
+        var version = EngineDefault.ENGINE_VERSION;
+        var createTime = LocalDateTime.now();
+        var updateTime = LocalDateTime.now();
+
+        //写入归档信息
+        try(Connection conn = dataSource.getConnection()){
+            if(conn == null || conn.isClosed()){
+                log.error("数据库连接异常，无法写入归档信息");
+                return;
+            }
+
+            //统计是否已有归档信息
+            String countSql = "SELECT COUNT(*) FROM ARCHIVE_INFO";
+
+            try(Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(countSql)){
+                if(rs.next()){
+                    int count = rs.getInt(1);
+                    if(count > 0){
+                        //log.warn("归档信息已存在.");
+                        return;
+                    }
+                }
+            }
+
+            try(PreparedStatement stmt = conn.prepareStatement("INSERT INTO ARCHIVE_INFO (NAME, VERSION, CREATE_TIME, UPDATE_TIME) VALUES (?, ?, ?, ?)")){
+                stmt.setString(1, currentArchiveName);
+                stmt.setString(2, version);
+                stmt.setTimestamp(3, Timestamp.from(createTime.toInstant(ZoneOffset.UTC)));
+                stmt.setTimestamp(4, Timestamp.from(updateTime.toInstant(ZoneOffset.UTC)));
+                stmt.executeUpdate();
+            }
+
+            log.info("写入归档信息成功");
+            
+        }catch(SQLException e){
+            log.error("写入归档信息失败", e);
+            return;
+        }
+    }
+
 
     /**
      * 检查表是否存在
@@ -421,5 +428,56 @@ public class ArchiveManager {
         return false;
     }
 
+
+    /**
+     * 获取归档索引数据库文件绝对路径(不包含后缀mv.db)
+     * @return 归档索引数据库文件绝对路径
+     */
+    public String getArchiveIndexAbsolutePath(){
+        return CURRENT_RUN_DIR + File.separator + ARCHIVE_DIR + File.separator + currentArchiveName + File.separator + ARCHIVE_INDEX_DB_NAME;
+    }
+
+    /**
+     * 获取归档根目录绝对路径
+     * @return 归档根目录绝对路径
+     */
+    public String getArchiveRootDirAbsolutePath(){
+        return CURRENT_RUN_DIR + File.separator + ARCHIVE_DIR + File.separator + currentArchiveName;
+    }
+
+    /**
+     * 获取归档SCA文件夹绝对路径
+     * @param worldName 世界名称
+     * @return 归档SCA文件夹绝对路径 如archives/archiveName/[worldName]
+     */
+    public String getArchiveScaDirAbsolutePath(String worldName){
+        return getArchiveRootDirAbsolutePath() + File.separator + worldName;
+    }
+
+    /**
+     * 创建归档根目录
+     */
+    public void createArchiveRootDir() {
+
+        if(StringUtils.isBlank(currentArchiveName)){
+            log.error("归档名称不能为空");
+            return;
+        }
+
+        //检查归档Root
+        Path archiveRootDir = Paths.get(CURRENT_RUN_DIR, ARCHIVE_DIR, currentArchiveName);
+
+        //不存在则创建
+        if(!Files.exists(archiveRootDir)){
+            try {
+                Files.createDirectories(archiveRootDir);
+                log.info("创建新的归档根目录: {}", archiveRootDir.toString());
+            } catch (IOException e) {
+                log.error("创建归档根目录失败: {}", archiveRootDir.toString(), e);
+                return;
+            }
+        }
+
+    }
 
 }

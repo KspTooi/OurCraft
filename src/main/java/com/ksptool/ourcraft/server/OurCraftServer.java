@@ -1,11 +1,14 @@
 package com.ksptool.ourcraft.server;
 
 import com.ksptool.ourcraft.server.archive.ArchiveManager;
+import com.ksptool.ourcraft.server.archive.ArchivePlayerManager;
+import com.ksptool.ourcraft.server.archive.model.ArchivePlayerDto;
+import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.server.manager.ServerWorldManager;
+import com.ksptool.ourcraft.server.world.ServerWorldManager;
 import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
-import com.ksptool.ourcraft.server.world.ServerChunk;
-import com.ksptool.ourcraft.server.world.save.SaveManager;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.Getter;
@@ -16,7 +19,6 @@ import org.joml.Vector3f;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -33,7 +35,7 @@ public class OurCraftServer {
 
     private final ServerWorldManager worldManager;
 
-    private final String worldName = "earth_like";
+    private final String defaultWorldName = "earth_like";
 
     private Thread networkListenerThread;
 
@@ -46,57 +48,37 @@ public class OurCraftServer {
     //归档管理器
     private final ArchiveManager archiveManager;
 
-    public OurCraftServer(String saveName) {
+    public OurCraftServer(String archiveName) {
 
-        var _saveName = saveName;
+        var _archiveName = archiveName;
 
-        if (StringUtils.isBlank(_saveName)) {
-            _saveName = "our_craft";
-            log.warn("使用默认的归档: {}", _saveName);
+        if (StringUtils.isBlank(_archiveName)) {
+            _archiveName = "our_craft";
+            log.warn("使用默认的归档: {}", _archiveName);
         }
 
         //初始化归档管理器
         this.archiveManager = new ArchiveManager();
 
-        //创建世界管理器
-        this.worldManager = new ServerWorldManager(this, _saveName);
-        
-        //读取现有归档
-        if(!archiveManager.existsArchive(_saveName)){
-            archiveManager.createArchive(_saveName);
-        }
-
         //打开归档索引数据库连接
-        archiveManager.connectArchiveIndex();
+        archiveManager.connectArchiveIndex(_archiveName);
+
+        //创建世界管理器
+        this.worldManager = new ServerWorldManager(this);
     }
 
     public void start() {
 
+        worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, EngineDefault.DEFAULT_WORLD_TEMPLATE);
+
         // 加载世界
-        worldManager.loadWorld(worldName);
+        worldManager.loadWorld(EngineDefault.DEFAULT_WORLD_NAME);
 
         // 启动世界
-        worldManager.runWorld(worldName);
+        worldManager.runWorld(EngineDefault.DEFAULT_WORLD_NAME);
 
         // 启动网络监听器
         startNetworkListener();
-    }
-
-    public void stop() {
-
-        // 关闭网络监听器
-        stopNetworkListener();
-
-        // 关闭所有客户端连接
-        for (ClientConnectionHandler handler : connectedClients) {
-            handler.close();
-        }
-
-        // 停止世界
-        worldManager.stopWorld(worldName);
-
-        // 卸载并保存世界
-        worldManager.unloadWorldAndSave(worldName);
     }
 
     /**
@@ -105,15 +87,31 @@ public class OurCraftServer {
     public void onClientDisconnected(ClientConnectionHandler handler) {
         ServerPlayer player = handler.getPlayer();
         if (player != null) {
-            String saveName = worldManager.getWorld(worldName).getSaveName();
-            if (saveName != null && worldName != null) {
-                SaveManager.getInstance().savePlayer(saveName, player.getUniqueId(), player);
-                log.info("已保存断开连接的玩家数据: UUID={}", player.getUniqueId());
-            }
+            //String saveName = worldManager.getWorld(defaultWorldName).getSaveName();
+            //if (saveName != null && defaultWorldName != null) {
+            // SaveManager.getInstance().savePlayer(saveName, player.getUniqueId(), player);
+            //    log.info("已保存断开连接的玩家数据: UUID={}", player.getUniqueId());
+            //}
+
+            ArchivePlayerManager playerManager = archiveManager.getPlayerManager();
+            var dto = new ArchivePlayerDto();
+            dto.setName(player.getName());
+            dto.setPosX((double)player.getPosition().x);
+            dto.setPosY((double)player.getPosition().y);
+            dto.setPosZ((double)player.getPosition().z);
+            dto.setYaw(player.getYaw());
+            dto.setPitch(player.getPitch());
+            dto.setHealth((int)player.getHealth());
+            dto.setHungry((int)player.getHunger());
+            dto.setExp(0L);
+            dto.setCreateTime(java.time.LocalDateTime.now());
+
+            playerManager.savePlayer(dto);
+
             log.info("移除断开连接的玩家实体");
 
             // 委托世界管理器移除玩家实体
-            worldManager.getWorld(worldName).removeEntity(player);
+            worldManager.getWorld(defaultWorldName).removeEntity(player);
             handler.setPlayer(null);
         }
     }
@@ -128,6 +126,11 @@ public class OurCraftServer {
                 log.info("网络监听器已启动，监听端口: {}", NETWORK_PORT);
 
                 while (true) {
+
+                    if(serverSocket.isClosed()){
+                        break;
+                    }
+
                     try {
                         Socket clientSocket = serverSocket.accept();
                         log.info("新的客户端连接: {}", clientSocket.getRemoteSocketAddress());
@@ -228,8 +231,8 @@ public class OurCraftServer {
                     player.getPosition().x,
                     player.getPosition().y,
                     player.getPosition().z,
-                    player.getYaw(),
-                    player.getPitch());
+                    (float)player.getYaw(),
+                    (float)player.getPitch());
             // 立即将纠正数据包发回给该客户端
             handler.sendPacket(correctionPacket);
             log.info("向客户端发送位置纠正包，强制同步到服务器位置");
@@ -237,8 +240,8 @@ public class OurCraftServer {
         }
 
         player.getPosition().set(newPosition);
-        player.setYaw(packet.yaw());
-        player.setPitch(packet.pitch());
+        player.setYaw((double)packet.yaw());
+        player.setPitch((double)packet.pitch());
         player.markDirty(true);
     }
 
@@ -285,8 +288,8 @@ public class OurCraftServer {
         // 不过，ServerWorldExecutionUnit.processEvents 中有处理 PlayerCameraInputEvent 的逻辑，
         // 所以最好也转为事件。
 
-        float currentYaw = player.getYaw();
-        float currentPitch = player.getPitch();
+        float currentYaw = (float)player.getYaw();
+        float currentPitch = (float)player.getPitch();
         float deltaYaw = packet.yaw() - currentYaw;
         float deltaPitch = packet.pitch() - currentPitch;
 
@@ -318,7 +321,7 @@ public class OurCraftServer {
     private void handleRequestJoinServer(RequestJoinServerNDto packet, ClientConnectionHandler handler) {
         log.info("收到客户端加入请求: clientVersion={}, playerName={}", packet.clientVersion(), packet.playerName());
 
-        if (worldManager.getWorld(worldName) == null) {
+        if (worldManager.getWorld(defaultWorldName) == null) {
             log.error("世界未初始化，无法接受玩家加入");
             RequestJoinServerNVo response = new RequestJoinServerNVo(
                     0, // rejected
@@ -328,36 +331,54 @@ public class OurCraftServer {
             return;
         }
 
-        String saveName = worldManager.getWorld(worldName).getSaveName();
-        UUID playerUUID = SaveManager.getInstance().getOrCreatePlayerUUID(saveName, packet.playerName());
-        ServerPlayer newPlayer = new ServerPlayer(worldManager.getWorld(worldName), playerUUID);
-
-        com.ksptool.ourcraft.server.world.save.PlayerIndex playerIndex = SaveManager.getInstance().loadPlayer(saveName,
-                playerUUID);
+        ArchivePlayerManager playerManager = archiveManager.getPlayerManager();
+        ArchivePlayerVo playerVo = playerManager.loadPlayer(packet.playerName());
         Vector3f spawnPos;
 
-        if (playerIndex != null) {
-            newPlayer.loadFromPlayerIndex(playerIndex);
-            spawnPos = new Vector3f(playerIndex.posX, playerIndex.posY, playerIndex.posZ);
-            log.info("加载了玩家 '{}' 的数据, UUID: {}, 位置: ({}, {}, {})",
-                    packet.playerName(), playerUUID, spawnPos.x, spawnPos.y, spawnPos.z);
-
-            int playerChunkX = (int) Math.floor(spawnPos.x / ServerChunk.CHUNK_SIZE);
-            int playerChunkZ = (int) Math.floor(spawnPos.z / ServerChunk.CHUNK_SIZE);
-            generateChunksAround(spawnPos, INITIAL_RENDER_DISTANCE);
-        } else {
+        if (playerVo == null) {
             Vector3f initialSpawnPos = new Vector3f(0, 64, 0);
             log.info("开始生成出生点周围的区块，确保地面存在");
             generateChunksAround(initialSpawnPos, INITIAL_RENDER_DISTANCE);
             int safeSpawnY = findSafeSpawnY((int) initialSpawnPos.x, (int) initialSpawnPos.z);
             spawnPos = new Vector3f(initialSpawnPos.x, safeSpawnY, initialSpawnPos.z);
             log.info("为新玩家 '{}' 计算得到安全出生点: ({}, {}, {})", packet.playerName(), spawnPos.x, spawnPos.y, spawnPos.z);
-            newPlayer.getPosition().set(spawnPos);
-            newPlayer.setYaw(0.0f);
-            newPlayer.setPitch(0.0f);
+
+            var dto = new ArchivePlayerDto();
+            dto.setName(packet.playerName());
+            dto.setPosX((double)spawnPos.x);
+            dto.setPosY((double)spawnPos.y);
+            dto.setPosZ((double)spawnPos.z);
+            dto.setYaw(0.0);
+            dto.setPitch(0.0);
+            dto.setHealth(40);
+            dto.setHungry(40);
+            dto.setExp(0L);
+            dto.setCreateTime(java.time.LocalDateTime.now());
+
+            playerVo = playerManager.savePlayer(dto);
+            if (playerVo == null) {
+                log.error("保存新玩家数据失败");
+                RequestJoinServerNVo response = new RequestJoinServerNVo(
+                        0, // rejected
+                        "保存玩家数据失败",
+                        null, null, null, null, null, null);
+                handler.sendPacket(response);
+                return;
+            }
+            log.info("为新玩家 '{}' 创建归档记录 UUID {}", packet.playerName(), playerVo.getUuid());
+        } else {
+            spawnPos = new Vector3f(
+                    playerVo.getPosX() != null ? (float)playerVo.getPosX().doubleValue() : 0f,
+                    playerVo.getPosY() != null ? (float)playerVo.getPosY().doubleValue() : 64f,
+                    playerVo.getPosZ() != null ? (float)playerVo.getPosZ().doubleValue() : 0f
+            );
+            log.info("加载了玩家 '{}' 的数据, UUID: {}, 位置: ({}, {}, {})",
+                    packet.playerName(), playerVo.getUuid(), spawnPos.x, spawnPos.y, spawnPos.z);
+            generateChunksAround(spawnPos, INITIAL_RENDER_DISTANCE);
         }
 
-        worldManager.getWorld(worldName).addEntity(newPlayer);
+        ServerPlayer newPlayer = new ServerPlayer(worldManager.getWorld(defaultWorldName), playerVo);
+        worldManager.getWorld(defaultWorldName).addEntity(newPlayer);
         handler.setPlayer(newPlayer);
 
         int sessionId = connectedClients.indexOf(handler) + 1;
@@ -370,8 +391,8 @@ public class OurCraftServer {
                 (double) spawnPos.x,
                 (double) spawnPos.y,
                 (double) spawnPos.z,
-                newPlayer.getYaw(),
-                newPlayer.getPitch());
+                (float)newPlayer.getYaw(),
+                (float)newPlayer.getPitch());
 
         log.info("发送加入响应: sessionId={}, spawnPos=({}, {}, {})", sessionId, spawnPos.x, spawnPos.y, spawnPos.z);
         handler.sendPacket(response);
@@ -380,8 +401,8 @@ public class OurCraftServer {
     private void handleClientReady(ClientConnectionHandler handler) {
         // 客户端已准备好，执行初始同步
         ServerPlayer player = handler.getPlayer();
-        if (worldManager.getWorld(worldName) == null || player == null) {
-            log.warn("无法执行初始同步: world={}, player={}", worldManager.getWorld(worldName) != null, player != null);
+        if (worldManager.getWorld(defaultWorldName) == null || player == null) {
+            log.warn("无法执行初始同步: world={}, player={}", worldManager.getWorld(defaultWorldName) != null, player != null);
             return;
         }
 
@@ -401,22 +422,22 @@ public class OurCraftServer {
      * @param radius         生成半径（区块数）
      */
     private void generateChunksAround(Vector3f centerPosition, int radius) {
-        if (worldManager.getWorld(worldName) == null) {
+        if (worldManager.getWorld(defaultWorldName) == null) {
             return;
         }
 
         int centerChunkX = (int) Math
-                .floor(centerPosition.x / com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE);
+                .floor(centerPosition.x / com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE);
         int centerChunkZ = (int) Math
-                .floor(centerPosition.z / com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE);
+                .floor(centerPosition.z / com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE);
 
         log.info("开始生成出生点周围的区块: centerChunk=({}, {}), radius={}", centerChunkX, centerChunkZ, radius);
 
         for (int x = centerChunkX - radius; x <= centerChunkX + radius; x++) {
             for (int z = centerChunkZ - radius; z <= centerChunkZ + radius; z++) {
-                com.ksptool.ourcraft.server.world.ServerChunk chunk = worldManager.getWorld(worldName).getChunk(x, z);
+                com.ksptool.ourcraft.server.world.chunk.ServerChunk chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
                 if (chunk == null) {
-                    worldManager.getWorld(worldName).generateChunkSynchronously(x, z);
+                    worldManager.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
                 }
             }
         }
@@ -433,13 +454,13 @@ public class OurCraftServer {
      * @return 安全的Y坐标，如果找不到则返回64
      */
     private int findSafeSpawnY(int worldX, int worldZ) {
-        if (worldManager.getWorld(worldName) == null) {
+        if (worldManager.getWorld(defaultWorldName) == null) {
             return 64;
         }
 
         // 从较高的位置开始向下扫描（从Y=200开始，避免扫描整个高度）
         for (int y = 200; y >= 0; y--) {
-            int blockState = worldManager.getWorld(worldName).getBlockState(worldX, y, worldZ);
+            int blockState = worldManager.getWorld(defaultWorldName).getBlockState(worldX, y, worldZ);
             // 如果找到非空气方块（stateId != 0），返回其上方的Y坐标
             if (blockState != 0) {
                 int safeY = y + 1;
@@ -454,28 +475,28 @@ public class OurCraftServer {
     }
 
     private void performInitialSyncForClient(ClientConnectionHandler handler, ServerPlayer player) {
-        if (worldManager.getWorld(worldName) == null || player == null) {
+        if (worldManager.getWorld(defaultWorldName) == null || player == null) {
             return;
         }
 
         int playerChunkX = (int) Math
-                .floor(player.getPosition().x / com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE);
+                .floor(player.getPosition().x / com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE);
         int playerChunkZ = (int) Math
-                .floor(player.getPosition().z / com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE);
+                .floor(player.getPosition().z / ServerChunk.CHUNK_SIZE);
 
         for (int x = playerChunkX - INITIAL_RENDER_DISTANCE; x <= playerChunkX + INITIAL_RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - INITIAL_RENDER_DISTANCE; z <= playerChunkZ + INITIAL_RENDER_DISTANCE; z++) {
-                com.ksptool.ourcraft.server.world.ServerChunk chunk = worldManager.getWorld(worldName).getChunk(x, z);
+                com.ksptool.ourcraft.server.world.chunk.ServerChunk chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
                 if (chunk == null) {
-                    worldManager.getWorld(worldName).generateChunkSynchronously(x, z);
-                    chunk = worldManager.getWorld(worldName).getChunk(x, z);
+                    worldManager.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
+                    chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
                 }
                 if (chunk != null) {
                     // 将区块数据转换为byte[]
-                    int[][][] blockStates = new int[com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE][com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_HEIGHT][com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE];
-                    for (int localX = 0; localX < com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE; localX++) {
-                        for (int y = 0; y < com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_HEIGHT; y++) {
-                            for (int localZ = 0; localZ < com.ksptool.ourcraft.server.world.ServerChunk.CHUNK_SIZE; localZ++) {
+                    int[][][] blockStates = new int[com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE][com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_HEIGHT][com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE];
+                    for (int localX = 0; localX < com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE; localX++) {
+                        for (int y = 0; y < com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_HEIGHT; y++) {
+                            for (int localZ = 0; localZ < ServerChunk.CHUNK_SIZE; localZ++) {
                                 blockStates[localX][y][localZ] = chunk.getBlockState(localX, y, localZ);
                             }
                         }
@@ -518,23 +539,29 @@ public class OurCraftServer {
         return data;
     }
 
-    public void cleanup() {
-        stop();
-        if (worldManager.getWorld(worldName) != null) {
-            String saveName = worldManager.getWorld(worldName).getSaveName();
-            if (saveName != null) {
-                java.util.List<ClientConnectionHandler> clients = new java.util.ArrayList<>(connectedClients);
-                for (ClientConnectionHandler handler : clients) {
-                    ServerPlayer player = handler.getPlayer();
-                    if (player != null) {
-                        SaveManager.getInstance().savePlayer(saveName, player.getUniqueId(), player);
-                        log.info("已保存玩家数据: UUID={}", player.getUniqueId());
-                    }
-                }
-            }
-            worldManager.getWorld(worldName).saveAllDirtyData();
-            worldManager.getWorld(worldName).cleanup();
+
+    /**
+     * 正常关闭服务器
+     * 这会 
+     * 1. 停止所有世界
+     * 2. 保存所有世界
+     * 3. 保存当前依然在线的所有玩家
+     */
+    public void shutdown() {
+
+        //关闭网络监听器
+        stopNetworkListener();
+
+        //关闭所有客户端连接
+        for (ClientConnectionHandler handler : connectedClients) {
+            handler.close();
         }
+
+        //停止所有世界的运行并将它们写入归档
+        worldManager.shutdown();
+
+        //断开归档索引数据库连接
+        archiveManager.disconnectArchiveIndex();
     }
 
 }

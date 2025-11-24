@@ -1,7 +1,6 @@
 package com.ksptool.ourcraft.server.world;
 
-import com.ksptool.ourcraft.server.world.ServerChunk;
-import com.ksptool.ourcraft.server.world.ServerWorld;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.BlockingQueue;
@@ -27,9 +26,6 @@ public class WorldGenerator extends Thread {
         while (running) {
             try {
                 ChunkGenerationTask task = generationQueue.take();
-                if (task == null) {
-                    continue;
-                }
 
                 ServerChunk chunk = new ServerChunk(task.getChunkX(), task.getChunkZ());
                 world.generateChunkData(chunk);

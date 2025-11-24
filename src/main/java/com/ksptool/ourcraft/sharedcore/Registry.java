@@ -1,13 +1,12 @@
-package com.ksptool.ourcraft.sharedcore.world;
+package com.ksptool.ourcraft.sharedcore;
 
-import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.entity.SharedEntity;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
+import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.template.ItemTemplate;
-import com.ksptool.ourcraft.sharedcore.template.WorldTemplate;
+import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,8 +25,6 @@ public class Registry {
     private final Map<StdRegName, ItemTemplate> items;
 
     private final Map<StdRegName, SharedEntity> entities;
-
-    private static final Map<String, WorldTemplateOld> worldTemplateRegistry = new HashMap<>();
 
     private Registry() {
         this.blocks = new HashMap<>();
@@ -52,6 +49,7 @@ public class Registry {
             throw new IllegalArgumentException("Block with StdRegName " + stdRegName + " is already registered!");
         }
 
+        log.info("注册方块: {}", stdRegName);
         blocks.put(stdRegName, sharedBlock);
     }
 
@@ -75,6 +73,8 @@ public class Registry {
         if (worldTemplates.containsKey(stdRegName)) {
             throw new IllegalArgumentException("WorldTemplate with StdRegName " + stdRegName + " is already registered!");
         }
+
+        log.info("注册世界模板: {}", stdRegName);
         worldTemplates.put(stdRegName, worldTemplate);
     }
 
@@ -90,6 +90,7 @@ public class Registry {
         if (itemTemplate == null) {
             throw new IllegalArgumentException("Item is null!");
         }
+        log.info("注册物品: {}", itemTemplate.getStdRegName());
         items.put(itemTemplate.getStdRegName(), itemTemplate);
     }
 
@@ -105,6 +106,7 @@ public class Registry {
         if (sharedEntity == null) {
             throw new IllegalArgumentException("EntityTemplate is null!");
         }
+        log.info("注册实体: {}", sharedEntity.getStdRegName());
         entities.put(sharedEntity.getStdRegName(), sharedEntity);
     }
 
@@ -116,31 +118,17 @@ public class Registry {
         return entities.get(stdRegName);
     }
 
-
-    public static void registerWorldTemplateOld(WorldTemplateOld template) {
-        if (template == null || StringUtils.isBlank(template.getTemplateId())) {
-            log.warn("尝试注册无效的世界模板");
-            return;
-        }
-        worldTemplateRegistry.put(template.getTemplateId(), template);
-        log.debug("注册世界模板: {}", template.getTemplateId());
-    }
-
-    public static WorldTemplateOld getWorldTemplateOld(String templateId) {
-        return worldTemplateRegistry.get(templateId);
-    }
-
-    public static WorldTemplateOld getDefaultTemplate() {
-        WorldTemplateOld template = worldTemplateRegistry.get("mycraft:overworld");
-        if (template == null) {
-            log.warn("默认世界模板 'mycraft:overworld' 未找到，请确保在游戏启动时注册");
-        }
-        return template;
-    }
-
-
     public Map<StdRegName, SharedBlock> getAllBlocks() {
         return new HashMap<>(blocks);
     }
+
+    /**
+     * 注册所有引擎原版的内容 这包括方块、物品、世界模板、实体
+     */
+    public void registerAllDefaultContent() {
+        BlockEnums.registerBlocks(this);
+        WorldTemplateEnums.registerWorldTemplate(this);
+    }
+
 }
 

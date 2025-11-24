@@ -1,10 +1,10 @@
-package com.ksptool.ourcraft.server.manager;
+package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.OurCraftServer;
+import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
-import com.ksptool.ourcraft.server.world.ServerChunk;
-import com.ksptool.ourcraft.server.world.ServerWorld;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.sharedcore.events.*;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncBlockUpdateNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncChunkDataNVo;
@@ -40,7 +40,7 @@ public class ServerWorldExecutionUnit implements Runnable {
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
     public ServerWorldExecutionUnit(ServerWorld serverWorld, OurCraftServer serverInstance) {
-        this.worldName = serverWorld.getWorldName();
+        this.worldName = serverWorld.getName();
         this.serverWorld = serverWorld;
         this.serverInstance = serverInstance;
     }
@@ -57,7 +57,7 @@ public class ServerWorldExecutionUnit implements Runnable {
             return;
         }
 
-        final double tickRate = serverWorld.getTemplate().getTicksPerSecond();
+        final double tickRate = serverWorld.getTemplate().getTps();
         final double tickTime = 1.0 / tickRate;
 
         double lastTime = System.nanoTime() / 1_000_000_000.0;
@@ -103,11 +103,12 @@ public class ServerWorldExecutionUnit implements Runnable {
      * 执行一次逻辑 Tick
      */
     private void tick(float tickDelta) {
-        // 1. 处理事件 (输入等)
+        //处理事件 (输入等)
         processEvents();
 
-        // 2. 计算中心位置 (用于区块加载优化等)
+        //计算中心位置 (用于区块加载优化等)
         Vector3f centerPosition = new Vector3f(0, 64, 0);
+
         // TODO: 如果支持多世界，这里应该只获取在这个世界里的玩家位置
         List<ClientConnectionHandler> clients = serverInstance.getConnectedClients();
         if (!clients.isEmpty()) {
@@ -120,10 +121,10 @@ public class ServerWorldExecutionUnit implements Runnable {
             }
         }
 
-        // 3. 更新世界物理和实体
+        //更新世界物理和实体
         serverWorld.update(tickDelta, centerPosition, () -> {
-            List<com.ksptool.ourcraft.server.entity.ServerEntity> entities = new java.util.ArrayList<>(serverWorld.getEntities());
-            for (com.ksptool.ourcraft.server.entity.ServerEntity entity : entities) {
+            List<ServerEntity> entities = new java.util.ArrayList<>(serverWorld.getEntities());
+            for (ServerEntity entity : entities) {
                 if (entity instanceof ServerPlayer) {
                     ServerPlayer player = (ServerPlayer) entity;
                     // 查找Handler检查是否初始化
@@ -141,13 +142,13 @@ public class ServerWorldExecutionUnit implements Runnable {
      * 处理网络同步
      */
     private void sendNetworkUpdates() {
-        // 1. 发送方块更新
+        //发送方块更新
         processBlockUpdates();
 
-        // 2. 发送区块加载/卸载信息 (视口更新)
+        //发送区块加载/卸载信息 (视口更新)
         updateDynamicViewport();
 
-        // 3. 发送玩家和实体的位置信息
+        //发送玩家和实体的位置信息
         sendPlayerUpdate();
     }
 
@@ -234,7 +235,7 @@ public class ServerWorldExecutionUnit implements Runnable {
             // 发送该玩家的位置和状态
             handler.sendPacket(new ServerSyncEntityPositionAndRotationNVo(
                     0, player.getPosition().x, player.getPosition().y, player.getPosition().z,
-                    player.getYaw(), player.getPitch()
+                    (float)player.getYaw(), (float)player.getPitch()
             ));
 
             handler.sendPacket(new ServerSyncPlayerStateNVo(
@@ -257,7 +258,7 @@ public class ServerWorldExecutionUnit implements Runnable {
 
                 ServerSyncEntityPositionAndRotationNVo packet = new ServerSyncEntityPositionAndRotationNVo(
                         entityId, player.getPosition().x, player.getPosition().y, player.getPosition().z,
-                        player.getYaw(), player.getPitch()
+                        (float)player.getYaw(), (float)player.getPitch()
                 );
 
                 // 广播给本世界除自己外的其他人

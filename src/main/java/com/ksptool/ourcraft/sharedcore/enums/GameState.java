@@ -1,4 +1,4 @@
-package com.ksptool.ourcraft.sharedcore;
+package com.ksptool.ourcraft.sharedcore.enums;
 
 /**
  * 游戏状态枚举，定义游戏的不同状态

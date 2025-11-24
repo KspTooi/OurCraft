@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.item;
 
-import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import lombok.Getter;
 
 import java.util.HashMap;
@@ -20,11 +20,11 @@ public class Item {
     private static final int DEFAULT_MAX_STACK_SIZE = 64;
 
     static {
-        registerItem(1, "Grass Block", BlockType.GRASS_BLOCK.getStdRegName().getValue());
-        registerItem(2, "Dirt", BlockType.DIRT.getStdRegName().getValue());
-        registerItem(3, "Stone", BlockType.STONE.getStdRegName().getValue());
-        registerItem(4, "Wood", BlockType.WOOD.getStdRegName().getValue());
-        registerItem(5, "Leaves", BlockType.LEAVES.getStdRegName().getValue());
+        registerItem(1, "Grass Block", BlockEnums.GRASS_BLOCK.getStdRegName().getValue());
+        registerItem(2, "Dirt", BlockEnums.DIRT.getStdRegName().getValue());
+        registerItem(3, "Stone", BlockEnums.STONE.getStdRegName().getValue());
+        registerItem(4, "Wood", BlockEnums.WOOD.getStdRegName().getValue());
+        registerItem(5, "Leaves", BlockEnums.LEAVES.getStdRegName().getValue());
     }
 
     private static void registerItem(int id, String name, String blockNamespacedID) {

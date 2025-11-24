@@ -140,7 +140,7 @@ public class ClientPlayer extends ClientLivingEntity {
             float acceleration = onGround ? GROUND_ACCELERATION : AIR_ACCELERATION;
             float tickDelta = 1.0f / 20.0f; // 假设20 TPS，后续可以从WorldTemplate获取
             if (world != null && world.getTemplate() != null) {
-                tickDelta = 1.0f / world.getTemplate().getTicksPerSecond();
+                tickDelta = 1.0f / world.getTemplate().getTps();
             }
             velocity.x += moveDirection.x * acceleration * tickDelta;
             velocity.z += moveDirection.z * acceleration * tickDelta;

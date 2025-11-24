@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.world;
 
-import com.ksptool.ourcraft.server.world.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 
 /**
  * 区块生成任务类，封装区块生成任务的状态信息

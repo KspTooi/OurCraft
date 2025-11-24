@@ -10,12 +10,6 @@ import lombok.Setter;
 @Getter@Setter
 public class ArchivePlayerDto {
 
-    //主键ID
-    private Long id;
-
-    //玩家UUID
-    private String uuid;
-
     //玩家名称
     private String name;
 
@@ -51,10 +45,6 @@ public class ArchivePlayerDto {
      * @return 验证结果
      */
     private String validate(){
-
-        if(StringUtils.isBlank(uuid)){
-            return "玩家UUID不能为空";
-        }
 
         if(StringUtils.isBlank(name)){
             return "玩家名称不能为空";

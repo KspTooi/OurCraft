@@ -1,10 +1,10 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
-import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.server.world.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.server.world.gen.GenerationContext;
 import com.ksptool.ourcraft.server.world.gen.ITerrainLayer;
 import com.ksptool.ourcraft.server.world.gen.TreeGenerator;
@@ -22,14 +22,14 @@ public class FeatureLayer implements ITerrainLayer {
 
     @Override
     public void apply(int[][][] chunkData, int chunkX, int chunkZ, GenerationContext context) {
-        SharedBlock grassSharedBlock = context.getRegistry().getBlock(BlockType.GRASS_BLOCK.getStdRegName());
+        SharedBlock grassSharedBlock = context.getRegistry().getBlock(BlockEnums.GRASS_BLOCK.getStdRegName());
         if (grassSharedBlock == null) {
             return;
         }
 
         int grassStateId = context.getGlobalPalette().getStateId(grassSharedBlock.getDefaultState());
 
-        Random random = new Random(context.getSeed() + chunkX * 31L + chunkZ * 17L);
+        Random random = new Random(context.getNumericSeed() + chunkX * 31L + chunkZ * 17L);
 
         for (int x = SAFE_MARGIN; x < ServerChunk.CHUNK_SIZE - SAFE_MARGIN; x++) {
             for (int z = SAFE_MARGIN; z < ServerChunk.CHUNK_SIZE - SAFE_MARGIN; z++) {

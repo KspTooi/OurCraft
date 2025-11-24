@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.client.world;
 
 import com.ksptool.ourcraft.client.rendering.TextureManager;
-import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
@@ -267,11 +267,11 @@ public class ChunkMeshGenerator {
             return 0.0f;
         }
         
-        if (sharedBlock.getStdRegName().equals(BlockType.GRASS_BLOCK.getStdRegName()) && face == 0) {
+        if (sharedBlock.getStdRegName().equals(BlockEnums.GRASS_BLOCK.getStdRegName()) && face == 0) {
             return 1.0f;
         }
         
-        if (sharedBlock.getStdRegName().equals(BlockType.LEAVES.getStdRegName())) {
+        if (sharedBlock.getStdRegName().equals(BlockEnums.LEAVES.getStdRegName())) {
             return 1.0f;
         }
         

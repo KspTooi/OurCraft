@@ -1,11 +1,15 @@
 package com.ksptool.ourcraft.server.archive;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.save.ChunkSerializer;
 import org.apache.commons.lang3.StringUtils;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
 import com.ksptool.ourcraft.server.world.ServerWorld;
@@ -23,9 +27,9 @@ public class ArchiveWorldManager {
     private final ArchivePaletteManager paletteManager;
 
     //归档区块管理器
-    private final ArchiveChunkManager chunkManager;
+    private final ArchiveSuperChunkManager chunkManager;
 
-    public ArchiveWorldManager(ArchiveManager archiveManager, ArchivePaletteManager paletteManager, ArchiveChunkManager chunkManager){
+    public ArchiveWorldManager(ArchiveManager archiveManager, ArchivePaletteManager paletteManager, ArchiveSuperChunkManager chunkManager){
         this.archiveManager = archiveManager;
         this.paletteManager = paletteManager;
         this.chunkManager = chunkManager;
@@ -47,16 +51,35 @@ public class ArchiveWorldManager {
 
         //直接保存世界运行时到归档索引(归档索引不存在时自动创建)
         var dto = new ArchiveWorldIndexDto();
-        dto.setName(world.getWorldName());
+        dto.setName(world.getName());
         dto.setSeed(world.getSeed()+"");
         dto.setTotalTick(world.getGameTime()); //@待完善 GameTime不一定为总Tick
-        dto.setTemplateStdRegName(world.getTemplate().getTemplateId());
+        dto.setTemplateStdRegName(world.getTemplate().getStdRegName().toString());
         saveWorldIndex(dto);
         
         //保存当前的全局调色板数据
         paletteManager.saveGlobalPalette(GlobalPalette.getInstance());
 
-        
+        //保存当前的区块数据
+        List<ServerChunk> dirtyChunks = world.getChunkManager().getDirtyChunkSnapshot();
+        int chunkCount = 0;
+
+        for (ServerChunk chunk : dirtyChunks) {
+            try {
+                byte[] compressedData = ChunkSerializer.serialize(chunk);
+                SuperChunkArchiveFile scaf = chunkManager.openSCAF(world.getName(), chunk.getChunkX(), chunk.getChunkZ());
+                scaf.writeChunk(chunk.getChunkX(), chunk.getChunkZ(), compressedData);
+                chunk.markDirty(false);
+                chunkCount++;
+            } catch (IOException e) {
+                log.error("保存区块失败 [{},{}]", chunk.getChunkX(), chunk.getChunkZ(), e);
+            }
+        }
+
+        //保存实体数据
+        world.getEntityManager().saveAllDirtyEntities();
+
+        log.info("世界 {} 保存完成，保存区块数: {}", world.getName(), chunkCount);
     }
 
 

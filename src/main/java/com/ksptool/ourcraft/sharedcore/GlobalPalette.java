@@ -1,17 +1,21 @@
 package com.ksptool.ourcraft.sharedcore;
 
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.sharedcore.world.Registry;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 全局方块状态调色板类，管理所有方块状态到ID的映射
  */
 @Getter
+@Slf4j
 public class GlobalPalette {
 
     //实例
@@ -28,12 +32,17 @@ public class GlobalPalette {
     private boolean baked = false;
 
     private GlobalPalette() {
-        this.stateList = new ArrayList<>();
-        this.stateToId = new HashMap<>();
+        this.stateList = new CopyOnWriteArrayList<>();
+        this.stateToId = new ConcurrentHashMap<>();
     }
 
     public static GlobalPalette getInstance() {
         return INSTANCE;
+    }
+
+    public void reBake(){
+        this.baked = false;
+        this.bake();
     }
 
     public void bake() {
@@ -44,7 +53,7 @@ public class GlobalPalette {
         Registry registry = Registry.getInstance();
         Map<StdRegName, SharedBlock> blocks = registry.getAllBlocks();
 
-        SharedBlock airSharedBlock = registry.getBlock(BlockType.AIR.getStdRegName());
+        SharedBlock airSharedBlock = registry.getBlock(BlockEnums.AIR.getStdRegName());
         if (airSharedBlock == null) {
             throw new IllegalStateException("Air block must be registered before baking palette!");
         }
@@ -111,6 +120,7 @@ public class GlobalPalette {
         stateList.clear();
         stateToId.clear();
         baked = false;
+        log.info("全局调色板已清空");
     }
 
 }

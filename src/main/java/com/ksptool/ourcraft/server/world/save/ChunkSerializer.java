@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.world.save;
 
-import com.ksptool.ourcraft.server.world.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 
 import java.io.ByteArrayOutputStream;

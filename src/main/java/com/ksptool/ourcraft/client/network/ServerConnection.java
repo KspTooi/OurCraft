@@ -99,7 +99,7 @@ public class ServerConnection {
         }
         
         String packetType = packet.getClass().getSimpleName();
-        log.info("收到数据包: {}", packetType);
+        //log.info("收到数据包: {}", packetType);
         
         if (packet instanceof ServerSyncChunkDataNVo) {
             handleChunkData((ServerSyncChunkDataNVo) packet);
@@ -222,7 +222,7 @@ public class ServerConnection {
         
         if (packet.entityId() == 0) {
 
-            log.info("ServerSyncEntityPositionAndRotationNVo X:{} Y:{} Z:{} P:{} R:{}",packet.x(),packet.y(),packet.z(),packet.pitch(),packet.yaw());
+            //log.info("ServerSyncEntityPositionAndRotationNVo X:{} Y:{} Z:{} P:{} R:{}",packet.x(),packet.y(),packet.z(),packet.pitch(),packet.yaw());
 
             ClientPlayer player = gameClient.getPlayer();
             if (player != null) {

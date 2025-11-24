@@ -1,9 +1,9 @@
 package com.ksptool.ourcraft.sharedcore.blocks;
 
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.BlockType;
 import com.ksptool.ourcraft.sharedcore.world.properties.BooleanProperty;
 
 /**
@@ -13,7 +13,7 @@ public class GrassBlock extends SharedBlock {
     public static final BooleanProperty SNOWY = BooleanProperty.create("snowy");
 
     public GrassBlock() {
-        super(BlockType.GRASS_BLOCK.getStdRegName(), 0.6f, 0);
+        super(BlockEnums.GRASS_BLOCK.getStdRegName(), 0.6f, 0);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.ksptool.ourcraft.server.world;
+package com.ksptool.ourcraft.server.world.chunk;
 
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 

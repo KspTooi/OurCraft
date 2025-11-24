@@ -3,8 +3,6 @@ package com.ksptool.ourcraft.server.world.save;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerLivingEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.sharedcore.item.Item;
-import com.ksptool.ourcraft.sharedcore.item.ItemStack;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,9 +34,16 @@ public class EntitySerializer {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
         
-        dos.writeInt(entities.size());
-        
+        List<ServerEntity> nonPlayerEntities = new ArrayList<>();
         for (ServerEntity entity : entities) {
+            if (!(entity instanceof ServerPlayer)) {
+                nonPlayerEntities.add(entity);
+            }
+        }
+        
+        dos.writeInt(nonPlayerEntities.size());
+        
+        for (ServerEntity entity : nonPlayerEntities) {
             Map<String, Object> kvMap = flattenEntity(entity);
             byte[] entityData = serializeKvMap(kvMap);
             dos.writeInt(entityData.length);
@@ -113,21 +118,7 @@ public class EntitySerializer {
         kvMap.put("core:onGround", entity.isOnGround());
         kvMap.put("core:isDead", entity.isDead());
         
-        if (entity instanceof ServerPlayer) {
-            kvMap.put("core:type", "mycraft:player");
-            ServerPlayer player = (ServerPlayer) entity;
-            kvMap.put("player:yaw", player.getYaw());
-            kvMap.put("player:pitch", player.getPitch());
-            kvMap.put("player:selectedSlot", player.getInventory().getSelectedSlot());
-            
-            ItemStack[] hotbar = player.getInventory().getHotbar();
-            for (int i = 0; i < hotbar.length; i++) {
-                if (hotbar[i] != null && !hotbar[i].isEmpty()) {
-                    kvMap.put("player:hotbar." + i + ".itemId", hotbar[i].getItem().getId());
-                    kvMap.put("player:hotbar." + i + ".count", hotbar[i].getCount());
-                }
-            }
-        } else if (entity instanceof ServerLivingEntity) {
+        if (entity instanceof ServerLivingEntity) {
             kvMap.put("core:type", "mycraft:living");
             ServerLivingEntity living = (ServerLivingEntity) entity;
             kvMap.put("living:health", living.getHealth());
@@ -159,9 +150,21 @@ public class EntitySerializer {
             return null;
         }
         
-        ServerEntity entity;
         if ("mycraft:player".equals(entityType)) {
-            entity = new ServerPlayer(world, uuid);
+            return null;
+        }
+        
+        if ("mycraft:living".equals(entityType)) {
+            return null;
+        }
+        
+        ServerEntity entity = null;
+        if ("mycraft:entity".equals(entityType)) {
+            entity = new ServerEntity(world, uuid) {
+                @Override
+                public void update(float delta) {
+                }
+            };
         } else {
             return null;
         }
@@ -199,35 +202,6 @@ public class EntitySerializer {
             Float eyeHeight = getFloat(kvMap, "living:eyeHeight");
             if (eyeHeight != null) {
                 living.setEyeHeight(eyeHeight);
-            }
-        }
-        
-        if (entity instanceof ServerPlayer) {
-            ServerPlayer player = (ServerPlayer) entity;
-            Float yaw = getFloat(kvMap, "player:yaw");
-            Float pitch = getFloat(kvMap, "player:pitch");
-            if (yaw != null) {
-                player.setYaw(yaw);
-            }
-            if (pitch != null) {
-                player.setPitch(pitch);
-            }
-            
-            Integer selectedSlot = getInt(kvMap, "player:selectedSlot");
-            if (selectedSlot != null) {
-                player.getInventory().setSelectedSlot(selectedSlot);
-            }
-            
-            ItemStack[] hotbar = player.getInventory().getHotbar();
-            for (int i = 0; i < hotbar.length; i++) {
-                Integer itemId = getInt(kvMap, "player:hotbar." + i + ".itemId");
-                Integer count = getInt(kvMap, "player:hotbar." + i + ".count");
-                if (itemId != null && count != null) {
-                    Item item = Item.getItem(itemId);
-                    if (item != null) {
-                        hotbar[i] = new ItemStack(item, count);
-                    }
-                }
             }
         }
         

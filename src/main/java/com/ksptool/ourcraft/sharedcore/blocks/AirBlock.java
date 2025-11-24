@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.sharedcore.blocks;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.BlockType;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 
 /**
  * 空气方块类，表示空方块
@@ -11,7 +11,7 @@ import com.ksptool.ourcraft.sharedcore.BlockType;
 public class AirBlock extends SharedBlock {
 
     public AirBlock() {
-        super(BlockType.AIR.getStdRegName(), 0, 0);
+        super(BlockEnums.AIR.getStdRegName(), 0, 0);
     }
 
     @Override

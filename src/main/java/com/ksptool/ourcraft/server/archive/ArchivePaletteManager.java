@@ -5,7 +5,7 @@ import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.sharedcore.world.Registry;
+import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.world.properties.BlockProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -67,7 +67,7 @@ public class ArchivePaletteManager {
 
             //使用 MERGE INTO ... KEY(...) 语法
             //如果 STD_REG_NAME 已存在则更新，不存在则插入，完美解决唯一键冲突
-            String sql = "MERGE INTO GLOBAL_PALETTE (STD_REG_NAME, PROPERTIES, CREATE_TIME) KEY(STD_REG_NAME) VALUES (?, ?, ?)";
+            String sql = "MERGE INTO GLOBAL_PALETTE (ID, STD_REG_NAME, PROPERTIES, CREATE_TIME) KEY(ID) VALUES (?, ?, ?, ?)";
 
             try(PreparedStatement stmt = conn.prepareStatement(sql)){
 
@@ -77,9 +77,10 @@ public class ArchivePaletteManager {
 
                 for(int i = 0; i < globalPalette.getStateCount(); i++){
                     BlockState state = globalPalette.getState(i);
-                    
+
+                    stmt.setInt(1, globalPalette.getStateId(state));
                     //设置标准注册名
-                    stmt.setString(1, state.getSharedBlock().getStdRegName().getValue());
+                    stmt.setString(2, state.getSharedBlock().getStdRegName().getValue());
 
                     //序列化属性
                     var properties = new ArrayList<GlobalPaletteProperty>();
@@ -92,10 +93,10 @@ public class ArchivePaletteManager {
 
                     baos.reset(); //重置流
                     KryoManager.writeObject(properties, baos);
-                    stmt.setBlob(2, new SerialBlob(baos.toByteArray()));
+                    stmt.setBlob(3, new SerialBlob(baos.toByteArray()));
 
                     //设置时间戳
-                    stmt.setTimestamp(3, Timestamp.from(LocalDateTime.now().toInstant(ZoneOffset.UTC)));
+                    stmt.setTimestamp(4, Timestamp.from(LocalDateTime.now().toInstant(ZoneOffset.UTC)));
 
                     //加入批处理
                     stmt.addBatch();
@@ -128,8 +129,9 @@ public class ArchivePaletteManager {
     /**
      * 加载全局调色板
      * @param globalPalette 全局调色板
+     * @return 加载的调色板状态数
      */
-    public void loadGlobalPalette(GlobalPalette globalPalette){
+    public int loadGlobalPalette(GlobalPalette globalPalette){
 
         // 获取归档数据库连接池
         var dataSource = archiveManager.getDataSource();
@@ -137,23 +139,23 @@ public class ArchivePaletteManager {
 
         if(dataSource == null){
             log.error("归档管理器当前未连接到归档，无法加载全局调色板");
-            return;
+            return 0;
         }
 
         if(globalPalette == null){
             log.error("全局调色板不能为空");
-            return;
+            return 0;
         }
 
         if(StringUtils.isBlank(currentArchiveName)){
             log.error("当前未连接到归档，无法加载全局调色板");
-            return;
+            return 0;
         }
 
         try(Connection conn = dataSource.getConnection()){
             if(conn == null || conn.isClosed()){
                 log.error("数据库连接异常，无法加载全局调色板");
-                return;
+                return 0;
             }
 
             globalPalette.clear();
@@ -220,10 +222,12 @@ public class ArchivePaletteManager {
 
                 globalPalette.setBaked(true);
                 log.info("加载全局调色板成功: 状态数={}", count);
+                return count;
             }
 
         } catch(SQLException | IOException e){
             log.error("加载全局调色板失败", e);
+            return 0;
         }
     }
     
