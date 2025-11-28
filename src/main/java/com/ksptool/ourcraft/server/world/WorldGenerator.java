@@ -1,6 +1,7 @@
 package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.gen.ChunkGenerationTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.BlockingQueue;

@@ -54,17 +54,18 @@ public class ServerWorld implements SharedWorld {
     @Setter
     private String seed;
 
-    @Getter
-    private RegionManager regionManager;
+    //@Getter
+    //private RegionManager regionManager;
 
     @Getter
     private RegionManager entityRegionManager;
 
-    private GenerationContext generationContext;
+    @Getter
+    private final GenerationContext generationContext;
 
     //地形生成器
+    @Getter
     private final TerrainGenerator terrainGenerator;
-
 
     private final EventQueue eventQueue;
 
@@ -99,10 +100,10 @@ public class ServerWorld implements SharedWorld {
         this.entityManager.setSaveName(saveName);
     }
     
-    public void setRegionManager(RegionManager regionManager) {
-        this.regionManager = regionManager;
-        this.chunkManager.setRegionManager(regionManager);
-    }
+    //public void setRegionManager(RegionManager regionManager) {
+    //    this.regionManager = regionManager;
+    //    this.chunkManager.setRegionManager(regionManager);
+    //}
     
     public void setEntityRegionManager(RegionManager entityRegionManager) {
         this.entityRegionManager = entityRegionManager;

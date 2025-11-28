@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ChunkBlockData {
+public class CompactBlockData {
 
     @Getter
     private final int width;  // X轴
@@ -27,16 +27,51 @@ public class ChunkBlockData {
     //预计算层面积 (width * depth)，用于加速索引计算
     private final int layerArea;
 
+    @Getter
     private volatile BitStorage storage;
 
+    //本地调色板
+    @Getter
     private final IntArrayList localPalette;
+
+    //全局ID到局部ID的映射
+    @Getter
     private final Int2IntOpenHashMap globalToLocal;
 
+    //非空气方块数量
     private int nonAirBlockCount = 0;
 
+    //缓存的空气方块全局ID
     private static int CACHED_AIR_GLOBAL_ID = -1;
 
+    //锁对象
     private final Object lock = new Object();
+
+    /**
+     * 构造函数
+     * @param x 区块X尺寸
+     * @param y 区块Y尺寸
+     * @param z 区块Z尺寸
+     * @param bitsPerEntry 每个块需要多少位来存储
+     * @param data 数据数组
+     */
+    public CompactBlockData(int x, int y, int z,int bitsPerEntry, long[] data) {
+        this.width = x;
+        this.height = y;
+        this.depth = z;
+        this.layerArea = x * z;
+        this.totalSize = this.layerArea * y;
+        this.localPalette = new IntArrayList();
+        this.globalToLocal = new Int2IntOpenHashMap();
+        this.globalToLocal.defaultReturnValue(-1);
+        this.storage = new BitStorage(x, y, z, bitsPerEntry, data);
+
+        //初始化空气
+        int airGlobalId = getAirGlobalId();
+        localPalette.add(airGlobalId);
+        globalToLocal.put(airGlobalId, 0);
+    }
+
 
     /**
      * 构造支持任意尺寸的区块数据
@@ -45,7 +80,7 @@ public class ChunkBlockData {
      * @param height Y轴大小
      * @param depth  Z轴大小
      */
-    public ChunkBlockData(int width, int height, int depth) {
+    public CompactBlockData(int width, int height, int depth) {
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -64,6 +99,7 @@ public class ChunkBlockData {
         localPalette.add(airGlobalId);
         globalToLocal.put(airGlobalId, 0);
     }
+
 
     public BlockState getBlock(int x, int y, int z) {
         //需在调用层做坐标范围检查，这里为了极致性能可省略
@@ -205,7 +241,7 @@ public class ChunkBlockData {
     public Snapshot createSnapshot() {
         synchronized (lock) {
             //克隆 storage 和 palette
-            BitStorage storageCopy = new BitStorage(this.storage); // 需要在 BitStorage 实现这个拷贝构造
+            BitStorage storageCopy = new BitStorage(this.storage);
             IntArrayList paletteCopy = new IntArrayList(this.localPalette);
             return new Snapshot(storageCopy, paletteCopy, width, layerArea);
         }
@@ -217,12 +253,16 @@ public class ChunkBlockData {
      */
     public static class Snapshot {
 
+        @Getter
         private final BitStorage storage;
 
+        @Getter
         private final IntArrayList localPalette;
 
+        @Getter
         private final int width;
 
+        @Getter
         private final int layerArea;
 
         public Snapshot(BitStorage storage, IntArrayList localPalette, int width, int layerArea) {

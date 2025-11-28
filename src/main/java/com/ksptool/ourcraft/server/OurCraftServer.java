@@ -595,15 +595,15 @@ public class OurCraftServer {
 
         //注册地形生成器
         var gen = new DefaultTerrainGenerator();
-        gen.addLayer(new BaseDensityLayer());
-        gen.addLayer(new WaterLayer());
-        gen.addLayer(new SurfaceLayer());
-        gen.addLayer(new FeatureLayer());
-        registry.registerTerrainGenerator(gen);
+        gen.addLayer(new BaseDensityLayer());   //基础密度层
+        gen.addLayer(new WaterLayer());         //水层
+        gen.addLayer(new SurfaceLayer());       //表面层
+        gen.addLayer(new FeatureLayer());       //装饰层
+        registry.registerTerrainGenerator(gen); //注册地形生成器
         
         //注册出生平台生成器
-        var spawnPlatformGen = new SpawnPlatformGenerator();
-        registry.registerTerrainGenerator(spawnPlatformGen);
+        var spawnPlatformGen = new SpawnPlatformGenerator(); 
+        registry.registerTerrainGenerator(spawnPlatformGen); 
     }
 
 }

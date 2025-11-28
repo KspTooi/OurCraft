@@ -20,6 +20,24 @@ public class ChunkUtils {
     }
 
     /**
+     * 从长整型键值中获取区块X坐标
+     * @param key 长整型键值
+     * @return 区块X坐标
+     */
+    public static int getChunkX(long key) {
+        return (int) (key >> 32);
+    }
+
+    /**
+     * 从长整型键值中获取区块Z坐标
+     * @param key 长整型键值
+     * @return 区块Z坐标
+     */
+    public static int getChunkZ(long key) {
+        return (int) key;
+    }
+
+    /**
      * 获取区块缓存键值
      * @param worldName 世界名称
      * @param chunkX 区块X坐标

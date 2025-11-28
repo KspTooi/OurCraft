@@ -11,4 +11,7 @@ public class EngineDefault {
     //默认世界模板(标准注册名)
     public static String DEFAULT_WORLD_TEMPLATE = "ourcraft:earth_like";
 
+    //默认区块生成线程池大小
+    public static int DEFAULT_BLOCK_GENERATION_THREAD_POOL_SIZE = 2;
+
 }

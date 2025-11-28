@@ -183,7 +183,7 @@ public class ServerWorldManager {
         RegionManager aam = new RegionManager(new File("chunksDir"), ".sca", "SCAF");
         RegionManager eam = new RegionManager(new File("chunksDir"), ".sce", "SCEF");
 
-        sw.setRegionManager(aam);
+        //sw.setRegionManager(aam);
         sw.setEntityRegionManager(eam);
 
         sw.init();

@@ -1,28 +1,28 @@
 package com.ksptool.ourcraft.server.world.chunk;
 
-
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.sharedcore.Registry;
-import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
-import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
-import com.ksptool.ourcraft.sharedcore.utils.ChunkBlockData;
+import com.ksptool.ourcraft.sharedcore.utils.CompactBlockData;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
+import com.ksptool.ourcraft.sharedcore.world.chunk.SharedChunk;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
-public class ServerSuperChunk {
+public class ServerSuperChunk implements SharedChunk {
+
+    //全局调色板
+    private final GlobalPalette globalPalette;
 
     public enum ChunkState {
-        NEW,             //未初始化
-        AWAITING_GEN,    //等待区块生成
-        AWAITING_LOAD,   //等待区块加载(从SCA)
-        READY,           //正常
-        AWAITING_UNLOAD, //等待区块卸载并保存到SCA
+        NEW,              //未初始化
+        COMMITED_LOAD,    //已提交区块生成或加载任务
+        FINISH_LOAD,      //区块生成或加载完成
+        READY,            //区块已准备好
+        AWAITING_UNLOAD,  //等待区块卸载并保存到SCA
+        UNLOADED,         //区块已卸载
     }
 
     //物理位置在这个区块内的玩家 UUID
@@ -33,7 +33,7 @@ public class ServerSuperChunk {
 
     //区块状态
     @Setter
-    private ChunkState state;
+    private volatile ChunkState state;
 
     //区块坐标X
     private final int x;
@@ -51,10 +51,11 @@ public class ServerSuperChunk {
     private final int sizeZ;
 
     //区块是否脏
+    @Setter
     private boolean isDirty = false;
 
     //区块数据
-    private ChunkBlockData blockData;
+    private CompactBlockData blockData;
 
     //所属世界
     private ServerWorld world;
@@ -70,43 +71,13 @@ public class ServerSuperChunk {
         this.x = x;
         this.z = z;
         this.world = world;
-        //获取区块大小
         var t = world.getTemplate();
         sizeX = t.getChunkSizeX();
         sizeY = t.getChunkSizeY();
         sizeZ = t.getChunkSizeZ();
-        blockData = new ChunkBlockData(sizeX,sizeY,sizeZ);
+        blockData = new CompactBlockData(sizeX,sizeY,sizeZ);
         state = ChunkState.NEW;
-    }
-
-    /**
-     * 设置区块方块
-     * @param x 方块坐标X
-     * @param y 方块坐标Y
-     * @param z 方块坐标Z
-     * @param block 方块状态
-     */
-    public void setBlock(int x, int y, int z,BlockState block){
-        if(isInRange(x,y,z)){
-            blockData.setBlock(x,y,z,block);
-            this.isDirty = true;
-        }
-    }
-
-    /**
-     * 获取区块方块
-     * @param x 方块坐标X
-     * @param y 方块坐标Y
-     * @param z 方块坐标Z
-     * @return 方块状态
-     */
-    public BlockState getBlock(int x, int y, int z) {
-
-        if(isOutOfRange(x, y, z)){
-            return Registry.getInstance().getBlock(BlockEnums.AIR.getStdRegName()).getDefaultState();
-        }
-
-        return blockData.getBlock(x,y,z);
+        globalPalette = GlobalPalette.getInstance();
     }
 
     public void addPlayerInside(String playerUUID) {
@@ -138,6 +109,58 @@ public class ServerSuperChunk {
         return playersInside.size();
     }
 
+    @Override
+    public boolean isServerSide() {
+        return true;
+    }
+
+    @Override
+    public boolean isClientSide() {
+        return false;
+    }
+
+    @Override
+    public void setBlockState(int x, int y, int z, int stateId) {
+        blockData.setBlock(x, y, z, globalPalette.getState(stateId));
+        isDirty = true;
+    }
+
+    @Override
+    public void setBlockState(int x, int y, int z, BlockState state) {
+        blockData.setBlock(x, y, z, state);
+        isDirty = true;
+    }
+
+    @Override
+    public BlockState getBlockState(int x, int y, int z) {
+        return blockData.getBlock(x, y, z);
+    }
+
+    @Override
+    public int getBlockStateId(int x, int y, int z) {
+        return globalPalette.getStateId(blockData.getBlock(x, y, z));
+    }
+
+    /**
+     * 获取原始区块数据
+     * @return 原始区块数据
+     */
+    public CompactBlockData getRawBlockData(){
+        return blockData;
+    }
+
+    public void setRawBlockData(CompactBlockData blockData){
+
+        //为READY状态时无法设置原始区块数据
+        if(state == ChunkState.READY){
+            throw new RuntimeException("区块状态为READY时无法设置原始区块数据");
+        }
+
+        //设置原始区块数据
+        this.blockData = blockData;
+        isDirty = true;
+    }
+
     /**
      * 判断一个坐标是否超出该区块的范围
      * @param x 坐标x
@@ -159,5 +182,6 @@ public class ServerSuperChunk {
     public boolean isInRange(int x, int y, int z) {
         return !isOutOfRange(x, y, z);
     }
+
 
 }

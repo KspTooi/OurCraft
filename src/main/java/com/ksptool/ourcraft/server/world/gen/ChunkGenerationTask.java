@@ -1,4 +1,4 @@
-package com.ksptool.ourcraft.server.world;
+package com.ksptool.ourcraft.server.world.gen;
 
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 

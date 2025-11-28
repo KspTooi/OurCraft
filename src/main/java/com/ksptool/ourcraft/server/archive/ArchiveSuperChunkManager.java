@@ -1,9 +1,7 @@
 package com.ksptool.ourcraft.server.archive;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;

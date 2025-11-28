@@ -1,6 +1,7 @@
 package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.gen.ChunkGenerationTask;
 import com.ksptool.ourcraft.server.world.save.ChunkSerializer;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
 import com.ksptool.ourcraft.server.world.save.RegionManager;

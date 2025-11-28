@@ -34,6 +34,7 @@ import java.nio.file.StandardCopyOption;
  * - Version (1 byte)
  * - Index Table (40 * 40 * 8 bytes): 每个条目包含 Offset (4 bytes) 和 Length (4 bytes)
  * - Data Section: 压缩后的数据块
+ * 4B 1B 12800B 数据块
  */
 @Slf4j
 public class SuperChunkArchiveFile {
@@ -135,6 +136,34 @@ public class SuperChunkArchiveFile {
     }
 
     /**
+     * 判断区块是否存在于归档中
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @return 是否存在
+     */
+    public boolean hasChunk(int chunkX, int chunkZ) throws IOException {
+        if (raf == null) {
+            open();
+        }
+
+        var localX = ChunkUtils.getLocalChunkX(chunkX);
+        var localZ = ChunkUtils.getLocalChunkZ(chunkZ);
+
+        if (localX < 0 || localX >= SCAF_CHUNK_SIZE || localZ < 0 || localZ >= SCAF_CHUNK_SIZE) {
+            return false;
+        }
+
+        int index = localZ * SCAF_CHUNK_SIZE + localX;
+        long indexOffset = 5 + (index * INDEX_ENTRY_SIZE);
+
+        raf.seek(indexOffset);
+        int offset = raf.readInt();
+        int length = raf.readInt();
+
+        return offset != 0 && length != 0;
+    }
+
+    /**
      * 读取区块数据
      * @param chunkX 区块X坐标
      * @param chunkZ 区块Z坐标
@@ -166,7 +195,6 @@ public class SuperChunkArchiveFile {
         raf.seek(offset);
         byte[] data = new byte[length];
         raf.readFully(data);
-
         return data;
     }
 
