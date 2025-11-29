@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.world.gen;
 
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 
 /**
  * 区块生成任务类，封装区块生成任务的状态信息
@@ -14,7 +14,7 @@ public class ChunkGenerationTask {
     private final int chunkZ;
 
     //区块
-    private ServerChunk chunk;
+    private ServerChunkOld chunk;
     
     //数据是否生成
     private boolean dataGenerated;
@@ -33,11 +33,11 @@ public class ChunkGenerationTask {
         return chunkZ;
     }
 
-    public ServerChunk getChunk() {
+    public ServerChunkOld getChunk() {
         return chunk;
     }
 
-    public void setChunk(ServerChunk chunk) {
+    public void setChunk(ServerChunkOld chunk) {
         this.chunk = chunk;
     }
 

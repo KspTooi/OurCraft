@@ -1,10 +1,10 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
 import com.ksptool.ourcraft.server.world.gen.TreeGenerator;
@@ -31,8 +31,8 @@ public class FeatureLayer implements TerrainLayer {
 
         Random random = new Random(context.getNumericSeed() + chunkX * 31L + chunkZ * 17L);
 
-        for (int x = SAFE_MARGIN; x < ServerChunk.CHUNK_SIZE - SAFE_MARGIN; x++) {
-            for (int z = SAFE_MARGIN; z < ServerChunk.CHUNK_SIZE - SAFE_MARGIN; z++) {
+        for (int x = SAFE_MARGIN; x < ServerChunkOld.CHUNK_SIZE - SAFE_MARGIN; x++) {
+            for (int z = SAFE_MARGIN; z < ServerChunkOld.CHUNK_SIZE - SAFE_MARGIN; z++) {
                 int surfaceY = findSurfaceY(chunkData, x, z, context);
                 if (surfaceY < 0) {
                     continue;
@@ -52,7 +52,7 @@ public class FeatureLayer implements TerrainLayer {
 
     private int findSurfaceY(int[][][] chunkData, int x, int z, GenerationContext context) {
         GlobalPalette palette = context.getGlobalPalette();
-        for (int y = ServerChunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+        for (int y = ServerChunkOld.CHUNK_HEIGHT - 1; y >= 0; y--) {
             int stateId = chunkData[x][y][z];
             if (stateId == AIR_STATE_ID) {
                 continue;

@@ -2,16 +2,17 @@ package com.ksptool.ourcraft.server.world.chunk;
 
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.sharedcore.utils.CompactBlockData;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.sharedcore.world.chunk.SharedChunk;
+import com.ksptool.ourcraft.sharedcore.world.SharedChunk;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
-public class ServerSuperChunk implements SharedChunk {
+public class FlexServerChunk implements SharedChunk {
 
     //全局调色板
     private final GlobalPalette globalPalette;
@@ -55,10 +56,13 @@ public class ServerSuperChunk implements SharedChunk {
     private boolean isDirty = false;
 
     //区块数据
-    private CompactBlockData blockData;
+    private FlexChunkData blockData;
 
     //所属世界
-    private ServerWorld world;
+    private final ServerWorld world;
+
+    //区块生存时间 当区块中没有玩家也没有被观看时每Tick减一 当减到0时区块会被卸载
+    private final AtomicInteger ttl;
 
 
     /**
@@ -67,7 +71,7 @@ public class ServerSuperChunk implements SharedChunk {
      * @param z 区块坐标Z
      * @param world 所属世界
      */
-    public ServerSuperChunk(int x, int z, ServerWorld world){
+    public FlexServerChunk(int x, int z, ServerWorld world){
         this.x = x;
         this.z = z;
         this.world = world;
@@ -75,9 +79,10 @@ public class ServerSuperChunk implements SharedChunk {
         sizeX = t.getChunkSizeX();
         sizeY = t.getChunkSizeY();
         sizeZ = t.getChunkSizeZ();
-        blockData = new CompactBlockData(sizeX,sizeY,sizeZ);
+        blockData = new FlexChunkData(sizeX,sizeY,sizeZ);
         state = ChunkState.NEW;
         globalPalette = GlobalPalette.getInstance();
+        ttl = new AtomicInteger(t.getChunkMaxTTL());
     }
 
     public void addPlayerInside(String playerUUID) {
@@ -145,11 +150,11 @@ public class ServerSuperChunk implements SharedChunk {
      * 获取原始区块数据
      * @return 原始区块数据
      */
-    public CompactBlockData getRawBlockData(){
+    public FlexChunkData getRawBlockData(){
         return blockData;
     }
 
-    public void setRawBlockData(CompactBlockData blockData){
+    public void setRawBlockData(FlexChunkData blockData){
 
         //为READY状态时无法设置原始区块数据
         if(state == ChunkState.READY){

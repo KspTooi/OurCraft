@@ -1,8 +1,8 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
 
@@ -23,12 +23,12 @@ public class BaseDensityLayer implements TerrainLayer {
         
         int stoneStateId = context.getGlobalPalette().getStateId(stoneSharedBlock.getDefaultState());
 
-        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < ServerChunk.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
-                    int worldX = chunkX * ServerChunk.CHUNK_SIZE + x;
+        for (int x = 0; x < ServerChunkOld.CHUNK_SIZE; x++) {
+            for (int y = 0; y < ServerChunkOld.CHUNK_HEIGHT; y++) {
+                for (int z = 0; z < ServerChunkOld.CHUNK_SIZE; z++) {
+                    int worldX = chunkX * ServerChunkOld.CHUNK_SIZE + x;
                     int worldY = y;
-                    int worldZ = chunkZ * ServerChunk.CHUNK_SIZE + z;
+                    int worldZ = chunkZ * ServerChunkOld.CHUNK_SIZE + z;
 
                     double noise = context.getNoiseGenerator().getNoise(worldX * 0.01, worldY * 0.01, worldZ * 0.01);
                     double density = -worldY + 64 + noise * 20;

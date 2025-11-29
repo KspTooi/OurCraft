@@ -1,19 +1,15 @@
 package com.ksptool.ourcraft.server.world.chunk;
 
 import com.ksptool.ourcraft.server.entity.ServerEntity;
-import com.ksptool.ourcraft.server.world.gen.ChunkGenerationTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -23,8 +19,8 @@ import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.archive.ArchiveSuperChunkManager;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
-import com.ksptool.ourcraft.server.world.chunk.gen.SuperChunkGenTask;
-import com.ksptool.ourcraft.server.world.chunk.gen.SuperChunkGenerationThread;
+import com.ksptool.ourcraft.server.world.chunk.gen.FlexChunkGenTask;
+import com.ksptool.ourcraft.server.world.chunk.gen.FlexChunkGenerationThread;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.utils.ChunkUtils;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
@@ -33,10 +29,10 @@ import com.ksptool.ourcraft.sharedcore.world.BlockState;
  * 超级区块管理器，负责区块的加载、卸载、缓存和存盘
  */
 @Slf4j
-public class ServerSuperChunkManager {
+public class FlexServerChunkManager {
 
     //块生成队列(全局)
-    private static final BlockingQueue<SuperChunkGenTask> generationQueue = new LinkedBlockingQueue<>();
+    private static final BlockingQueue<FlexChunkGenTask> generationQueue = new LinkedBlockingQueue<>();
 
     //块生成线程池(全局)
     private static final ExecutorService generationThreadPool;
@@ -48,7 +44,7 @@ public class ServerSuperChunkManager {
     private final ServerWorld world;
 
     //超级区块 区块Key(可通过ChunkUtils.getChunkKey(x,z)获取)->超级区块
-    private final Map<Long, ServerSuperChunk> chunks = new ConcurrentHashMap<>();
+    private final Map<Long, FlexServerChunk> chunks = new ConcurrentHashMap<>();
 
     //归档区块管理器
     private ArchiveSuperChunkManager ascm;  
@@ -57,7 +53,7 @@ public class ServerSuperChunkManager {
     private final int playerRenderDistance = 8;
 
 
-    public ServerSuperChunkManager(OurCraftServer server, ServerWorld world) {
+    public FlexServerChunkManager(OurCraftServer server, ServerWorld world) {
         this.server = server;
         this.world = world;
         ascm = server.getArchiveManager().getChunkManager();
@@ -124,22 +120,22 @@ public class ServerSuperChunkManager {
         //获取缓存区块数据
         var key = ChunkUtils.getChunkKey(chunkX, chunkZ);
 
-        ServerSuperChunk chunk = null;
+        FlexServerChunk chunk = null;
         
         //优先从区块管理器缓存中获取
         chunk = chunks.get(key);
 
         if(chunk == null){
             //创建新区块引用
-            chunk = new ServerSuperChunk(chunkX, chunkZ, world);
-            chunk.setState(ServerSuperChunk.ChunkState.NEW);
+            chunk = new FlexServerChunk(chunkX, chunkZ, world);
+            chunk.setState(FlexServerChunk.ChunkState.NEW);
             chunks.put(key, chunk);
         }
 
         var state = chunk.getState();
 
         //为NEW时优先从归档加载(同步)
-        if(state == ServerSuperChunk.ChunkState.NEW){
+        if(state == FlexServerChunk.ChunkState.NEW){
 
             try{
                 var scaf = ascm.openSCAF(world.getName(), chunkX, chunkZ); //打开SCA文件
@@ -149,9 +145,9 @@ public class ServerSuperChunkManager {
                     var data = scaf.readChunk(chunkX, chunkZ);
 
                     //解码区块为CompactBlockData
-                    var cbd = SuperChunkSerializer.deserialize(data);
+                    var cbd = FlexChunkSerializer.deserialize(data);
                     chunk.setRawBlockData(cbd); 
-                    chunk.setState(ServerSuperChunk.ChunkState.READY);
+                    chunk.setState(FlexServerChunk.ChunkState.READY);
                     log.info("从SCA归档中加载区块数据: CX:{} CZ:{}", chunkX, chunkZ);
                 }
 
@@ -159,11 +155,11 @@ public class ServerSuperChunkManager {
                 if(!scaf.hasChunk(chunkX, chunkZ)){
 
                     //提交生成任务
-                    generationQueue.add(new SuperChunkGenTask(chunkX, chunkZ, chunk));
+                    generationQueue.add(new FlexChunkGenTask(chunkX, chunkZ, chunk));
                     log.info("提交异步区块生成任务: CX:{} CZ:{}", chunkX, chunkZ);
 
                     //设置区块状态为已提交生成任务
-                    chunk.setState(ServerSuperChunk.ChunkState.COMMITED_LOAD);
+                    chunk.setState(FlexServerChunk.ChunkState.COMMITED_LOAD);
                 }
 
             }catch(IOException e){
@@ -184,22 +180,22 @@ public class ServerSuperChunkManager {
         //获取缓存区块数据
         var key = ChunkUtils.getChunkKey(chunkX, chunkZ);
 
-        ServerSuperChunk chunk = null;
+        FlexServerChunk chunk = null;
 
         //优先从区块管理器缓存中获取
         chunk = chunks.get(key);
 
         if(chunk == null){
             //创建新区块引用
-            chunk = new ServerSuperChunk(chunkX, chunkZ, world);
-            chunk.setState(ServerSuperChunk.ChunkState.NEW);
+            chunk = new FlexServerChunk(chunkX, chunkZ, world);
+            chunk.setState(FlexServerChunk.ChunkState.NEW);
             chunks.put(key, chunk);
         }
 
         var state = chunk.getState();
 
         //为NEW时优先从归档加载(同步)
-        if(state == ServerSuperChunk.ChunkState.NEW){
+        if(state == FlexServerChunk.ChunkState.NEW){
 
             try{
                 var scaf = ascm.openSCAF(world.getName(), chunkX, chunkZ); //打开SCA文件
@@ -209,9 +205,9 @@ public class ServerSuperChunkManager {
                     var data = scaf.readChunk(chunkX, chunkZ);
 
                     //解码区块为CompactBlockData
-                    var cbd = SuperChunkSerializer.deserialize(data);
+                    var cbd = FlexChunkSerializer.deserialize(data);
                     chunk.setRawBlockData(cbd);
-                    chunk.setState(ServerSuperChunk.ChunkState.READY);
+                    chunk.setState(FlexServerChunk.ChunkState.READY);
                     log.info("从SCA归档中加载区块数据: CX:{} CZ:{}", chunkX, chunkZ);
                 }
 
@@ -220,7 +216,7 @@ public class ServerSuperChunkManager {
                     var world = chunk.getWorld();
                     var tg = world.getTerrainGenerator();
                     tg.execute(chunk, world.getGenerationContext());
-                    chunk.setState(ServerSuperChunk.ChunkState.FINISH_LOAD);
+                    chunk.setState(FlexServerChunk.ChunkState.FINISH_LOAD);
                     log.info("区块生成完成(同步): CX:{} CZ:{}", chunk.getX(), chunk.getZ());
                 }
 
@@ -267,19 +263,19 @@ public class ServerSuperChunkManager {
         }
 
         // 2. 检查并处理异步生成完成的区块
-        for (ServerSuperChunk chunk : chunks.values()) {
-            if (chunk.getState() == ServerSuperChunk.ChunkState.FINISH_LOAD) {
-                chunk.setState(ServerSuperChunk.ChunkState.READY);
+        for (FlexServerChunk chunk : chunks.values()) {
+            if (chunk.getState() == FlexServerChunk.ChunkState.FINISH_LOAD) {
+                chunk.setState(FlexServerChunk.ChunkState.READY);
                 // TODO: 触发 "区块加载完成" 事件，通知相关系统发送数据包给 watchers
                 log.info("区块加载完成: CX:{} CZ:{}", chunk.getX(), chunk.getZ());
             }
         }
 
         // 3. 处理区块卸载 (垃圾回收)
-        Iterator<Map.Entry<Long, ServerSuperChunk>> it = chunks.entrySet().iterator();
+        Iterator<Map.Entry<Long, FlexServerChunk>> it = chunks.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<Long, ServerSuperChunk> entry = it.next();
-            ServerSuperChunk chunk = entry.getValue();
+            Map.Entry<Long, FlexServerChunk> entry = it.next();
+            FlexServerChunk chunk = entry.getValue();
 
             // 如果没有玩家关注该区块
             if (!chunk.hasWatchers()) {
@@ -317,7 +313,7 @@ public class ServerSuperChunkManager {
             int cz = ChunkUtils.getChunkZ(key);
 
             // 获取或创建区块（非强制同步加载，而是触发异步）
-            ServerSuperChunk chunk = getOrCreateChunk(cx, cz);
+            FlexServerChunk chunk = getOrCreateChunk(cx, cz);
 
             // 添加玩家为观察者
             if (!chunk.getPlayersWatching().contains(player.getUniqueId().toString())) {
@@ -325,7 +321,7 @@ public class ServerSuperChunkManager {
             }
 
             // 如果是新区块，触发加载
-            if (chunk.getState() == ServerSuperChunk.ChunkState.NEW) {
+            if (chunk.getState() == FlexServerChunk.ChunkState.NEW) {
                 loadOrGenerate(cx, cz);
             }
         }
@@ -334,7 +330,7 @@ public class ServerSuperChunkManager {
         // 遍历所有区块，如果区块在玩家之前的视距内但不在现在的视距内，则移除Watcher
         // 这里简化实现，遍历玩家当前Watch的所有区块，如果不在inRangeKeys中则移除
         // 实际生产环境建议在Player对象中维护 watchedChunks 列表以提高性能
-        for (ServerSuperChunk chunk : chunks.values()) {
+        for (FlexServerChunk chunk : chunks.values()) {
             if (chunk.getPlayersWatching().contains(player.getUniqueId().toString())) {
                 long chunkKey = ChunkUtils.getChunkKey(chunk.getX(), chunk.getZ());
                 if (!inRangeKeys.contains(chunkKey)) {
@@ -345,9 +341,9 @@ public class ServerSuperChunkManager {
     }
 
     // 辅助方法：保存区块
-    private void saveChunk(ServerSuperChunk chunk) {
+    private void saveChunk(FlexServerChunk chunk) {
         try {
-            byte[] data = SuperChunkSerializer.serialize(chunk.getRawBlockData());
+            byte[] data = FlexChunkSerializer.serialize(chunk.getRawBlockData());
             var scaf = ascm.openSCAF(world.getName(), chunk.getX(), chunk.getZ());
             scaf.writeChunk(chunk.getX(), chunk.getZ(), data);
             chunk.setDirty(false); // 直接设置脏标记，注意 ServerSuperChunk 需要公开 setDirty 或者通过其他方式
@@ -357,11 +353,11 @@ public class ServerSuperChunkManager {
     }
 
     // 辅助方法：仅获取或创建对象，不触发加载 IO
-    private ServerSuperChunk getOrCreateChunk(int x, int z) {
+    private FlexServerChunk getOrCreateChunk(int x, int z) {
         long key = ChunkUtils.getChunkKey(x, z);
         return chunks.computeIfAbsent(key, k -> {
-            ServerSuperChunk c = new ServerSuperChunk(x, z, world);
-            c.setState(ServerSuperChunk.ChunkState.NEW);
+            FlexServerChunk c = new FlexServerChunk(x, z, world);
+            c.setState(FlexServerChunk.ChunkState.NEW);
             return c;
         });
     }
@@ -378,7 +374,7 @@ public class ServerSuperChunkManager {
 
         //初始化生成线程
         for (int i = 0; i < EngineDefault.DEFAULT_BLOCK_GENERATION_THREAD_POOL_SIZE; i++) {
-            generationThreadPool.submit(new SuperChunkGenerationThread(generationQueue));
+            generationThreadPool.submit(new FlexChunkGenerationThread(generationQueue));
         }
 
     }

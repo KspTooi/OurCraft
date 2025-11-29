@@ -11,7 +11,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class CompactBlockData {
+public class FlexChunkData {
 
     @Getter
     private final int width;  // X轴
@@ -55,13 +55,13 @@ public class CompactBlockData {
      * @param bitsPerEntry 每个块需要多少位来存储
      * @param data 数据数组
      */
-    public CompactBlockData(int x, int y, int z,int bitsPerEntry, long[] data) {
+    public FlexChunkData(int x, int y, int z, int bitsPerEntry, long[] data, IntArrayList palette) {
         this.width = x;
         this.height = y;
         this.depth = z;
         this.layerArea = x * z;
         this.totalSize = this.layerArea * y;
-        this.localPalette = new IntArrayList();
+        this.localPalette = palette;
         this.globalToLocal = new Int2IntOpenHashMap();
         this.globalToLocal.defaultReturnValue(-1);
         this.storage = new BitStorage(x, y, z, bitsPerEntry, data);
@@ -80,7 +80,7 @@ public class CompactBlockData {
      * @param height Y轴大小
      * @param depth  Z轴大小
      */
-    public CompactBlockData(int width, int height, int depth) {
+    public FlexChunkData(int width, int height, int depth) {
         this.width = width;
         this.height = height;
         this.depth = depth;

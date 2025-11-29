@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.server.world.chunk;
 
 import com.ksptool.ourcraft.sharedcore.utils.BitStorage;
-import com.ksptool.ourcraft.sharedcore.utils.CompactBlockData;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.ByteArrayInputStream;
@@ -22,17 +22,17 @@ import java.io.IOException;
  * 4B：块数组长度
  * N * 8B：块存储数据
  */
-public class SuperChunkSerializer {
+public class FlexChunkSerializer {
 
     /**
      * 序列化超级区块
      * @param cbd 超级区块
      * @return 序列化后的字节数组
      */
-    public static byte[] serialize(CompactBlockData cbd){
+    public static byte[] serialize(FlexChunkData cbd){
 
         //创建CompactBlockData的快照
-        CompactBlockData.Snapshot cbdSnapshot = cbd.createSnapshot();
+        FlexChunkData.Snapshot cbdSnapshot = cbd.createSnapshot();
 
         //创建CompactBlockData的快照
         IntArrayList palette = cbdSnapshot.getLocalPalette();
@@ -75,7 +75,7 @@ public class SuperChunkSerializer {
      * @param src 序列化后的字节数组
      * @return 反序列化后的超级区块
      */
-    public static CompactBlockData deserialize(byte[] src){
+    public static FlexChunkData deserialize(byte[] src){
 
         if (src == null || src.length == 0){
             throw new IllegalArgumentException("Deserialize data is null or empty");
@@ -111,7 +111,7 @@ public class SuperChunkSerializer {
             }
 
         
-            return new CompactBlockData(width, height, depth, bitsPerEntry, blockData);
+            return new FlexChunkData(width, height, depth, bitsPerEntry, blockData,palette);
 
         } catch (IOException e) {
             throw new RuntimeException("Deserialize failed", e);

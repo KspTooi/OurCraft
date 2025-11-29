@@ -2,19 +2,19 @@ package com.ksptool.ourcraft.server.world.chunk.gen;
 
 import java.util.concurrent.BlockingQueue;
 
-import com.ksptool.ourcraft.server.world.chunk.ServerSuperChunk;
+import com.ksptool.ourcraft.server.world.chunk.FlexServerChunk;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Slf4j
-public class SuperChunkGenerationThread implements Runnable {
+public class FlexChunkGenerationThread implements Runnable {
 
     //区块生成队列
-    private final BlockingQueue<SuperChunkGenTask> generationQueue;
+    private final BlockingQueue<FlexChunkGenTask> generationQueue;
 
-    public SuperChunkGenerationThread(BlockingQueue<SuperChunkGenTask> generationQueue) {
+    public FlexChunkGenerationThread(BlockingQueue<FlexChunkGenTask> generationQueue) {
         this.generationQueue = generationQueue;
     }
 
@@ -25,12 +25,12 @@ public class SuperChunkGenerationThread implements Runnable {
             try {
 
                 //获取区块生成任务
-                SuperChunkGenTask task = generationQueue.take();
+                FlexChunkGenTask task = generationQueue.take();
                 var ssc = task.getChunk();
                 var world = ssc.getWorld();
                 var tg = world.getTerrainGenerator();
                 tg.execute(ssc, world.getGenerationContext());
-                ssc.setState(ServerSuperChunk.ChunkState.FINISH_LOAD);
+                ssc.setState(FlexServerChunk.ChunkState.FINISH_LOAD);
                 log.info("区块生成完成: CX:{} CZ:{}", ssc.getX(), ssc.getZ());
 
             } catch (InterruptedException e) {

@@ -1,6 +1,5 @@
-package com.ksptool.ourcraft.server.world.save;
+package com.ksptool.ourcraft.server.world.chunk;
 
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 
 import java.io.ByteArrayOutputStream;
@@ -22,15 +21,15 @@ import java.util.zip.Inflater;
  * 2. 使用游程编码（RLE）压缩连续相同的方块
  * 3. 使用 zlib 压缩数据
  */
-public class ChunkSerializer {
+public class ChunkSerializerOld {
 
     //区块大小
-    private static final int CHUNK_SIZE = ServerChunk.CHUNK_SIZE;
+    private static final int CHUNK_SIZE = ServerChunkOld.CHUNK_SIZE;
 
     //区块高度
-    private static final int CHUNK_HEIGHT = ServerChunk.CHUNK_HEIGHT;
+    private static final int CHUNK_HEIGHT = ServerChunkOld.CHUNK_HEIGHT;
     
-    public static byte[] serialize(ServerChunk chunk) throws IOException {
+    public static byte[] serialize(ServerChunkOld chunk) throws IOException {
         GlobalPalette globalPalette = GlobalPalette.getInstance();
         
         Map<Integer, Integer> localPalette = new HashMap<>();
@@ -105,7 +104,7 @@ public class ChunkSerializer {
         return compressedBaos.toByteArray();
     }
     
-    public static ServerChunk deserialize(byte[] compressedData, int chunkX, int chunkZ) throws IOException {
+    public static ServerChunkOld deserialize(byte[] compressedData, int chunkX, int chunkZ) throws IOException {
         Inflater inflater = new Inflater();
         inflater.setInput(compressedData);
         
@@ -139,7 +138,7 @@ public class ChunkSerializer {
             rleData.add(new RleEntry(localId, count));
         }
         
-        ServerChunk chunk = new ServerChunk(chunkX, chunkZ);
+        ServerChunkOld chunk = new ServerChunkOld(chunkX, chunkZ);
         
         int index = 0;
         for (RleEntry entry : rleData) {
@@ -153,7 +152,7 @@ public class ChunkSerializer {
             }
         }
         
-        chunk.setState(ServerChunk.ChunkState.DATA_LOADED);
+        chunk.setState(ServerChunkOld.ChunkState.DATA_LOADED);
         chunk.markDirty(false);
         return chunk;
     }

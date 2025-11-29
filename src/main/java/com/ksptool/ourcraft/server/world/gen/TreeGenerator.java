@@ -1,12 +1,12 @@
 package com.ksptool.ourcraft.server.world.gen;
 
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.blocks.WoodBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 
 /**
@@ -24,10 +24,10 @@ public class TreeGenerator {
     private static final int LEAF_RADIUS = 2;
 
     public static void place(int[][][] chunkData, int x, int y, int z, GenerationContext context) {
-        if (x < 0 || x >= ServerChunk.CHUNK_SIZE || z < 0 || z >= ServerChunk.CHUNK_SIZE) {
+        if (x < 0 || x >= ServerChunkOld.CHUNK_SIZE || z < 0 || z >= ServerChunkOld.CHUNK_SIZE) {
             return;
         }
-        if (y < 0 || y >= ServerChunk.CHUNK_HEIGHT) {
+        if (y < 0 || y >= ServerChunkOld.CHUNK_HEIGHT) {
             return;
         }
 
@@ -52,13 +52,13 @@ public class TreeGenerator {
 
         int treeHeight = TREE_HEIGHT_MIN + (int) (Math.random() * (TREE_HEIGHT_MAX - TREE_HEIGHT_MIN + 1));
 
-        if (y + treeHeight >= ServerChunk.CHUNK_HEIGHT) {
+        if (y + treeHeight >= ServerChunkOld.CHUNK_HEIGHT) {
             return;
         }
 
         for (int dy = 0; dy < treeHeight; dy++) {
             int currentY = y + dy;
-            if (currentY >= 0 && currentY < ServerChunk.CHUNK_HEIGHT) {
+            if (currentY >= 0 && currentY < ServerChunkOld.CHUNK_HEIGHT) {
                 chunkData[x][currentY][z] = woodStateId;
             }
         }
@@ -67,7 +67,7 @@ public class TreeGenerator {
         int leafEndY = y + treeHeight;
 
         for (int leafY = leafStartY; leafY <= leafEndY; leafY++) {
-            if (leafY < 0 || leafY >= ServerChunk.CHUNK_HEIGHT) {
+            if (leafY < 0 || leafY >= ServerChunkOld.CHUNK_HEIGHT) {
                 continue;
             }
 
@@ -82,7 +82,7 @@ public class TreeGenerator {
                     int leafX = x + dx;
                     int leafZ = z + dz;
 
-                    if (leafX < 0 || leafX >= ServerChunk.CHUNK_SIZE || leafZ < 0 || leafZ >= ServerChunk.CHUNK_SIZE) {
+                    if (leafX < 0 || leafX >= ServerChunkOld.CHUNK_SIZE || leafZ < 0 || leafZ >= ServerChunkOld.CHUNK_SIZE) {
                         continue;
                     }
 

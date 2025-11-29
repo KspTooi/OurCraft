@@ -7,7 +7,7 @@ import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorldManager;
 import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.server.world.gen.layers.BaseDensityLayer;
 import com.ksptool.ourcraft.server.world.gen.layers.FeatureLayer;
 import com.ksptool.ourcraft.server.world.gen.layers.SurfaceLayer;
@@ -88,7 +88,7 @@ public class OurCraftServer {
         //worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, EngineDefault.DEFAULT_WORLD_TEMPLATE);
 
         //创建世界
-        worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, "ourcraft:spawn_platform");
+        worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, "ourcraft:earth_like");
 
         //加载世界
         worldManager.loadWorld(EngineDefault.DEFAULT_WORLD_NAME);
@@ -446,15 +446,15 @@ public class OurCraftServer {
         }
 
         int centerChunkX = (int) Math
-                .floor(centerPosition.x / com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE);
+                .floor(centerPosition.x / ServerChunkOld.CHUNK_SIZE);
         int centerChunkZ = (int) Math
-                .floor(centerPosition.z / com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE);
+                .floor(centerPosition.z / ServerChunkOld.CHUNK_SIZE);
 
         log.info("开始生成出生点周围的区块: centerChunk=({}, {}), radius={}", centerChunkX, centerChunkZ, radius);
 
         for (int x = centerChunkX - radius; x <= centerChunkX + radius; x++) {
             for (int z = centerChunkZ - radius; z <= centerChunkZ + radius; z++) {
-                com.ksptool.ourcraft.server.world.chunk.ServerChunk chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
+                ServerChunkOld chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
                 if (chunk == null) {
                     worldManager.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
                 }
@@ -499,23 +499,23 @@ public class OurCraftServer {
         }
 
         int playerChunkX = (int) Math
-                .floor(player.getPosition().x / com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE);
+                .floor(player.getPosition().x / ServerChunkOld.CHUNK_SIZE);
         int playerChunkZ = (int) Math
-                .floor(player.getPosition().z / ServerChunk.CHUNK_SIZE);
+                .floor(player.getPosition().z / ServerChunkOld.CHUNK_SIZE);
 
         for (int x = playerChunkX - INITIAL_RENDER_DISTANCE; x <= playerChunkX + INITIAL_RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - INITIAL_RENDER_DISTANCE; z <= playerChunkZ + INITIAL_RENDER_DISTANCE; z++) {
-                com.ksptool.ourcraft.server.world.chunk.ServerChunk chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
+                ServerChunkOld chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
                 if (chunk == null) {
                     worldManager.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
                     chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
                 }
                 if (chunk != null) {
                     // 将区块数据转换为byte[]
-                    int[][][] blockStates = new int[com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE][com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_HEIGHT][com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE];
-                    for (int localX = 0; localX < com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_SIZE; localX++) {
-                        for (int y = 0; y < com.ksptool.ourcraft.server.world.chunk.ServerChunk.CHUNK_HEIGHT; y++) {
-                            for (int localZ = 0; localZ < ServerChunk.CHUNK_SIZE; localZ++) {
+                    int[][][] blockStates = new int[ServerChunkOld.CHUNK_SIZE][ServerChunkOld.CHUNK_HEIGHT][ServerChunkOld.CHUNK_SIZE];
+                    for (int localX = 0; localX < ServerChunkOld.CHUNK_SIZE; localX++) {
+                        for (int y = 0; y < ServerChunkOld.CHUNK_HEIGHT; y++) {
+                            for (int localZ = 0; localZ < ServerChunkOld.CHUNK_SIZE; localZ++) {
                                 blockStates[localX][y][localZ] = chunk.getBlockStateId(localX, y, localZ);
                             }
                         }
@@ -539,13 +539,13 @@ public class OurCraftServer {
      * 将区块数据序列化为byte[]
      */
     private byte[] serializeChunkData(int[][][] blockStates) {
-        int size = ServerChunk.CHUNK_SIZE * ServerChunk.CHUNK_HEIGHT * ServerChunk.CHUNK_SIZE;
+        int size = ServerChunkOld.CHUNK_SIZE * ServerChunkOld.CHUNK_HEIGHT * ServerChunkOld.CHUNK_SIZE;
         byte[] data = new byte[size * 4];
         int index = 0;
 
-        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < ServerChunk.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
+        for (int x = 0; x < ServerChunkOld.CHUNK_SIZE; x++) {
+            for (int y = 0; y < ServerChunkOld.CHUNK_HEIGHT; y++) {
+                for (int z = 0; z < ServerChunkOld.CHUNK_SIZE; z++) {
                     int stateId = blockStates[x][y][z];
                     data[index++] = (byte) (stateId & 0xFF);
                     data[index++] = (byte) ((stateId >> 8) & 0xFF);

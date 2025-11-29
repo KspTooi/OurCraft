@@ -69,6 +69,8 @@ public abstract class WorldTemplate {
      */
     private int tps;
 
+    private int chunkMaxTTL = 6000; //以TPS算
+
     private int chunkSizeX = 16;
     private int chunkSizeZ = 16;
     private int chunkSizeY = 256;

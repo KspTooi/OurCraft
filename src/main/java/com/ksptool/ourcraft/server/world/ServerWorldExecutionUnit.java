@@ -4,7 +4,7 @@ import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.sharedcore.events.*;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncBlockUpdateNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncChunkDataNVo;
@@ -286,8 +286,8 @@ public class ServerWorldExecutionUnit implements Runnable {
     }
 
     private void updatePlayerViewport(ClientConnectionHandler handler, ServerPlayer player) {
-        int playerChunkX = (int) Math.floor(player.getPosition().x / ServerChunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(player.getPosition().z / ServerChunk.CHUNK_SIZE);
+        int playerChunkX = (int) Math.floor(player.getPosition().x / ServerChunkOld.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(player.getPosition().z / ServerChunkOld.CHUNK_SIZE);
 
         Integer lastChunkX = handler.getLastChunkX();
         Integer lastChunkZ = handler.getLastChunkZ();
@@ -331,17 +331,17 @@ public class ServerWorldExecutionUnit implements Runnable {
     }
 
     private void sendChunkToClient(ClientConnectionHandler handler, int x, int z) {
-        ServerChunk chunk = serverWorld.getChunk(x, z);
+        ServerChunkOld chunk = serverWorld.getChunk(x, z);
         if (chunk == null) {
             serverWorld.generateChunkSynchronously(x, z);
             chunk = serverWorld.getChunk(x, z);
         }
         if (chunk != null) {
             // 序列化逻辑提取 (简化版，实际可复用原Instance中的代码)
-            int[][][] blockStates = new int[ServerChunk.CHUNK_SIZE][ServerChunk.CHUNK_HEIGHT][ServerChunk.CHUNK_SIZE];
-            for (int lx = 0; lx < ServerChunk.CHUNK_SIZE; lx++) {
-                for (int y = 0; y < ServerChunk.CHUNK_HEIGHT; y++) {
-                    for (int lz = 0; lz < ServerChunk.CHUNK_SIZE; lz++) {
+            int[][][] blockStates = new int[ServerChunkOld.CHUNK_SIZE][ServerChunkOld.CHUNK_HEIGHT][ServerChunkOld.CHUNK_SIZE];
+            for (int lx = 0; lx < ServerChunkOld.CHUNK_SIZE; lx++) {
+                for (int y = 0; y < ServerChunkOld.CHUNK_HEIGHT; y++) {
+                    for (int lz = 0; lz < ServerChunkOld.CHUNK_SIZE; lz++) {
                         blockStates[lx][y][lz] = chunk.getBlockStateId(lx, y, lz);
                     }
                 }
@@ -352,12 +352,12 @@ public class ServerWorldExecutionUnit implements Runnable {
     }
     
     private byte[] serializeChunkData(int[][][] blockStates) {
-        int size = ServerChunk.CHUNK_SIZE * ServerChunk.CHUNK_HEIGHT * ServerChunk.CHUNK_SIZE;
+        int size = ServerChunkOld.CHUNK_SIZE * ServerChunkOld.CHUNK_HEIGHT * ServerChunkOld.CHUNK_SIZE;
         byte[] data = new byte[size * 4];
         int index = 0;
-        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < ServerChunk.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
+        for (int x = 0; x < ServerChunkOld.CHUNK_SIZE; x++) {
+            for (int y = 0; y < ServerChunkOld.CHUNK_HEIGHT; y++) {
+                for (int z = 0; z < ServerChunkOld.CHUNK_SIZE; z++) {
                     int stateId = blockStates[x][y][z];
                     data[index++] = (byte) (stateId & 0xFF);
                     data[index++] = (byte) ((stateId >> 8) & 0xFF);

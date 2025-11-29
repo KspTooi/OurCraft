@@ -38,12 +38,6 @@ public class ServerPlayer extends ServerLivingEntity {
     @Setter
     private double pitch = 0.0;
 
-    @Setter
-    private double previousYaw = 0.0;
-    
-    @Setter
-    private double previousPitch = 0.0;
-    
     //地面加速度
     private static final float GROUND_ACCELERATION = 40F;
     
@@ -81,11 +75,9 @@ public class ServerPlayer extends ServerLivingEntity {
         }
         if(vo.getYaw() != null){
             this.yaw = vo.getYaw();
-            this.previousYaw = this.yaw;
         }
         if(vo.getPitch() != null){
             this.pitch = vo.getPitch();
-            this.previousPitch = this.pitch;
         }
         if(vo.getHealth() != null){
             setHealth(vo.getHealth().floatValue());
@@ -98,9 +90,6 @@ public class ServerPlayer extends ServerLivingEntity {
     @Override
     public void update(float delta) {
         super.update(delta);
-        // 更新previousYaw和previousPitch用于插值
-        previousYaw = yaw;
-        previousPitch = pitch;
     }
     
     /**

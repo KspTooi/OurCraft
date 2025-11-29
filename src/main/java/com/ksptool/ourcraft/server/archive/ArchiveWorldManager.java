@@ -8,8 +8,8 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
-import com.ksptool.ourcraft.server.world.save.ChunkSerializer;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
+import com.ksptool.ourcraft.server.world.chunk.ChunkSerializerOld;
 import org.apache.commons.lang3.StringUtils;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
 import com.ksptool.ourcraft.server.world.ServerWorld;
@@ -61,12 +61,12 @@ public class ArchiveWorldManager {
         paletteManager.saveGlobalPalette(GlobalPalette.getInstance());
 
         //保存当前的区块数据
-        List<ServerChunk> dirtyChunks = world.getChunkManager().getDirtyChunkSnapshot();
+        List<ServerChunkOld> dirtyChunks = world.getChunkManagerOld().getDirtyChunkSnapshot();
         int chunkCount = 0;
 
-        for (ServerChunk chunk : dirtyChunks) {
+        for (ServerChunkOld chunk : dirtyChunks) {
             try {
-                byte[] compressedData = ChunkSerializer.serialize(chunk);
+                byte[] compressedData = ChunkSerializerOld.serialize(chunk);
                 SuperChunkArchiveFile scaf = chunkManager.openSCAF(world.getName(), chunk.getChunkX(), chunk.getChunkZ());
                 scaf.writeChunk(chunk.getChunkX(), chunk.getChunkZ(), compressedData);
                 chunk.markDirty(false);

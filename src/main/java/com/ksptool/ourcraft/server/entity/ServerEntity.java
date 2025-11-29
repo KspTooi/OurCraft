@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.server.entity;
 
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,9 +23,6 @@ public abstract class ServerEntity {
 
     //位置
     protected final Vector3f position;
-    
-    //上一逻辑刻的位置（用于插值）
-    protected final Vector3f previousPosition;
 
     //速度
     protected final Vector3f velocity;
@@ -56,7 +53,6 @@ public abstract class ServerEntity {
         this.world = world;
         this.uniqueId = uniqueId != null ? uniqueId : UUID.randomUUID();
         this.position = new Vector3f();
-        this.previousPosition = new Vector3f();
         this.velocity = new Vector3f();
         this.onGround = false;
         this.isDead = false;
@@ -71,9 +67,9 @@ public abstract class ServerEntity {
     public void markDirty(boolean isDirty) {
         this.isDirty = isDirty;
         if (isDirty && world != null) {
-            int chunkX = (int) Math.floor(position.x / ServerChunk.CHUNK_SIZE);
-            int chunkZ = (int) Math.floor(position.z / ServerChunk.CHUNK_SIZE);
-            ServerChunk chunk = world.getChunk(chunkX, chunkZ);
+            int chunkX = (int) Math.floor(position.x / ServerChunkOld.CHUNK_SIZE);
+            int chunkZ = (int) Math.floor(position.z / ServerChunkOld.CHUNK_SIZE);
+            ServerChunkOld chunk = world.getChunk(chunkX, chunkZ);
             if (chunk != null) {
                 chunk.markEntitiesDirty(true);
             }

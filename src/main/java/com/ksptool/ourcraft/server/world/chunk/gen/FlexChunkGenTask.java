@@ -1,13 +1,13 @@
 package com.ksptool.ourcraft.server.world.chunk.gen;
 
-import com.ksptool.ourcraft.server.world.chunk.ServerSuperChunk;
+import com.ksptool.ourcraft.server.world.chunk.FlexServerChunk;
 import lombok.Getter;
 
 /**
  * 超级区块生成任务类，封装区块生成任务的状态信息
  */
 @Getter
-public class SuperChunkGenTask {
+public class FlexChunkGenTask {
 
     //区块X坐标
     private final int chunkX;
@@ -16,9 +16,9 @@ public class SuperChunkGenTask {
     private final int chunkZ;
 
     //超级区块
-    private final ServerSuperChunk chunk;
+    private final FlexServerChunk chunk;
 
-    public SuperChunkGenTask(int chunkX, int chunkZ, ServerSuperChunk chunk) {
+    public FlexChunkGenTask(int chunkX, int chunkZ, FlexServerChunk chunk) {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         this.chunk = chunk;

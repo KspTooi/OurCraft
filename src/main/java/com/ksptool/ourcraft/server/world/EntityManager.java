@@ -2,7 +2,7 @@ package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.server.world.save.EntitySerializer;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
@@ -45,12 +45,6 @@ public class EntityManager {
     
     public void addEntity(ServerEntity entity) {
         entities.add(entity);
-        entity.getPreviousPosition().set(entity.getPosition());
-        if (entity instanceof ServerPlayer) {
-            ServerPlayer player = (ServerPlayer) entity;
-            player.setPreviousYaw(player.getYaw());
-            player.setPreviousPitch(player.getPitch());
-        }
         entity.markDirty(true);
     }
 
@@ -86,12 +80,12 @@ public class EntityManager {
                 logger.debug("从区块 [{},{}] 加载了 {} 个实体", chunkX, chunkZ, loadedEntities.size());
                 for (ServerEntity entity : loadedEntities) {
                     if (!entities.contains(entity)) {
-                        entity.getPreviousPosition().set(entity.getPosition());
-                        if (entity instanceof ServerPlayer) {
-                            ServerPlayer player = (ServerPlayer) entity;
-                            player.setPreviousYaw(player.getYaw());
-                            player.setPreviousPitch(player.getPitch());
-                        }
+                        //entity.getPreviousPosition().set(entity.getPosition());
+                        //if (entity instanceof ServerPlayer) {
+                        //    ServerPlayer player = (ServerPlayer) entity;
+                        //    player.setPreviousYaw(player.getYaw());
+                        //    player.setPreviousPitch(player.getPitch());
+                        //}
                         entities.add(entity);
                     }
                 }
@@ -108,10 +102,10 @@ public class EntityManager {
         
         try {
             List<ServerEntity> chunkEntities = new ArrayList<>();
-            float chunkMinX = chunkX * ServerChunk.CHUNK_SIZE;
-            float chunkMaxX = chunkMinX + ServerChunk.CHUNK_SIZE;
-            float chunkMinZ = chunkZ * ServerChunk.CHUNK_SIZE;
-            float chunkMaxZ = chunkMinZ + ServerChunk.CHUNK_SIZE;
+            float chunkMinX = chunkX * ServerChunkOld.CHUNK_SIZE;
+            float chunkMaxX = chunkMinX + ServerChunkOld.CHUNK_SIZE;
+            float chunkMinZ = chunkZ * ServerChunkOld.CHUNK_SIZE;
+            float chunkMaxZ = chunkMinZ + ServerChunkOld.CHUNK_SIZE;
             
             for (ServerEntity entity : entities) {
                 Vector3f pos = entity.getPosition();
@@ -151,10 +145,10 @@ public class EntityManager {
             
             for (ServerEntity entity : entities) {
                 Vector3f pos = entity.getPosition();
-                int entityChunkX = (int) Math.floor(pos.x / ServerChunk.CHUNK_SIZE);
-                int entityChunkZ = (int) Math.floor(pos.z / ServerChunk.CHUNK_SIZE);
+                int entityChunkX = (int) Math.floor(pos.x / ServerChunkOld.CHUNK_SIZE);
+                int entityChunkZ = (int) Math.floor(pos.z / ServerChunkOld.CHUNK_SIZE);
                 
-                ServerChunk chunk = world.getChunkManager().getChunk(entityChunkX, entityChunkZ);
+                ServerChunkOld chunk = world.getChunkManagerOld().getChunk(entityChunkX, entityChunkZ);
                 if (chunk != null && chunk.areEntitiesDirty()) {
                     logger.debug("保存脏实体区块 [{},{}]", entityChunkX, entityChunkZ);
                     saveEntitiesForChunk(entityChunkX, entityChunkZ);

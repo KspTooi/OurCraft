@@ -24,7 +24,7 @@
 **2. 次要问题: 客户端对服务端类的依赖 (ClientIWorld)**
 
 *   **文件:** `src/main/java/com/ksptool/mycraft/client/world/ClientIWorld.java`
-*   **问题:** 该文件导入了 `com.ksptool.ourcraft.server.world.chunk.ServerChunk`。
+*   **问题:** 该文件导入了 `com.ksptool.ourcraft.server.world.chunk.ServerChunkOld`。
 *   **分析:** 这是一个小问题，是在之前的重构中引入的。ClientIWorld 是一个适配器，它为了实现共享的 IWorld 接口而返回了 ServerChunk 类型。虽然在运行时这部分代码可能不会造成问题（因为它只是一个适配器），但在架构上，客户端代码不应该直接引用服务端的具体类。这表明 IWorld 接口的设计本身也存在问题，它强制实现者返回一个服务端的 Chunk 类型。
 *   **根源:**  IWorld 接口设计上的过度耦合。
 

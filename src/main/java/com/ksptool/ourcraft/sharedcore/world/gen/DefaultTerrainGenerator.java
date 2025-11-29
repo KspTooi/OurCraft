@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.sharedcore.world.gen;
 
 import com.ksptool.ourcraft.sharedcore.StdRegName;
-import com.ksptool.ourcraft.sharedcore.world.chunk.SharedChunk;
+import com.ksptool.ourcraft.sharedcore.world.SharedChunk;
 import java.util.ArrayList;
 import java.util.List;
 

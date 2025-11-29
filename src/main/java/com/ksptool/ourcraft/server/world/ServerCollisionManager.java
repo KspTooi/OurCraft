@@ -28,7 +28,7 @@ public class ServerCollisionManager {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    int stateId = world.getChunkManager().getBlockState(x, y, z);
+                    int stateId = world.getChunkManagerOld().getBlockState(x, y, z);
                     BlockState state = palette.getState(stateId);
                     SharedBlock sharedBlock = state.getSharedBlock();
                     if (sharedBlock.isSolid()) {
@@ -52,7 +52,7 @@ public class ServerCollisionManager {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    int stateId = world.getChunkManager().getBlockState(x, y, z);
+                    int stateId = world.getChunkManagerOld().getBlockState(x, y, z);
                     BlockState state = palette.getState(stateId);
                     SharedBlock sharedBlock = state.getSharedBlock();
                     if (sharedBlock.isSolid()) {

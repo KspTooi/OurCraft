@@ -1,8 +1,8 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
 
@@ -22,9 +22,9 @@ public class WaterLayer implements TerrainLayer {
         
         int waterStateId = context.getGlobalPalette().getStateId(waterSharedBlock.getDefaultState());
 
-        for (int x = 0; x < ServerChunk.CHUNK_SIZE; x++) {
+        for (int x = 0; x < ServerChunkOld.CHUNK_SIZE; x++) {
             for (int y = 0; y < SEA_LEVEL; y++) {
-                for (int z = 0; z < ServerChunk.CHUNK_SIZE; z++) {
+                for (int z = 0; z < ServerChunkOld.CHUNK_SIZE; z++) {
                     if (chunkData[x][y][z] == AIR_STATE_ID) {
                         chunkData[x][y][z] = waterStateId;
                     }

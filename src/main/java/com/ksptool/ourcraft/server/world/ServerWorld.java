@@ -2,8 +2,9 @@ package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.archive.ArchiveManager;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
-import com.ksptool.ourcraft.server.world.chunk.ServerSuperChunkManager;
+import com.ksptool.ourcraft.server.world.chunk.ChunkManagerOld;
+import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
+import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkManager;
 import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.Registry;
@@ -37,9 +38,9 @@ public class ServerWorld implements SharedWorld {
 
     private double timeAccumulator = 0.0;
 
-    private final ChunkManager chunkManager;
+    private final ChunkManagerOld chunkManagerOld;
 
-    private final ServerSuperChunkManager sscm;
+    private final FlexServerChunkManager flexServerChunkManager;
 
     private final EntityManager entityManager;
 
@@ -74,12 +75,12 @@ public class ServerWorld implements SharedWorld {
     
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
         this.template = template;
-        this.chunkManager = new ChunkManager(this);
+        this.chunkManagerOld = new ChunkManagerOld(this);
         this.entityManager = new EntityManager(this);
         this.collisionManager = new ServerCollisionManager(this);
         this.seed = String.valueOf(System.currentTimeMillis());
         this.eventQueue = EventQueue.getInstance();
-        this.sscm = new ServerSuperChunkManager(server,this);
+        this.flexServerChunkManager = new FlexServerChunkManager(server,this);
         this.server = server;
 
         //从注册表获取地形生成器
@@ -96,7 +97,7 @@ public class ServerWorld implements SharedWorld {
     
     public void setSaveName(String saveName) {
         //this.saveName = saveName;
-        this.chunkManager.setSaveName(saveName);
+        this.chunkManagerOld.setSaveName(saveName);
         this.entityManager.setSaveName(saveName);
     }
     
@@ -111,7 +112,7 @@ public class ServerWorld implements SharedWorld {
     }
 
     public void init() {
-        chunkManager.init();
+        chunkManagerOld.init();
     }
 
     /**
@@ -140,17 +141,9 @@ public class ServerWorld implements SharedWorld {
      * 单次逻辑更新（tick）
      */
     private void tick(Vector3f playerPosition, Runnable playerTickCallback) {
-        for (ServerEntity entity : getEntities()) {
-            entity.getPreviousPosition().set(entity.getPosition());
-            if (entity instanceof ServerPlayer) {
-                ServerPlayer player = (ServerPlayer) entity;
-                player.setPreviousYaw(player.getYaw());
-                player.setPreviousPitch(player.getPitch());
-            }
-        }
-        
+
         gameTime++;
-        chunkManager.update(playerPosition);
+        chunkManagerOld.update(playerPosition);
         
         eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
         
@@ -180,7 +173,7 @@ public class ServerWorld implements SharedWorld {
         return (float) (timeAccumulator / tickTime);
     }
 
-    public void generateChunkData(ServerChunk chunk) {
+    public void generateChunkData(ServerChunkOld chunk) {
         if (terrainGenerator == null || generationContext == null) {
             return;
         }
@@ -188,25 +181,25 @@ public class ServerWorld implements SharedWorld {
     }
     
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
-        chunkManager.generateChunkSynchronously(chunkX, chunkZ);
+        chunkManagerOld.generateChunkSynchronously(chunkX, chunkZ);
     }
     
 
 
     public int getChunkCount() {
-        return chunkManager.getChunkCount();
+        return chunkManagerOld.getChunkCount();
     }
 
     public int getBlockState(int x, int y, int z) {
-        return chunkManager.getBlockState(x, y, z);
+        return chunkManagerOld.getBlockState(x, y, z);
     }
 
-    public ServerChunk getChunk(int chunkX, int chunkZ) {
-        return chunkManager.getChunk(chunkX, chunkZ);
+    public ServerChunkOld getChunk(int chunkX, int chunkZ) {
+        return chunkManagerOld.getChunk(chunkX, chunkZ);
     }
 
     public void setBlockState(int x, int y, int z, int stateId) {
-        chunkManager.setBlockState(x, y, z, stateId);
+        chunkManagerOld.setBlockState(x, y, z, stateId);
     }
 
     public boolean canMoveTo(Vector3f position, float height) {
@@ -230,7 +223,7 @@ public class ServerWorld implements SharedWorld {
     }
 
     public void cleanup() {
-        chunkManager.cleanup();
+        chunkManagerOld.cleanup();
     }
 
 

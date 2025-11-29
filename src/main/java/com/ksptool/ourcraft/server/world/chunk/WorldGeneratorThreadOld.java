@@ -1,6 +1,6 @@
-package com.ksptool.ourcraft.server.world;
+package com.ksptool.ourcraft.server.world.chunk;
 
-import com.ksptool.ourcraft.server.world.chunk.ServerChunk;
+import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.gen.ChunkGenerationTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -10,12 +10,12 @@ import java.util.concurrent.BlockingQueue;
  * 世界生成线程类，在后台线程中生成区块数据
  */
 @Slf4j
-public class WorldGenerator extends Thread {
+public class WorldGeneratorThreadOld extends Thread {
     private final BlockingQueue<ChunkGenerationTask> generationQueue;
     private final ServerWorld world;
     private volatile boolean running = true;
 
-    public WorldGenerator(ServerWorld world, BlockingQueue<ChunkGenerationTask> generationQueue) {
+    public WorldGeneratorThreadOld(ServerWorld world, BlockingQueue<ChunkGenerationTask> generationQueue) {
         this.world = world;
         this.generationQueue = generationQueue;
         this.setDaemon(true);
@@ -28,9 +28,9 @@ public class WorldGenerator extends Thread {
             try {
                 ChunkGenerationTask task = generationQueue.take();
 
-                ServerChunk chunk = new ServerChunk(task.getChunkX(), task.getChunkZ());
+                ServerChunkOld chunk = new ServerChunkOld(task.getChunkX(), task.getChunkZ());
                 world.generateChunkData(chunk);
-                chunk.setState(ServerChunk.ChunkState.DATA_LOADED);
+                chunk.setState(ServerChunkOld.ChunkState.DATA_LOADED);
                 task.setChunk(chunk);
                 task.setDataGenerated(true);
             } catch (InterruptedException e) {

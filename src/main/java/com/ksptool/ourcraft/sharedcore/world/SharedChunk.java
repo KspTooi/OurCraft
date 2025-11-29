@@ -1,6 +1,4 @@
-package com.ksptool.ourcraft.sharedcore.world.chunk;
-
-import com.ksptool.ourcraft.sharedcore.world.BlockState;
+package com.ksptool.ourcraft.sharedcore.world;
 
 public interface SharedChunk {
 
