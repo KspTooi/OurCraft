@@ -1,10 +1,8 @@
 package com.ksptool.ourcraft.server.archive;
 
-import com.ksptool.ourcraft.sharedcore.utils.ChunkUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -39,9 +37,17 @@ import java.nio.file.StandardCopyOption;
 @Slf4j
 public class SuperChunkArchiveFile {
 
-    public static final int SCAF_CHUNK_SIZE = 40;
-    private static final int HEADER_SIZE = 4 + 1 + (SCAF_CHUNK_SIZE * SCAF_CHUNK_SIZE * 8);
-    private static final int INDEX_ENTRY_SIZE = 8;
+    //SCA封装大小
+    private final int scaPackageSize;
+
+    //头部总长度(Magic Number 4字节 + Version 1字节 + 索引表 8字节/条目)
+    private int headerSize;
+
+    //头部索引条目长度(Offset和Length各4字节)
+    private final int headerIndexEntrySize = 8;
+
+    //头部索引条目偏移量(魔数4B + 版本1B = 5B)
+    private final int headerOffset = 5;
 
     //SCA文件
     private final Path path;
@@ -58,18 +64,22 @@ public class SuperChunkArchiveFile {
     @Getter
     private boolean dirty;
 
-    public SuperChunkArchiveFile(Path path){
+    public SuperChunkArchiveFile(Path path, int scaPackageSize){
         this.path = path;
         this.dirty = false;
+        this.scaPackageSize = scaPackageSize;
+        this.headerSize = 4 + 1 + (scaPackageSize * scaPackageSize * headerIndexEntrySize);
     }
 
     /**
      * 允许自定义魔数（用于兼容SCE等其他格式）
      */
-    public SuperChunkArchiveFile(Path path, String magicNumber){
+    public SuperChunkArchiveFile(Path path, String magicNumber, int scaPackageSize){
         this.path = path;
         this.magicNumber = magicNumber;
         this.dirty = false;
+        this.scaPackageSize = scaPackageSize;
+        this.headerSize = 4 + 1 + (scaPackageSize * scaPackageSize * headerIndexEntrySize);
     }
 
     /**
@@ -107,13 +117,13 @@ public class SuperChunkArchiveFile {
      */
     private void initializeFile() throws IOException {
         try (RandomAccessFile tempRaf = new RandomAccessFile(path.toFile(), "rw")) {
-            byte[] header = new byte[HEADER_SIZE];
+            byte[] header = new byte[headerSize];
             ByteBuffer buffer = ByteBuffer.wrap(header).order(ByteOrder.BIG_ENDIAN);
 
             buffer.put(magicNumber.getBytes(StandardCharsets.US_ASCII), 0, 4);
             buffer.put((byte) 1);
 
-            for (int i = 0; i < SCAF_CHUNK_SIZE * SCAF_CHUNK_SIZE; i++) {
+            for (int i = 0; i < scaPackageSize * scaPackageSize; i++) {
                 buffer.putInt(0);
                 buffer.putInt(0);
             }
@@ -137,52 +147,57 @@ public class SuperChunkArchiveFile {
 
     /**
      * 判断区块是否存在于归档中
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
+     * @param localX SCA内部局部X坐标
+     * @param localZ SCA内部局部Z坐标
      * @return 是否存在
      */
-    public boolean hasChunk(int chunkX, int chunkZ) throws IOException {
+    public boolean hasChunk(int localX, int localZ) throws IOException {
+
         if (raf == null) {
             open();
         }
 
-        var localX = ChunkUtils.getLocalChunkX(chunkX);
-        var localZ = ChunkUtils.getLocalChunkZ(chunkZ);
+        if (localX < 0 || localX >= scaPackageSize || localZ < 0 || localZ >= scaPackageSize) {
+            throw new IllegalArgumentException("操作SCA失败: SCA坐标无效: localX=" + localX + ", localZ=" + localZ);
+        }
 
-        if (localX < 0 || localX >= SCAF_CHUNK_SIZE || localZ < 0 || localZ >= SCAF_CHUNK_SIZE) {
+        //计算索引条目偏移量
+        int index = localZ * scaPackageSize + localX;
+        long indexOffset = headerOffset + ((long) index * headerIndexEntrySize);
+
+        //移动RAF到索引条目偏移量处
+        raf.seek(indexOffset);
+
+        //读取索引条目
+        var offset = raf.readInt();
+        var length = raf.readInt();
+
+        //如果索引条目为0，则表示该区块不存在
+        if (offset == 0 || length == 0) {
             return false;
         }
 
-        int index = localZ * SCAF_CHUNK_SIZE + localX;
-        long indexOffset = 5 + (index * INDEX_ENTRY_SIZE);
-
-        raf.seek(indexOffset);
-        int offset = raf.readInt();
-        int length = raf.readInt();
-
-        return offset != 0 && length != 0;
+        return true;
     }
 
     /**
      * 读取区块数据
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
+     * @param localX SCA内部局部X坐标
+     * @param localZ SCA内部局部Z坐标
      * @return 区块数据
      */
-    public byte[] readChunk(int chunkX, int chunkZ) throws IOException {
+    public byte[] readChunk(int localX, int localZ) throws IOException {
         if (raf == null) {
             open();
         }
 
-        var localX = ChunkUtils.getLocalChunkX(chunkX);
-        var localZ = ChunkUtils.getLocalChunkZ(chunkZ);
-
-        if (localX < 0 || localX >= SCAF_CHUNK_SIZE || localZ < 0 || localZ >= SCAF_CHUNK_SIZE) {
-            return null;
+        if (localX < 0 || localX >= scaPackageSize || localZ < 0 || localZ >= scaPackageSize) {
+            throw new IllegalArgumentException("操作SCA失败: SCA坐标无效: localX=" + localX + ", localZ=" + localZ);
         }
 
-        int index = localZ * SCAF_CHUNK_SIZE + localX;
-        long indexOffset = 5 + (index * INDEX_ENTRY_SIZE);
+        //计算索引条目偏移量
+        int index = localZ * scaPackageSize + localX;
+        long indexOffset = headerOffset + ((long) index * headerIndexEntrySize);
 
         raf.seek(indexOffset);
         int offset = raf.readInt();
@@ -203,39 +218,38 @@ public class SuperChunkArchiveFile {
      * 采用 Append-Only 模式：总是将新数据写入文件末尾，而不是覆盖旧数据。
      * 这保证了如果写入过程中断电，旧数据依然完好。
      *
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
+     * @param localX SCA内部局部X坐标
+     * @param localZ SCA内部局部Z坐标
      * @param data 区块数据
      */
-    public void writeChunk(int chunkX, int chunkZ, byte[] data) throws IOException {
-
-        var localX = ChunkUtils.getLocalChunkX(chunkX);
-        var localZ = ChunkUtils.getLocalChunkZ(chunkZ);
-
-        // 默认开启 sync，保证原子性
+    public void writeChunk(int localX, int localZ, byte[] data) throws IOException {
         writeChunk(localX, localZ, data, true);
-        log.info("保存区块 [{},{}] SCA本地坐标 [{},{}] SCA文件 {}", chunkX, chunkZ, localX, localZ, path.getFileName().toString());
     }
 
     /**
      * 内部写入实现
+     * @param localX SCA内部局部X坐标
+     * @param localZ SCA内部局部Z坐标
+     * @param data 区块数据
      * @param sync 是否强制刷盘（fsync）。常规写入必须为 true，碎片整理时可设为 false 以提高性能。
      */
-    private void writeChunk(int localX, int localZ, byte[] data, boolean sync) throws IOException {
+    public void writeChunk(int localX, int localZ, byte[] data, boolean sync) throws IOException {
+        
         if (raf == null) {
             open();
-        }
-
-        if (localX < 0 || localX >= SCAF_CHUNK_SIZE || localZ < 0 || localZ >= SCAF_CHUNK_SIZE) {
-            return;
         }
 
         if (data == null || data.length == 0) {
             return;
         }
 
-        int index = localZ * SCAF_CHUNK_SIZE + localX;
-        long indexOffset = 5 + (index * INDEX_ENTRY_SIZE);
+        if (localX < 0 || localX >= scaPackageSize || localZ < 0 || localZ >= scaPackageSize) {
+            throw new IllegalArgumentException("操作SCA失败: SCA坐标无效: localX=" + localX + ", localZ=" + localZ);
+        }
+
+        //计算索引条目偏移量
+        int index = localZ * scaPackageSize + localX;
+        long indexOffset = headerOffset + ((long) index * headerIndexEntrySize);
 
         //获取文件当前末尾位置
         long newOffset = raf.length();
@@ -281,13 +295,13 @@ public class SuperChunkArchiveFile {
         Files.deleteIfExists(tempPath);
 
         // 使用相同的魔数创建临时文件处理器
-        SuperChunkArchiveFile tempFile = new SuperChunkArchiveFile(tempPath, this.magicNumber);
+        SuperChunkArchiveFile tempFile = new SuperChunkArchiveFile(tempPath, this.magicNumber, this.scaPackageSize);
         tempFile.open();
 
         try {
             // 遍历所有可能的区块索引
-            for (int x = 0; x < SCAF_CHUNK_SIZE; x++) {
-                for (int z = 0; z < SCAF_CHUNK_SIZE; z++) {
+            for (int x = 0; x < scaPackageSize; x++) {
+                for (int z = 0; z < scaPackageSize; z++) {
                     // 从当前文件读取有效数据
                     byte[] data = this.readChunk(x, z);
                     if (data != null && data.length > 0) {

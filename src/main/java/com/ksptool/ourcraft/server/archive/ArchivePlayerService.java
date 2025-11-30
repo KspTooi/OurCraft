@@ -6,20 +6,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.time.ZoneId;
 import org.apache.commons.lang3.StringUtils;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerDto;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ArchivePlayerManager {
+public class ArchivePlayerService {
 
     //归档管理器
-    private final ArchiveManager archiveManager;
+    private final ArchiveService archiveService;
 
-    public ArchivePlayerManager(ArchiveManager archiveManager){
-        this.archiveManager = archiveManager;
+    public ArchivePlayerService(ArchiveService archiveService){
+        this.archiveService = archiveService;
     }
 
     /**
@@ -33,7 +33,7 @@ public class ArchivePlayerManager {
             return null;
         }
 
-        var ds = archiveManager.getDataSource();
+        var ds = archiveService.getDataSource();
         if(ds == null){
             log.error("归档管理器当前未连接到归档，无法保存玩家数据");
             return null;
@@ -41,13 +41,10 @@ public class ArchivePlayerManager {
 
         //获取玩家名 并查询归档数据库中是否存在该玩家
         var name = dto.getName();
-        
         var exisisPlayer = loadPlayer(name);
 
         //如果玩家不存在，则初始化归档中的玩家数据
         if(exisisPlayer == null){
-            var uuid = UUID.randomUUID().toString();
-            var createTime = dto.getCreateTime() != null ? dto.getCreateTime() : LocalDateTime.now();
 
             //数据库插入
             try(Connection conn = ds.getConnection()){
@@ -56,19 +53,22 @@ public class ArchivePlayerManager {
                     return null;
                 }
                 
-                var sql = "INSERT INTO PLAYER_INDEX (UUID, NAME, POS_X, POS_Y, POS_Z, YAW, PITCH, HEALTH, HUNGRY, EXP, CREATE_TIME) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                var sql = "INSERT INTO PLAYER_INDEX (UUID, NAME, WORLD_NAME, LOGIN_COUNT, LAST_LOGIN_TIME, POS_X, POS_Y, POS_Z, YAW, PITCH, HEALTH, HUNGRY, EXP, CREATE_TIME) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 try(PreparedStatement stmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)){
-                    stmt.setString(1, uuid);
+                    stmt.setString(1, dto.getUuid());
                     stmt.setString(2, name);
-                    stmt.setDouble(3, dto.getPosX());
-                    stmt.setDouble(4, dto.getPosY());
-                    stmt.setDouble(5, dto.getPosZ());
-                    stmt.setDouble(6, dto.getYaw());
-                    stmt.setDouble(7, dto.getPitch());
-                    stmt.setInt(8, dto.getHealth());
-                    stmt.setInt(9, dto.getHungry());
-                    stmt.setLong(10, dto.getExp());
-                    stmt.setTimestamp(11, Timestamp.valueOf(createTime));
+                    stmt.setString(3, dto.getWorldName());
+                    stmt.setInt(4, dto.getLoginCount());
+                    stmt.setTimestamp(5, Timestamp.valueOf(dto.getLastLoginTime()));
+                    stmt.setDouble(6, dto.getPosX());
+                    stmt.setDouble(7, dto.getPosY());
+                    stmt.setDouble(8, dto.getPosZ());
+                    stmt.setDouble(9, dto.getYaw());
+                    stmt.setDouble(10, dto.getPitch());
+                    stmt.setInt(11, dto.getHealth());
+                    stmt.setInt(12, dto.getHungry());
+                    stmt.setLong(13, dto.getExp());
+                    stmt.setTimestamp(14, Timestamp.valueOf(LocalDateTime.now()));
                     stmt.executeUpdate();
                     
                     var updateVo = new ArchivePlayerVo();
@@ -77,8 +77,11 @@ public class ArchivePlayerManager {
                             updateVo.setId(rs.getLong(1));
                         }
                     }
-                    updateVo.setUuid(uuid);
+                    updateVo.setUuid(dto.getUuid());
                     updateVo.setName(name);
+                    updateVo.setWorldName(dto.getWorldName());
+                    updateVo.setLoginCount(dto.getLoginCount());
+                    updateVo.setLastLoginTime(dto.getLastLoginTime());
                     updateVo.setPosX(dto.getPosX());
                     updateVo.setPosY(dto.getPosY());
                     updateVo.setPosZ(dto.getPosZ());
@@ -87,9 +90,9 @@ public class ArchivePlayerManager {
                     updateVo.setHealth(dto.getHealth());
                     updateVo.setHungry(dto.getHungry());
                     updateVo.setExp(dto.getExp());
-                    updateVo.setCreateTime(createTime);
+                    updateVo.setCreateTime(LocalDateTime.now());
                     
-                    log.info("为玩家 {} 创建新的归档记录 UUID {}", name, uuid);
+                    log.info("为玩家 {} 创建新的归档记录 UUID {}", name, dto.getUuid());
                     return updateVo;
                 }
             }catch(SQLException e){
@@ -104,6 +107,9 @@ public class ArchivePlayerManager {
         updateVo.setId(exisisPlayer.getId());
         updateVo.setUuid(exisisPlayer.getUuid());
         updateVo.setName(exisisPlayer.getName());
+        updateVo.setWorldName(dto.getWorldName());
+        updateVo.setLoginCount(dto.getLoginCount());
+        updateVo.setLastLoginTime(dto.getLastLoginTime());
         updateVo.setPosX(dto.getPosX());
         updateVo.setPosY(dto.getPosY());
         updateVo.setPosZ(dto.getPosZ());
@@ -112,8 +118,7 @@ public class ArchivePlayerManager {
         updateVo.setHealth(dto.getHealth());
         updateVo.setHungry(dto.getHungry());
         updateVo.setExp(dto.getExp());
-        updateVo.setCreateTime(exisisPlayer.getCreateTime());
-
+        
         //数据库更新
         try(Connection conn = ds.getConnection()){
 
@@ -122,21 +127,23 @@ public class ArchivePlayerManager {
                 return null;
             }
 
-            var sql = "UPDATE PLAYER_INDEX SET UUID = ?, NAME = ?, POS_X = ?, POS_Y = ?, POS_Z = ?, YAW = ?, PITCH = ?, HEALTH = ?, HUNGRY = ?, EXP = ?, CREATE_TIME = ? WHERE ID = ?";
+            var sql = "UPDATE PLAYER_INDEX SET UUID = ?, NAME = ?, WORLD_NAME = ?, LOGIN_COUNT = ?, LAST_LOGIN_TIME = ?, POS_X = ?, POS_Y = ?, POS_Z = ?, YAW = ?, PITCH = ?, HEALTH = ?, HUNGRY = ?, EXP = ? WHERE ID = ?";
 
             try(PreparedStatement stmt = conn.prepareStatement(sql)){
                 stmt.setString(1, updateVo.getUuid());
                 stmt.setString(2, updateVo.getName());
-                stmt.setDouble(3, updateVo.getPosX());
-                stmt.setDouble(4, updateVo.getPosY());
-                stmt.setDouble(5, updateVo.getPosZ());
-                stmt.setDouble(6, updateVo.getYaw());
-                stmt.setDouble(7, updateVo.getPitch());
-                stmt.setInt(8, updateVo.getHealth());
-                stmt.setInt(9, updateVo.getHungry());
-                stmt.setLong(10, updateVo.getExp());
-                stmt.setTimestamp(11, Timestamp.valueOf(updateVo.getCreateTime()));
-                stmt.setLong(12, updateVo.getId());
+                stmt.setString(3, updateVo.getWorldName());
+                stmt.setInt(4, updateVo.getLoginCount());
+                stmt.setTimestamp(5, Timestamp.valueOf(updateVo.getLastLoginTime()));
+                stmt.setDouble(6, updateVo.getPosX());
+                stmt.setDouble(7, updateVo.getPosY());
+                stmt.setDouble(8, updateVo.getPosZ());
+                stmt.setDouble(9, updateVo.getYaw());
+                stmt.setDouble(10, updateVo.getPitch());
+                stmt.setInt(11, updateVo.getHealth());
+                stmt.setInt(12, updateVo.getHungry());
+                stmt.setLong(13, updateVo.getExp());
+                stmt.setLong(14, updateVo.getId());
                 stmt.executeUpdate();
                 log.info("为玩家 {} 更新归档记录 UUID {}", name, updateVo.getUuid());
             }
@@ -161,7 +168,7 @@ public class ArchivePlayerManager {
             return null;
         }
         
-        var ds = archiveManager.getDataSource();
+        var ds = archiveService.getDataSource();
 
         if(ds == null){
             log.error("归档管理器当前未连接到归档，无法加载玩家数据");
@@ -189,6 +196,12 @@ public class ArchivePlayerManager {
                     vo.setId(rs.getLong("ID"));
                     vo.setUuid(rs.getString("UUID"));
                     vo.setName(rs.getString("NAME"));
+                    vo.setWorldName(rs.getString("WORLD_NAME"));
+                    vo.setLoginCount(rs.getInt("LOGIN_COUNT"));
+                    var lastLoginTimestamp = rs.getTimestamp("LAST_LOGIN_TIME");
+                    if(lastLoginTimestamp != null){
+                        vo.setLastLoginTime(lastLoginTimestamp.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+                    }
                     vo.setPosX(rs.getDouble("POS_X"));
                     vo.setPosY(rs.getDouble("POS_Y"));
                     vo.setPosZ(rs.getDouble("POS_Z"));
@@ -197,7 +210,10 @@ public class ArchivePlayerManager {
                     vo.setHealth(rs.getInt("HEALTH"));
                     vo.setHungry(rs.getInt("HUNGRY"));
                     vo.setExp(rs.getLong("EXP"));
-                    vo.setCreateTime(rs.getTimestamp("CREATE_TIME").toLocalDateTime());
+                    var createTimestamp = rs.getTimestamp("CREATE_TIME");
+                    if(createTimestamp != null){
+                        vo.setCreateTime(createTimestamp.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+                    }
                     return vo;
                 }
             }

@@ -167,6 +167,13 @@
             <version>3.2.3</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/xyz.downgoon/snowflake -->
+        <dependency>
+            <groupId>xyz.downgoon</groupId>
+            <artifactId>snowflake</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

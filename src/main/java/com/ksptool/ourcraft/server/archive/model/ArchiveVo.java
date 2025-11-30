@@ -32,9 +32,4 @@ public class ArchiveVo {
     //最后修改时间
     private LocalDateTime updateTime;
 
-    //归档中的世界列表
-    private List<ArchiveWorldIndexVo> worlds;
-
-    //全局调色板数据(顺序)
-
 }

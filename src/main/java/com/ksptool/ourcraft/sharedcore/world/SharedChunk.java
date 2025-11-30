@@ -1,5 +1,7 @@
 package com.ksptool.ourcraft.sharedcore.world;
 
+import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
+
 public interface SharedChunk {
 
     /**
@@ -82,5 +84,8 @@ public interface SharedChunk {
      * @return 区块大小Z
      */
     int getSizeZ();
+
+    
+    ChunkPos getChunkPos();
 
 }

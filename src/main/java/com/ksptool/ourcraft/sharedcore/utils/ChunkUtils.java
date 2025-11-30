@@ -1,13 +1,14 @@
 package com.ksptool.ourcraft.sharedcore.utils;
 
 import com.ksptool.ourcraft.server.archive.SuperChunkArchiveFile;
+import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 
 /**
  * 区块工具类，提供客户端和服务端共享的工具方法
  */
 public class ChunkUtils {
 
-    public static int CHUNK_SIZE = SuperChunkArchiveFile.SCAF_CHUNK_SIZE;
+    public static int CHUNK_SIZE = 16;
     
     /**
      * 将区块坐标转换为长整型键值

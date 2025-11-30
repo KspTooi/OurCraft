@@ -20,13 +20,13 @@ import java.time.ZoneOffset;
 import java.util.*;
 
 @Slf4j
-public class ArchivePaletteManager {
+public class ArchivePaletteService {
 
     // 归档管理器
-    private final ArchiveManager archiveManager;
+    private final ArchiveService archiveService;
 
-    public ArchivePaletteManager(ArchiveManager archiveManager){
-        this.archiveManager = archiveManager;
+    public ArchivePaletteService(ArchiveService archiveService){
+        this.archiveService = archiveService;
     }
 
     /**
@@ -37,8 +37,8 @@ public class ArchivePaletteManager {
     public void saveGlobalPalette(GlobalPalette globalPalette){
 
         // 获取归档数据库连接池
-        var dataSource = archiveManager.getDataSource();
-        var currentArchiveName = archiveManager.getCurrentArchiveName();
+        var dataSource = archiveService.getDataSource();
+        var currentArchiveName = archiveService.getCurrentArchiveName();
 
         if(dataSource == null){
             log.error("归档管理器当前未连接到归档，无法保存全局调色板");
@@ -134,8 +134,8 @@ public class ArchivePaletteManager {
     public int loadGlobalPalette(GlobalPalette globalPalette){
 
         // 获取归档数据库连接池
-        var dataSource = archiveManager.getDataSource();
-        var currentArchiveName = archiveManager.getCurrentArchiveName();
+        var dataSource = archiveService.getDataSource();
+        var currentArchiveName = archiveService.getCurrentArchiveName();
 
         if(dataSource == null){
             log.error("归档管理器当前未连接到归档，无法加载全局调色板");

@@ -9,6 +9,7 @@ import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.server.world.ServerRaycast;
+import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.world.RaycastResult;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
@@ -38,6 +39,9 @@ public class ServerPlayer extends ServerLivingEntity {
     @Setter
     private double pitch = 0.0;
 
+    //玩家所在区块坐标
+    private ChunkPos lastChunk;
+
     //地面加速度
     private static final float GROUND_ACCELERATION = 40F;
     
@@ -56,15 +60,12 @@ public class ServerPlayer extends ServerLivingEntity {
         if(vo == null){
             throw new IllegalArgumentException("玩家数据不能为空");
         }
-        if(world == null){
-            throw new IllegalArgumentException("世界不能为空");
-        }
 
         this.inventory = new ServerInventory();
         this.eyeHeight = 1.6f;
         this.boundingBox = new BoundingBox(position, 0.6f, 1.8f);
         
-        if(vo != null && vo.getName() != null){
+        if(vo.getName() != null){
             this.name = vo.getName();
         } else {
             this.name = "Unknown";

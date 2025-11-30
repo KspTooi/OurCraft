@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Getter@Setter
-public class ArchiveManager {
+public class ArchiveService {
 
     //当前运行目录
     private String CURRENT_RUN_DIR = System.getProperty("user.dir");
@@ -47,22 +47,22 @@ public class ArchiveManager {
     private String currentArchiveName;
 
     //归档调色板管理器
-    private ArchivePaletteManager paletteManager;
+    private ArchivePaletteService paletteService;
 
     //归档玩家管理器
-    private ArchivePlayerManager playerManager;
+    private ArchivePlayerService playerService;
 
     //归档世界管理器
-    private ArchiveWorldManager worldManager;
+    private ArchiveWorldService worldService;
 
     //归档区块管理器
-    private ArchiveSuperChunkManager chunkManager;
+    private ArchiveSuperChunkService chunkService;
 
-    public ArchiveManager(){
-        this.paletteManager = new ArchivePaletteManager(this);
-        this.playerManager = new ArchivePlayerManager(this);
-        this.chunkManager = new ArchiveSuperChunkManager(this);
-        this.worldManager = new ArchiveWorldManager(this, this.paletteManager, this.chunkManager);
+    public ArchiveService(){
+        this.paletteService = new ArchivePaletteService(this);
+        this.playerService = new ArchivePlayerService(this);
+        this.chunkService = new ArchiveSuperChunkService(this);
+        this.worldService = new ArchiveWorldService(this, this.paletteService, this.chunkService);
     }
 
     /**
@@ -263,7 +263,13 @@ public class ArchiveManager {
                         CREATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
                         UPDATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
                         CONSTRAINT ARCHIVE_INFO_PK PRIMARY KEY (ID)
-                    )
+                    );
+                    COMMENT ON TABLE PUBLIC.ARCHIVE_INFO IS '归档基础信息表，存储归档的基本信息';
+                    COMMENT ON COLUMN PUBLIC.ARCHIVE_INFO.ID IS '归档记录的唯一标识符（主键）';
+                    COMMENT ON COLUMN PUBLIC.ARCHIVE_INFO.NAME IS '归档名称';
+                    COMMENT ON COLUMN PUBLIC.ARCHIVE_INFO.VERSION IS '归档版本';
+                    COMMENT ON COLUMN PUBLIC.ARCHIVE_INFO.CREATE_TIME IS '归档创建时间';
+                    COMMENT ON COLUMN PUBLIC.ARCHIVE_INFO.UPDATE_TIME IS '归档更新时间';
                     """;
 
                 var createGlobalPaletteTable = """
@@ -273,7 +279,12 @@ public class ArchiveManager {
                         PROPERTIES BLOB,
                         CREATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
                         CONSTRAINT GLOBAL_PALETTE_PK PRIMARY KEY (ID)
-                    )
+                    );
+                    COMMENT ON TABLE PUBLIC.GLOBAL_PALETTE IS '全局调色板表，存储全局调色板信息';
+                    COMMENT ON COLUMN PUBLIC.GLOBAL_PALETTE.ID IS '调色板ID';
+                    COMMENT ON COLUMN PUBLIC.GLOBAL_PALETTE.STD_REG_NAME IS '方块标准注册名';
+                    COMMENT ON COLUMN PUBLIC.GLOBAL_PALETTE.PROPERTIES IS '方块属性';
+                    COMMENT ON COLUMN PUBLIC.GLOBAL_PALETTE.CREATE_TIME IS '创建时间';
                     """;
 
                 var createPlayerIndexTable = """
@@ -281,6 +292,9 @@ public class ArchiveManager {
                         ID BIGINT NOT NULL AUTO_INCREMENT,
                         UUID VARCHAR(128) NOT NULL,
                         NAME VARCHAR(128) NOT NULL,
+                        WORLD_NAME VARCHAR(128) NOT NULL,
+                        LOGIN_COUNT INTEGER NOT NULL,
+                        LAST_LOGIN_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
                         POS_X NUMERIC(32,16) NOT NULL,
                         POS_Y NUMERIC(32,16) NOT NULL,
                         POS_Z NUMERIC(32,16),
@@ -292,7 +306,24 @@ public class ArchiveManager {
                         BIN_DATA BLOB,
                         CREATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
                         CONSTRAINT PLAYER_INDEX_PK PRIMARY KEY (ID)
-                    )
+                    );
+                    COMMENT ON TABLE PUBLIC.PLAYER_INDEX IS '玩家索引表';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.ID IS '玩家记录的唯一标识符（主键）';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.UUID IS '玩家UUID';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.NAME IS '玩家名称';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.WORLD_NAME IS '玩家所在世界';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.LOGIN_COUNT IS '登录次数';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.LAST_LOGIN_TIME IS '最后登录时间';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.POS_X IS '玩家位置X';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.POS_Y IS '玩家位置Y';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.POS_Z IS '玩家位置Z';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.PITCH IS '玩家朝向Pitch';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.YAW IS '玩家朝向Yaw';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.HEALTH IS '玩家血量';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.HUNGRY IS '玩家饥饿度';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.EXP IS '玩家经验';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.BIN_DATA IS '玩家数据';
+                    COMMENT ON COLUMN PUBLIC.PLAYER_INDEX.CREATE_TIME IS '创建时间';
                     """;
 
                 var createWorldIndexTable = """
@@ -303,11 +334,23 @@ public class ArchiveManager {
                     	TOTAL_TICK BIGINT NOT NULL,
                     	TEMPLATE_STD_REG_NAME CHARACTER VARYING(512) NOT NULL,
                     	SPAWN_X INTEGER NOT NULL,
-                    	SPAWN_Y INTEGER,
-                    	SPAWN_Z INTEGER,
+                    	SPAWN_Y INTEGER NOT NULL,
+                    	SPAWN_Z INTEGER NOT NULL,
+                        SPAWN_CREATED INTEGER NOT NULL,
+                        CREATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
                     	CONSTRAINT WORLD_INDEX_PK PRIMARY KEY (ID)
                     );
-                    CREATE UNIQUE INDEX PRIMARY_KEY_A ON PUBLIC.WORLD_INDEX (ID);
+                    COMMENT ON TABLE PUBLIC.WORLD_INDEX IS '世界索引表，存储所有已创建世界的基本信息';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.ID IS '世界记录的唯一标识符（主键）';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.NAME IS '世界唯一标识符(世界名称)';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.SEED IS '世界生成的随机种子';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.TOTAL_TICK IS '世界运行的总Action数';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.TEMPLATE_STD_REG_NAME IS '世界模板标准注册名';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.SPAWN_X IS '玩家默认出生点的 X 坐标';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.SPAWN_Y IS '玩家默认出生点的 Y 坐标';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.SPAWN_Z IS '玩家默认出生点的 Z 坐标';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.SPAWN_CREATED IS '玩家默认出生点是否已被创建/初始化（0=否, 1=是）';
+                    COMMENT ON COLUMN PUBLIC.WORLD_INDEX.CREATE_TIME IS '世界创建时间';
                     """;
 
                 var createChunkEntityTable = """

@@ -83,7 +83,7 @@ public class Pos {
      * @return 区块内局部坐标对象
      * @throws IllegalArgumentException 如果区块大小小于等于0
      */
-    public LocalPos toLocalPos(int chunkSizeX, int chunkSizeZ) {
+    public ChunkLocalPos toLocalPos(int chunkSizeX, int chunkSizeZ) {
 
         // 检查区块大小是否大于0
         if (chunkSizeX <= 0 || chunkSizeZ <= 0) {
@@ -116,7 +116,7 @@ public class Pos {
         int localX = x - chunkX * chunkSizeX;
         int localZ = z - chunkZ * chunkSizeZ;
         
-        return LocalPos.of(localX, y, localZ);
+        return ChunkLocalPos.of(localX, y, localZ);
     }
 
     /**

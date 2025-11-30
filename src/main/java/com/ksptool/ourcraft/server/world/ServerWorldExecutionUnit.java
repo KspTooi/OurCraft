@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.server.world;
 import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
+import com.ksptool.ourcraft.server.player.PlayerSession;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.sharedcore.events.*;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncBlockUpdateNVo;
@@ -110,9 +110,9 @@ public class ServerWorldExecutionUnit implements Runnable {
         Vector3f centerPosition = new Vector3f(0, 64, 0);
 
         // TODO: 如果支持多世界，这里应该只获取在这个世界里的玩家位置
-        List<ClientConnectionHandler> clients = serverInstance.getConnectedClients();
+        List<PlayerSession> clients = serverInstance.getConnectedClients();
         if (!clients.isEmpty()) {
-            for (ClientConnectionHandler handler : clients) {
+            for (PlayerSession handler : clients) {
                 ServerPlayer player = handler.getPlayer();
                 if (player != null && player.getWorld() == serverWorld) {
                     centerPosition.set(player.getPosition());
@@ -128,7 +128,7 @@ public class ServerWorldExecutionUnit implements Runnable {
                 if (entity instanceof ServerPlayer) {
                     ServerPlayer player = (ServerPlayer) entity;
                     // 查找Handler检查是否初始化
-                    ClientConnectionHandler handler = findHandlerForPlayer(player);
+                    PlayerSession handler = findHandlerForPlayer(player);
                     if (handler != null && !handler.isPlayerInitialized()) {
                         continue;
                     }
@@ -223,8 +223,8 @@ public class ServerWorldExecutionUnit implements Runnable {
     }
 
     private void sendPlayerUpdate() {
-        List<ClientConnectionHandler> clients = serverInstance.getConnectedClients();
-        for (ClientConnectionHandler handler : clients) {
+        List<PlayerSession> clients = serverInstance.getConnectedClients();
+        for (PlayerSession handler : clients) {
             if (!handler.isConnected()) continue;
             
             ServerPlayer player = handler.getPlayer();
@@ -253,17 +253,17 @@ public class ServerWorldExecutionUnit implements Runnable {
         for (com.ksptool.ourcraft.server.entity.ServerEntity entity : entities) {
             if (entity instanceof ServerPlayer) {
                 ServerPlayer player = (ServerPlayer) entity;
-                int entityId = getEntityIdForPlayer(player);
-                if (entityId == 0) continue;
+                long sessionId = getSessionIdForPlayer(player);
+                if (sessionId == 0) continue;
 
                 ServerSyncEntityPositionAndRotationNVo packet = new ServerSyncEntityPositionAndRotationNVo(
-                        entityId, player.getPosition().x, player.getPosition().y, player.getPosition().z,
+                        sessionId, player.getPosition().x, player.getPosition().y, player.getPosition().z,
                         (float)player.getYaw(), (float)player.getPitch()
                 );
 
                 // 广播给本世界除自己外的其他人
-                List<ClientConnectionHandler> clients = serverInstance.getConnectedClients();
-                for (ClientConnectionHandler handler : clients) {
+                List<PlayerSession> clients = serverInstance.getConnectedClients();
+                for (PlayerSession handler : clients) {
                     if (!handler.isConnected()) continue;
                     ServerPlayer targetP = handler.getPlayer();
                     if (targetP != null && targetP.getWorld() == serverWorld && targetP != player) {
@@ -275,8 +275,8 @@ public class ServerWorldExecutionUnit implements Runnable {
     }
 
     private void updateDynamicViewport() {
-        List<ClientConnectionHandler> clients = serverInstance.getConnectedClients();
-        for (ClientConnectionHandler handler : clients) {
+        List<PlayerSession> clients = serverInstance.getConnectedClients();
+        for (PlayerSession handler : clients) {
             if (!handler.isConnected()) continue;
             ServerPlayer player = handler.getPlayer();
             if (player == null || player.getWorld() != serverWorld) continue;
@@ -285,7 +285,7 @@ public class ServerWorldExecutionUnit implements Runnable {
         }
     }
 
-    private void updatePlayerViewport(ClientConnectionHandler handler, ServerPlayer player) {
+    private void updatePlayerViewport(PlayerSession handler, ServerPlayer player) {
         int playerChunkX = (int) Math.floor(player.getPosition().x / ServerChunkOld.CHUNK_SIZE);
         int playerChunkZ = (int) Math.floor(player.getPosition().z / ServerChunkOld.CHUNK_SIZE);
 
@@ -330,7 +330,7 @@ public class ServerWorldExecutionUnit implements Runnable {
         handler.setLastChunkZ(playerChunkZ);
     }
 
-    private void sendChunkToClient(ClientConnectionHandler handler, int x, int z) {
+    private void sendChunkToClient(PlayerSession handler, int x, int z) {
         ServerChunkOld chunk = serverWorld.getChunk(x, z);
         if (chunk == null) {
             serverWorld.generateChunkSynchronously(x, z);
@@ -370,27 +370,27 @@ public class ServerWorldExecutionUnit implements Runnable {
     }
 
     private void broadcastPacketToWorldPlayers(Object packet) {
-        List<ClientConnectionHandler> clients = serverInstance.getConnectedClients();
-        for (ClientConnectionHandler handler : clients) {
+        List<PlayerSession> clients = serverInstance.getConnectedClients();
+        for (PlayerSession handler : clients) {
             if (handler.isConnected() && handler.getPlayer() != null && handler.getPlayer().getWorld() == serverWorld) {
                 handler.sendPacket(packet);
             }
         }
     }
 
-    private ClientConnectionHandler findHandlerForPlayer(ServerPlayer player) {
+    private PlayerSession findHandlerForPlayer(ServerPlayer player) {
         return serverInstance.getConnectedClients().stream()
                 .filter(h -> h.getPlayer() == player)
                 .findFirst().orElse(null);
     }
 
-    private int getEntityIdForPlayer(ServerPlayer player) {
+    private long getSessionIdForPlayer(ServerPlayer player) {
         // 这里需要一个更可靠的 ID 获取方式，目前沿用 session ID 的逻辑
         // 实际项目中建议 ServerPlayer 自身携带 EntityID
-        return serverInstance.getSessionIdToHandler().entrySet().stream()
+        return serverInstance.getPlayerService().getSessions().entrySet().stream()
                 .filter(e -> e.getValue().getPlayer() == player)
                 .map(java.util.Map.Entry::getKey)
-                .findFirst().orElse(0);
+                .findFirst().orElse(0L);
     }
 
     /**

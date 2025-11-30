@@ -1,12 +1,13 @@
 package com.ksptool.ourcraft.server;
 
-import com.ksptool.ourcraft.server.archive.ArchiveManager;
-import com.ksptool.ourcraft.server.archive.ArchivePlayerManager;
+import com.ksptool.ourcraft.server.archive.ArchiveService;
+import com.ksptool.ourcraft.server.archive.ArchivePlayerService;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerDto;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.server.world.ServerWorldManager;
-import com.ksptool.ourcraft.server.network.ClientConnectionHandler;
+import com.ksptool.ourcraft.server.world.ServerWorldService;
+import com.ksptool.ourcraft.server.player.PlayerSession;
+import com.ksptool.ourcraft.server.player.ServerPlayerService;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.server.world.gen.layers.BaseDensityLayer;
 import com.ksptool.ourcraft.server.world.gen.layers.FeatureLayer;
@@ -26,11 +27,13 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3f;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 服务端运行实例，负责逻辑更新（Tick-based loop）
@@ -39,24 +42,30 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Slf4j
 @Getter
 public class OurCraftServer {
+    
+    //服务端世界执行单元线程池(用于运行世界逻辑ACTION)
+    private ExecutorService SWEU_THREAD_POOL;
 
+    //区块工作线程池(用于处理区块加载、生成、卸载存盘等任务)
+    private ExecutorService CHUNK_PROCESS_THREAD_POOL;
+
+    //网络线程池(用于处理网络连接、心跳、数据包接收发送等任务(虚拟线程))
+    private ExecutorService NETWORK_THREAD_POOL;
+    
     private static final int INITIAL_RENDER_DISTANCE = 8;
-    private static final int NETWORK_PORT = 25564;
 
-    private final ServerWorldManager worldManager;
+    private static final int NETWORK_PORT = 25564;
 
     private final String defaultWorldName = "earth_like";
 
-    private Thread networkListenerThread;
-
-    private ServerSocket serverSocket;
-
-    private final CopyOnWriteArrayList<ClientConnectionHandler> connectedClients = new CopyOnWriteArrayList<>();
-
-    private final ConcurrentHashMap<Integer, ClientConnectionHandler> sessionIdToHandler = new ConcurrentHashMap<>();
+    //世界服务
+    private final ServerWorldService worldService;
 
     //归档管理器
-    private final ArchiveManager archiveManager;
+    private final ArchiveService archiveService;
+
+    //玩家服务
+    private final ServerPlayerService playerService;
 
     public OurCraftServer(String archiveName) {
 
@@ -74,13 +83,19 @@ public class OurCraftServer {
         GlobalPalette.getInstance().bake();
 
         //初始化归档管理器
-        this.archiveManager = new ArchiveManager();
+        this.archiveService = new ArchiveService();
 
         //打开归档索引数据库连接
-        archiveManager.connectArchiveIndex(_archiveName);
+        archiveService.connectArchiveIndex(_archiveName);
 
-        //创建世界管理器
-        this.worldManager = new ServerWorldManager(this);
+        //初始化线程池
+        initThreadPools();
+
+        //创建世界服务
+        this.worldService = new ServerWorldService(this);
+
+        //创建玩家服务
+        this.playerService = new ServerPlayerService(this, NETWORK_PORT);
     }
 
     public void start() {
@@ -88,22 +103,25 @@ public class OurCraftServer {
         //worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, EngineDefault.DEFAULT_WORLD_TEMPLATE);
 
         //创建世界
-        worldManager.createWorld(EngineDefault.DEFAULT_WORLD_NAME, "ourcraft:earth_like");
+        worldService.createWorld(EngineDefault.DEFAULT_WORLD_NAME, "ourcraft:earth_like");
 
         //加载世界
-        worldManager.loadWorld(EngineDefault.DEFAULT_WORLD_NAME);
+        worldService.loadWorld(EngineDefault.DEFAULT_WORLD_NAME);
 
         //启动世界
-        worldManager.runWorld(EngineDefault.DEFAULT_WORLD_NAME);
+        worldService.runWorld(EngineDefault.DEFAULT_WORLD_NAME);
 
-        //启动网络监听器
-        startNetworkListener();
+        //启动玩家服务
+        playerService.start();
     }
+
+
+
 
     /**
      * 当客户端断开连接时调用，移除对应的Player实体
      */
-    public void onClientDisconnected(ClientConnectionHandler handler) {
+    public void onClientDisconnected(PlayerSession handler) {
         ServerPlayer player = handler.getPlayer();
         if (player != null) {
             //String saveName = worldManager.getWorld(defaultWorldName).getSaveName();
@@ -112,7 +130,7 @@ public class OurCraftServer {
             //    log.info("已保存断开连接的玩家数据: UUID={}", player.getUniqueId());
             //}
 
-            ArchivePlayerManager playerManager = archiveManager.getPlayerManager();
+            ArchivePlayerService playerManager = archiveService.getPlayerService();
             var dto = new ArchivePlayerDto();
             dto.setName(player.getName());
             dto.setPosX((double)player.getPosition().x);
@@ -123,106 +141,63 @@ public class OurCraftServer {
             dto.setHealth((int)player.getHealth());
             dto.setHungry((int)player.getHunger());
             dto.setExp(0L);
-            dto.setCreateTime(java.time.LocalDateTime.now());
-
             playerManager.savePlayer(dto);
 
             log.info("移除断开连接的玩家实体");
 
             // 委托世界管理器移除玩家实体
-            worldManager.getWorld(defaultWorldName).removeEntity(player);
+            worldService.getWorld(defaultWorldName).removeEntity(player);
             handler.setPlayer(null);
         }
     }
 
-    /**
-     * 启动网络监听器，监听客户端连接
-     */
-    private void startNetworkListener() {
-        networkListenerThread = Thread.ofVirtual().start(() -> {
-            try {
-                serverSocket = new ServerSocket(NETWORK_PORT);
-                log.info("网络监听器已启动，监听端口: {}", NETWORK_PORT);
-
-                while (true) {
-
-                    if(serverSocket.isClosed()){
-                        break;
-                    }
-
-                    try {
-                        Socket clientSocket = serverSocket.accept();
-                        log.info("新的客户端连接: {}", clientSocket.getRemoteSocketAddress());
-
-                        ClientConnectionHandler handler = new ClientConnectionHandler(clientSocket, this);
-                        connectedClients.add(handler);
-                        Thread.ofVirtual().start(handler);
-                    } catch (IOException e) {
-                        log.warn("接受客户端连接时发生错误: {}", e.getMessage());
-                    }
-                }
-            } catch (IOException e) {
-                log.error("启动网络监听器失败", e);
-            } finally {
-                if (serverSocket != null && !serverSocket.isClosed()) {
-                    try {
-                        serverSocket.close();
-                    } catch (IOException e) {
-                        log.warn("关闭ServerSocket时发生错误: {}", e.getMessage());
-                    }
-                }
-                log.info("网络监听器已停止");
-            }
-        });
-    }
-
-    /**
-     * 停止网络监听器
-     */
-    private void stopNetworkListener() {
-        if (serverSocket != null && !serverSocket.isClosed()) {
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                log.warn("关闭ServerSocket时发生错误: {}", e.getMessage());
-            }
-        }
-
-        if (networkListenerThread != null) {
-            try {
-                networkListenerThread.join(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
+ 
 
     /**
      * 处理来自客户端的数据包
      * 这个方法由ClientConnectionHandler调用
      */
-    public void handlePacket(ClientConnectionHandler handler, Object packet) {
+    public void handlePacket(PlayerSession handler, Object packet) {
+
         if (packet instanceof PlayerInputStateNDto) {
             handlePlayerInputState((PlayerInputStateNDto) packet, handler);
-        } else if (packet instanceof PlayerDcparNDto) {
+            return;
+        }
+        if (packet instanceof PlayerDcparNDto) {
             // 保留旧的位置同步包处理，用于向后兼容或调试
             handlePlayerPositionAndRotation((PlayerDcparNDto) packet, handler);
-        } else if (packet instanceof PlayerDshsNdto) {
-            handlePlayerHotbarSwitch((PlayerDshsNdto) packet, handler);
-        } else if (packet instanceof PlayerDActionNDto) {
-            handlePlayerAction((PlayerDActionNDto) packet, handler);
-        } else if (packet instanceof RequestJoinServerNDto) {
-            handleRequestJoinServer((RequestJoinServerNDto) packet, handler);
-        } else if (packet instanceof ClientReadyNDto) {
-            handleClientReady(handler);
-        } else if (packet instanceof ClientKeepAliveNPkg) {
-            // 心跳包，可以在这里更新最后心跳时间
-        } else {
-            log.warn("收到未知类型的数据包: {}", packet.getClass().getName());
+            return;
         }
+        if (packet instanceof PlayerDshsNdto) {
+            handlePlayerHotbarSwitch((PlayerDshsNdto) packet, handler);
+            return;
+        }
+        if (packet instanceof PlayerDActionNDto) {
+            handlePlayerAction((PlayerDActionNDto) packet, handler);
+            return;
+        }
+
+        //该功能已由PlayerSession网络线程代替
+        //if (packet instanceof RequestJoinServerNDto) {
+        //    handleRequestJoinServer((RequestJoinServerNDto) packet, handler);
+        //    return;
+        //}
+
+        if (packet instanceof ClientReadyNDto) {
+            handleClientReady(handler);
+            return;
+        }
+
+        //该功能已由PlayerSession网络线程代替
+        //if (packet instanceof ClientKeepAliveNPkg) {
+        //    // 心跳包，可以在这里更新最后心跳时间
+        //    return;
+        //}
+        
+        log.warn("收到未知类型的数据包: {}", packet.getClass().getName());
     }
 
-    private void handlePlayerPositionAndRotation(PlayerDcparNDto packet, ClientConnectionHandler handler) {
+    private void handlePlayerPositionAndRotation(PlayerDcparNDto packet, PlayerSession handler) {
 
         if (!handler.isPlayerInitialized()) {
             log.debug("玩家尚未初始化完成，忽略位置更新");
@@ -264,7 +239,7 @@ public class OurCraftServer {
         player.markDirty(true);
     }
 
-    private void handlePlayerHotbarSwitch(PlayerDshsNdto packet, ClientConnectionHandler handler) {
+    private void handlePlayerHotbarSwitch(PlayerDshsNdto packet, PlayerSession handler) {
         ServerPlayer player = handler.getPlayer();
         if (player == null) {
             return;
@@ -277,7 +252,7 @@ public class OurCraftServer {
         }
     }
 
-    private void handlePlayerInputState(PlayerInputStateNDto packet, ClientConnectionHandler handler) {
+    private void handlePlayerInputState(PlayerInputStateNDto packet, PlayerSession handler) {
         if (!handler.isPlayerInitialized()) {
             log.debug("玩家尚未初始化完成，忽略输入");
             return;
@@ -325,7 +300,7 @@ public class OurCraftServer {
         com.ksptool.ourcraft.sharedcore.events.EventQueue.getInstance().offerC2S(cameraEvent);
     }
 
-    private void handlePlayerAction(PlayerDActionNDto packet, ClientConnectionHandler handler) {
+    private void handlePlayerAction(PlayerDActionNDto packet, PlayerSession handler) {
         ServerPlayer player = handler.getPlayer();
         if (player == null) {
             return;
@@ -337,91 +312,12 @@ public class OurCraftServer {
         }
     }
 
-    private void handleRequestJoinServer(RequestJoinServerNDto packet, ClientConnectionHandler handler) {
-        log.info("收到客户端加入请求: clientVersion={}, playerName={}", packet.clientVersion(), packet.playerName());
 
-        if (worldManager.getWorld(defaultWorldName) == null) {
-            log.error("世界未初始化，无法接受玩家加入");
-            RequestJoinServerNVo response = new RequestJoinServerNVo(
-                    0, // rejected
-                    "服务器世界未初始化",
-                    null, null, null, null, null, null);
-            handler.sendPacket(response);
-            return;
-        }
-
-        ArchivePlayerManager playerManager = archiveManager.getPlayerManager();
-        ArchivePlayerVo playerVo = playerManager.loadPlayer(packet.playerName());
-        Vector3f spawnPos;
-
-        if (playerVo == null) {
-            Vector3f initialSpawnPos = new Vector3f(0, 64, 0);
-            log.info("开始生成出生点周围的区块，确保地面存在");
-            generateChunksAround(initialSpawnPos, INITIAL_RENDER_DISTANCE);
-            int safeSpawnY = findSafeSpawnY((int) initialSpawnPos.x, (int) initialSpawnPos.z);
-            spawnPos = new Vector3f(initialSpawnPos.x, safeSpawnY, initialSpawnPos.z);
-            log.info("为新玩家 '{}' 计算得到安全出生点: ({}, {}, {})", packet.playerName(), spawnPos.x, spawnPos.y, spawnPos.z);
-
-            var dto = new ArchivePlayerDto();
-            dto.setName(packet.playerName());
-            dto.setPosX((double)spawnPos.x);
-            dto.setPosY((double)spawnPos.y);
-            dto.setPosZ((double)spawnPos.z);
-            dto.setYaw(0.0);
-            dto.setPitch(0.0);
-            dto.setHealth(40);
-            dto.setHungry(40);
-            dto.setExp(0L);
-            dto.setCreateTime(java.time.LocalDateTime.now());
-
-            playerVo = playerManager.savePlayer(dto);
-            if (playerVo == null) {
-                log.error("保存新玩家数据失败");
-                RequestJoinServerNVo response = new RequestJoinServerNVo(
-                        0, // rejected
-                        "保存玩家数据失败",
-                        null, null, null, null, null, null);
-                handler.sendPacket(response);
-                return;
-            }
-            log.info("为新玩家 '{}' 创建归档记录 UUID {}", packet.playerName(), playerVo.getUuid());
-        } else {
-            spawnPos = new Vector3f(
-                    playerVo.getPosX() != null ? (float)playerVo.getPosX().doubleValue() : 0f,
-                    playerVo.getPosY() != null ? (float)playerVo.getPosY().doubleValue() : 64f,
-                    playerVo.getPosZ() != null ? (float)playerVo.getPosZ().doubleValue() : 0f
-            );
-            log.info("加载了玩家 '{}' 的数据, UUID: {}, 位置: ({}, {}, {})",
-                    packet.playerName(), playerVo.getUuid(), spawnPos.x, spawnPos.y, spawnPos.z);
-            generateChunksAround(spawnPos, INITIAL_RENDER_DISTANCE);
-        }
-
-        ServerPlayer newPlayer = new ServerPlayer(worldManager.getWorld(defaultWorldName), playerVo);
-        worldManager.getWorld(defaultWorldName).addEntity(newPlayer);
-        handler.setPlayer(newPlayer);
-
-        int sessionId = connectedClients.indexOf(handler) + 1;
-        sessionIdToHandler.put(sessionId, handler);
-
-        RequestJoinServerNVo response = new RequestJoinServerNVo(
-                1, // accepted
-                "连接成功",
-                sessionId,
-                (double) spawnPos.x,
-                (double) spawnPos.y,
-                (double) spawnPos.z,
-                (float)newPlayer.getYaw(),
-                (float)newPlayer.getPitch());
-
-        log.info("发送加入响应: sessionId={}, spawnPos=({}, {}, {})", sessionId, spawnPos.x, spawnPos.y, spawnPos.z);
-        handler.sendPacket(response);
-    }
-
-    private void handleClientReady(ClientConnectionHandler handler) {
+    private void handleClientReady(PlayerSession handler) {
         // 客户端已准备好，执行初始同步
         ServerPlayer player = handler.getPlayer();
-        if (worldManager.getWorld(defaultWorldName) == null || player == null) {
-            log.warn("无法执行初始同步: world={}, player={}", worldManager.getWorld(defaultWorldName) != null, player != null);
+        if (worldService.getWorld(defaultWorldName) == null || player == null) {
+            log.warn("无法执行初始同步: world={}, player={}", worldService.getWorld(defaultWorldName) != null, player != null);
             return;
         }
 
@@ -434,67 +330,10 @@ public class OurCraftServer {
         log.info("玩家初始化完成，可以开始接收位置更新");
     }
 
-    /**
-     * 在指定位置周围生成区块（仅生成，不发送给客户端）
-     *
-     * @param centerPosition 中心位置
-     * @param radius         生成半径（区块数）
-     */
-    private void generateChunksAround(Vector3f centerPosition, int radius) {
-        if (worldManager.getWorld(defaultWorldName) == null) {
-            return;
-        }
 
-        int centerChunkX = (int) Math
-                .floor(centerPosition.x / ServerChunkOld.CHUNK_SIZE);
-        int centerChunkZ = (int) Math
-                .floor(centerPosition.z / ServerChunkOld.CHUNK_SIZE);
 
-        log.info("开始生成出生点周围的区块: centerChunk=({}, {}), radius={}", centerChunkX, centerChunkZ, radius);
-
-        for (int x = centerChunkX - radius; x <= centerChunkX + radius; x++) {
-            for (int z = centerChunkZ - radius; z <= centerChunkZ + radius; z++) {
-                ServerChunkOld chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
-                if (chunk == null) {
-                    worldManager.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
-                }
-            }
-        }
-
-        log.info("区块生成完成");
-    }
-
-    /**
-     * 查找指定坐标的安全出生点Y坐标
-     * 从上到下扫描，找到第一个非空气方块，返回其上方的Y坐标
-     *
-     * @param worldX 世界X坐标
-     * @param worldZ 世界Z坐标
-     * @return 安全的Y坐标，如果找不到则返回64
-     */
-    private int findSafeSpawnY(int worldX, int worldZ) {
-        if (worldManager.getWorld(defaultWorldName) == null) {
-            return 64;
-        }
-
-        // 从较高的位置开始向下扫描（从Y=200开始，避免扫描整个高度）
-        for (int y = 200; y >= 0; y--) {
-            int blockState = worldManager.getWorld(defaultWorldName).getBlockState(worldX, y, worldZ);
-            // 如果找到非空气方块（stateId != 0），返回其上方的Y坐标
-            if (blockState != 0) {
-                int safeY = y + 1;
-                log.debug("找到安全出生点: ({}, {}, {})", worldX, safeY, worldZ);
-                return safeY;
-            }
-        }
-
-        // 如果找不到，返回默认值
-        log.warn("未找到安全出生点，使用默认Y=64: ({}, {})", worldX, worldZ);
-        return 64;
-    }
-
-    private void performInitialSyncForClient(ClientConnectionHandler handler, ServerPlayer player) {
-        if (worldManager.getWorld(defaultWorldName) == null || player == null) {
+    private void performInitialSyncForClient(PlayerSession handler, ServerPlayer player) {
+        if (worldService.getWorld(defaultWorldName) == null || player == null) {
             return;
         }
 
@@ -505,10 +344,10 @@ public class OurCraftServer {
 
         for (int x = playerChunkX - INITIAL_RENDER_DISTANCE; x <= playerChunkX + INITIAL_RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - INITIAL_RENDER_DISTANCE; z <= playerChunkZ + INITIAL_RENDER_DISTANCE; z++) {
-                ServerChunkOld chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
+                ServerChunkOld chunk = worldService.getWorld(defaultWorldName).getChunk(x, z);
                 if (chunk == null) {
-                    worldManager.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
-                    chunk = worldManager.getWorld(defaultWorldName).getChunk(x, z);
+                    worldService.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
+                    chunk = worldService.getWorld(defaultWorldName).getChunk(x, z);
                 }
                 if (chunk != null) {
                     // 将区块数据转换为byte[]
@@ -531,8 +370,8 @@ public class OurCraftServer {
     /**
      * 获取所有连接的客户端处理器
      */
-    public java.util.List<ClientConnectionHandler> getConnectedClients() {
-        return new java.util.ArrayList<>(connectedClients);
+    public java.util.List<PlayerSession> getConnectedClients() {
+        return new java.util.ArrayList<>(playerService.getClients());
     }
 
     /**
@@ -568,19 +407,35 @@ public class OurCraftServer {
      */
     public void shutdown() {
 
-        //关闭网络监听器
-        stopNetworkListener();
-
-        //关闭所有客户端连接
-        for (ClientConnectionHandler handler : connectedClients) {
-            handler.close();
-        }
+        //关闭玩家服务
+        playerService.stop();
 
         //停止所有世界的运行并将它们写入归档
-        worldManager.shutdown();
+        worldService.shutdown();
+
+        //关闭线程池
+        shutdownThreadPools();
 
         //断开归档索引数据库连接
-        archiveManager.disconnectArchiveIndex();
+        archiveService.disconnectArchiveIndex();
+    }
+
+    /**
+     * 关闭所有线程池
+     */
+    private void shutdownThreadPools() {
+        if (SWEU_THREAD_POOL != null) {
+            SWEU_THREAD_POOL.shutdown();
+            log.info("SWEU线程池已关闭");
+        }
+        if (CHUNK_PROCESS_THREAD_POOL != null) {
+            CHUNK_PROCESS_THREAD_POOL.shutdown();
+            log.info("区块处理线程池已关闭");
+        }
+        if (NETWORK_THREAD_POOL != null) {
+            NETWORK_THREAD_POOL.shutdown();
+            log.info("网络线程池已关闭");
+        }
     }
 
     /**
@@ -605,5 +460,40 @@ public class OurCraftServer {
         var spawnPlatformGen = new SpawnPlatformGenerator(); 
         registry.registerTerrainGenerator(spawnPlatformGen); 
     }
+
+    /**
+     * 初始化所有线程池
+     */
+    private void initThreadPools() {
+
+        //初始化SWEU线程池（用于运行世界逻辑）
+        SWEU_THREAD_POOL = new ThreadPoolExecutor(
+            0,                             // 核心线程数
+            EngineDefault.getMaxSWEUThreadCount() ,                          // 最大线程数 
+            60L, TimeUnit.SECONDS,        // 闲置线程回收时间
+            new LinkedBlockingQueue<>(EngineDefault.getMaxSWEUQueueSize()),    //最多排队任务
+            ThreadFactoryUtils.createSWEUThreadFactory(), 
+            new ThreadPoolExecutor.DiscardPolicy()   // 拒绝策略: 队列满丢弃任务
+        );
+
+        log.info("SWEU线程池已初始化 当前:{} 最大:{} 队列大小:{}", 0,EngineDefault.getMaxSWEUThreadCount(),EngineDefault.getMaxSWEUQueueSize());
+
+        //初始化区块处理线程池（用于区块加载、生成、卸载）
+        CHUNK_PROCESS_THREAD_POOL = new ThreadPoolExecutor(
+            0,                             // 核心线程数
+            EngineDefault.getMaxChunkProcessThreadCount(),                          // 最大线程数 
+            60L, TimeUnit.SECONDS,        // 闲置线程回收时间
+            new LinkedBlockingQueue<>(EngineDefault.getMaxChunkProcessQueueSize()),    //最多排队任务
+            ThreadFactoryUtils.createChunkProcessThreadFactory(), 
+            new ThreadPoolExecutor.DiscardPolicy()   // 拒绝策略: 队列满丢弃任务
+        );
+
+        log.info("区块处理线程池已初始化 当前:{} 最大:{} 队列大小:{}", 0,EngineDefault.getMaxChunkProcessThreadCount(),EngineDefault.getMaxChunkProcessQueueSize());
+
+        //初始化网络线程池（虚拟线程，用于网络IO）
+        NETWORK_THREAD_POOL = Executors.newThreadPerTaskExecutor(ThreadFactoryUtils.createNetworkThreadFactory());
+        log.info("网络线程池已初始化(VT) 当前:{} 最大:{} 队列大小:{}", -1,-1,-1);
+    }
+
 
 }

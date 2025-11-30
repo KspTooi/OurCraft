@@ -1,15 +1,19 @@
 package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.OurCraftServer;
-import com.ksptool.ourcraft.server.archive.ArchiveManager;
+import com.ksptool.ourcraft.server.archive.ArchiveService;
+import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
 import com.ksptool.ourcraft.server.world.chunk.ChunkManagerOld;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
-import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkManager;
+import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
 import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.events.EventQueue;
 import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
+import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
+import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
@@ -32,6 +36,10 @@ public class ServerWorld implements SharedWorld {
 
     private static final int TICKS_PER_DAY = 24000;
 
+    //该世界的默认玩家出生点
+    @Setter
+    private Pos defaultSpawnPos;
+
     private final OurCraftServer server;
     
     private final WorldTemplate template;
@@ -40,7 +48,7 @@ public class ServerWorld implements SharedWorld {
 
     private final ChunkManagerOld chunkManagerOld;
 
-    private final FlexServerChunkManager flexServerChunkManager;
+    private final FlexServerChunkService flexServerChunkService;
 
     private final EntityManager entityManager;
 
@@ -55,9 +63,6 @@ public class ServerWorld implements SharedWorld {
     @Setter
     private String seed;
 
-    //@Getter
-    //private RegionManager regionManager;
-
     @Getter
     private RegionManager entityRegionManager;
 
@@ -70,9 +75,12 @@ public class ServerWorld implements SharedWorld {
 
     private final EventQueue eventQueue;
 
+    //服务端世界事件总线
+    private final ServerWorldEventBus eventBus;
+
     @Setter
-    private ArchiveManager archiveManager; //归档管理器
-    
+    private ArchiveService archiveService;
+
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
         this.template = template;
         this.chunkManagerOld = new ChunkManagerOld(this);
@@ -80,7 +88,7 @@ public class ServerWorld implements SharedWorld {
         this.collisionManager = new ServerCollisionManager(this);
         this.seed = String.valueOf(System.currentTimeMillis());
         this.eventQueue = EventQueue.getInstance();
-        this.flexServerChunkManager = new FlexServerChunkManager(server,this);
+        this.flexServerChunkService = new FlexServerChunkService(server,this);
         this.server = server;
 
         //从注册表获取地形生成器
@@ -93,6 +101,7 @@ public class ServerWorld implements SharedWorld {
         this.terrainGenerator = terrainGenerator;
         var noiseGenerator = new NoiseGenerator(seed);
         this.generationContext = new GenerationContext(noiseGenerator, this, seed);
+        this.eventBus = new ServerWorldEventBus();
     }
     
     public void setSaveName(String saveName) {
@@ -113,6 +122,8 @@ public class ServerWorld implements SharedWorld {
 
     public void init() {
         chunkManagerOld.init();
+        //创建默认出生点
+        createDefaultSpawn();
     }
 
     /**
@@ -173,6 +184,94 @@ public class ServerWorld implements SharedWorld {
         return (float) (timeAccumulator / tickTime);
     }
 
+    @Override
+    public void action() {
+
+    }
+
+    /**
+     * 创建玩家在这个世界的默认出生点
+     */
+    public void createDefaultSpawn(){
+
+        //查询归档中的世界索引
+        var worldIndex = server.getArchiveService().getWorldService().loadWorldIndex(name);
+
+        if (worldIndex == null) {
+            throw new IllegalArgumentException("无法创建玩家在这个世界的默认出生点: " + name + " 因为世界索引未找到");
+        }
+
+        //0:未创建, 1:已创建
+        if (worldIndex.getDefaultSpawnCreated() == 1) {
+            var defaultSpawnPos = Pos.of(worldIndex.getDefaultSpawnX(), worldIndex.getDefaultSpawnY(), worldIndex.getDefaultSpawnZ());
+            this.defaultSpawnPos = defaultSpawnPos;
+            log.info("世界:{} 的默认出生点为:{}", name, defaultSpawnPos);
+            return;
+        }
+
+        //创建默认出生点
+        int searchRadius = 2;
+        int bestSpawnY = -1;
+        int bestSpawnX = 0;
+        int bestSpawnZ = 0;
+
+        for (int chunkX = -searchRadius; chunkX <= searchRadius; chunkX++) {
+            for (int chunkZ = -searchRadius; chunkZ <= searchRadius; chunkZ++) {
+                generateChunkSynchronously(chunkX, chunkZ);
+                ServerChunkOld chunk = getChunk(chunkX, chunkZ);
+                if (chunk == null) {
+                    continue;
+                }
+
+                for (int localX = 0; localX < ServerChunkOld.CHUNK_SIZE; localX++) {
+                    for (int localZ = 0; localZ < ServerChunkOld.CHUNK_SIZE; localZ++) {
+                        for (int y = ServerChunkOld.CHUNK_HEIGHT - 1; y >= 0; y--) {
+                            BlockState state = chunk.getBlockState(localX, y, localZ);
+                            if (state == null) {
+                                continue;
+                            }
+                            if (state.getSharedBlock() == null) {
+                                continue;
+                            }
+                            if (!state.getSharedBlock().getStdRegName().equals(BlockEnums.GRASS_BLOCK.getStdRegName())) {
+                                continue;
+                            }
+                            if (y <= bestSpawnY) {
+                                continue;
+                            }
+                            bestSpawnY = y;
+                            bestSpawnX = chunkX * ServerChunkOld.CHUNK_SIZE + localX;
+                            bestSpawnZ = chunkZ * ServerChunkOld.CHUNK_SIZE + localZ;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (bestSpawnY < 0) {
+            log.warn("世界:{} 在搜索范围内未找到草方块作为出生点", name);
+            return;
+        }
+
+        int spawnY = bestSpawnY + 1;
+        Pos spawnPos = Pos.of(bestSpawnX, spawnY, bestSpawnZ);
+        this.defaultSpawnPos = spawnPos;
+
+        ArchiveWorldIndexDto dto = new ArchiveWorldIndexDto();
+        dto.setName(name);
+        dto.setSeed(seed);
+        dto.setTotalTick(gameTime);
+        dto.setTemplateStdRegName(template.getStdRegName().toString());
+        dto.setSpawnX(bestSpawnX);
+        dto.setSpawnY(spawnY);
+        dto.setSpawnZ(bestSpawnZ);
+        dto.setDefaultSpawnCreated(1);
+
+        server.getArchiveService().getWorldService().saveWorldIndex(dto);
+        log.info("世界:{} 的默认出生点已创建:{}", name, spawnPos);
+    }
+
+
     public void generateChunkData(ServerChunkOld chunk) {
         if (terrainGenerator == null || generationContext == null) {
             return;
@@ -183,7 +282,6 @@ public class ServerWorld implements SharedWorld {
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
         chunkManagerOld.generateChunkSynchronously(chunkX, chunkZ);
     }
-    
 
 
     public int getChunkCount() {
@@ -225,9 +323,6 @@ public class ServerWorld implements SharedWorld {
     public void cleanup() {
         chunkManagerOld.cleanup();
     }
-
-
-
     
     public float getTimeOfDay() {
         return (float) (gameTime % TICKS_PER_DAY) / TICKS_PER_DAY;

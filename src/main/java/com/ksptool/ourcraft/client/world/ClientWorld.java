@@ -295,6 +295,11 @@ public class ClientWorld implements SharedWorld {
     public boolean isClientSide() {
         return true;
     }
-    
+
+    @Override
+    public void action() {
+
+    }
+
 }
 

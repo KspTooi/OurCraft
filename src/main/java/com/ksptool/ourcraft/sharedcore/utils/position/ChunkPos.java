@@ -76,9 +76,64 @@ public class ChunkPos {
         return ScaPos.of(regionX, regionZ);
     }
 
+    /**
+     * 转换区块坐标为SCA文件内局部区块坐标（指定SCA封装大小）
+     * 此方法计算区块在SCA文件内部的相对位置，范围通常为0-39。
+     * @param scaPkgSize SCA封装大小（通常为40 即一个SCA文件封装40X40个区块）
+     * @return SCA文件内局部区块坐标对象
+     * @throws IllegalArgumentException 如果SCA包大小小于等于0
+     */
+    public ScaLocalPos toScaLocalPos(int scaPkgSize) {
+        if (scaPkgSize <= 0) {
+            throw new IllegalArgumentException("SCA封装大小必须大于0: scaPkgSize=" + scaPkgSize);
+        }
+
+        /*
+        计算与转换说明：
+        1. SCA内坐标计算原理：先计算SCA区域坐标，然后用区块坐标减去区域原点坐标
+           公式：localX = chunkX - regionX * scaPkgSize
+           例如：区块坐标 chunkX=85, scaPkgSize=40
+           计算：regionX = 85 / 40 = 2
+                 localX = 85 - 2 * 40 = 5
+           表示该区块在SCA文件内的第5个位置（范围：0-39）
+
+        2. 负数坐标处理：负数区块坐标需要先正确计算区域坐标，再计算相对位置
+           例如：区块坐标 chunkX=-5, scaPkgSize=40
+           计算：regionX = (-5 + 1) / 40 - 1 = -1
+                 localX = -5 - (-1) * 40 = -5 + 40 = 35
+           表示该区块在SCA文件内的第35个位置
+
+        3. 结果范围：SCA内坐标范围始终为 [0, scaPkgSize-1]，无论原始区块坐标的正负 */
+        int regionX = x >= 0 ? x / scaPkgSize : (x + 1) / scaPkgSize - 1;
+        int regionZ = z >= 0 ? z / scaPkgSize : (z + 1) / scaPkgSize - 1;
+        
+        int localX = x - regionX * scaPkgSize;
+        int localZ = z - regionZ * scaPkgSize;
+        
+        return ScaLocalPos.of(localX, localZ);
+    }
+
     @Override
     public String toString() {
         return "区块坐标:[" + x + "," + y + "," + z + "]";
+    }
+
+
+    /**
+     * 获取区块缓存键值(原理: 将两个 32-bit 的 int 压缩到一个 64-bit 的 long 中)
+     * @return 区块缓存键值
+     */
+    public long getChunkKey() {
+        return ((long)x << 32) | (z & 0xFFFFFFFFL);
+    }
+
+    /**
+     * 获取区块缓存键值(世界名称+区块坐标)
+     * @param worldName 世界名称
+     * @return 区块缓存键值
+     */
+    public String getChunkKey(String worldName){
+        return worldName + "." + getChunkKey();
     }
 
 }

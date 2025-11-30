@@ -8,7 +8,7 @@ import lombok.Getter;
  * 坐标系 区块内局部坐标系: 用于表示"这个方块"在这个区块内的相对坐标
  */
 @Getter
-public class LocalPos {
+public class ChunkLocalPos {
 
     private final int x;
     private final int y;
@@ -20,7 +20,7 @@ public class LocalPos {
      * @param y 局部Y坐标
      * @param z 局部Z坐标
      */
-    private LocalPos(int x, int y, int z) {
+    private ChunkLocalPos(int x, int y, int z) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -33,8 +33,8 @@ public class LocalPos {
      * @param z 局部Z坐标
      * @return 区块内局部位置
      */
-    public static LocalPos of(int x, int y, int z) {
-        return new LocalPos(x, y, z);
+    public static ChunkLocalPos of(int x, int y, int z) {
+        return new ChunkLocalPos(x, y, z);
     }
 
     @Override

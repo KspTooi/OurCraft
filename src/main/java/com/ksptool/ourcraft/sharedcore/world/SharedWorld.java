@@ -14,8 +14,9 @@ public interface SharedWorld {
      */
     boolean isClientSide();
 
-
-    
-
+    /**
+     * 用于驱动世界逻辑的执行
+     */
+    void action();
 
 }

@@ -3,11 +3,13 @@ package com.ksptool.ourcraft.server.world.chunk;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
+import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedChunk;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,13 +19,31 @@ public class FlexServerChunk implements SharedChunk {
     //全局调色板
     private final GlobalPalette globalPalette;
 
-    public enum ChunkState {
-        NEW,              //未初始化
-        COMMITED_LOAD,    //已提交区块生成或加载任务
-        FINISH_LOAD,      //区块生成或加载完成
-        READY,            //区块已准备好
-        AWAITING_UNLOAD,  //等待区块卸载并保存到SCA
-        UNLOADED,         //区块已卸载
+    public enum Stage {
+        /**
+         * NEW(新建): 表示区块未初始化,数据未加载 此时loadFuture未完成
+         */
+        NEW,
+
+        /**
+         * PROCESSING_LOAD(加载处理中): 表示区块正在磁盘读取或者地形生成，防止重复提交任务，此时loadFuture未完成
+         */
+        PROCESSING_LOAD,
+
+        /**
+         * READY(就绪): 数据已完整,可进行读写、物理交互 此时loadFuture已完成
+         */
+        READY,
+
+        /**
+         * PROCESSING_UNLOAD(卸载处理中): 表示区块正在被卸载并存盘，防止重复提交任务
+         */
+        PROCESSING_UNLOAD,
+
+        /**
+         * INVALID(无效): 区块已被移除，不应再被使用。(当区块中无玩家，也没有被观看时。服务器会在每个Action中扣减TTL,当TTL小于1时，区块将会被卸载)
+         */
+        INVALID,
     }
 
     //物理位置在这个区块内的玩家 UUID
@@ -34,13 +54,11 @@ public class FlexServerChunk implements SharedChunk {
 
     //区块状态
     @Setter
-    private volatile ChunkState state;
+    private volatile Stage stage;
 
-    //区块坐标X
-    private final int x;
-
-    //区块坐标Z
-    private final int z;
+    //区块坐标
+    @Getter
+    private final ChunkPos chunkPos;
 
     //区块大小X
     private final int sizeX;
@@ -53,7 +71,7 @@ public class FlexServerChunk implements SharedChunk {
 
     //区块是否脏
     @Setter
-    private boolean isDirty = false;
+    private volatile boolean isDirty = false;
 
     //区块数据
     private FlexChunkData blockData;
@@ -64,23 +82,24 @@ public class FlexServerChunk implements SharedChunk {
     //区块生存时间 当区块中没有玩家也没有被观看时每Tick减一 当减到0时区块会被卸载
     private final AtomicInteger ttl;
 
+    //区块加载任务
+    private final CompletableFuture<FlexServerChunk> loadFuture = new CompletableFuture<>();
+
 
     /**
      * 构造函数
-     * @param x 区块坐标X
-     * @param z 区块坐标Z
+     * @param chunkPos 区块坐标
      * @param world 所属世界
      */
-    public FlexServerChunk(int x, int z, ServerWorld world){
-        this.x = x;
-        this.z = z;
+    public FlexServerChunk(ChunkPos chunkPos, ServerWorld world){
+        this.chunkPos = chunkPos;
         this.world = world;
         var t = world.getTemplate();
         sizeX = t.getChunkSizeX();
         sizeY = t.getChunkSizeY();
         sizeZ = t.getChunkSizeZ();
         blockData = new FlexChunkData(sizeX,sizeY,sizeZ);
-        state = ChunkState.NEW;
+        stage = Stage.NEW;
         globalPalette = GlobalPalette.getInstance();
         ttl = new AtomicInteger(t.getChunkMaxTTL());
     }
@@ -146,23 +165,34 @@ public class FlexServerChunk implements SharedChunk {
         return globalPalette.getStateId(blockData.getBlock(x, y, z));
     }
 
+    @Override
+    public int getX() {
+        return chunkPos.getX();
+    }
+
+    @Override
+    public int getZ() {
+        return chunkPos.getZ();
+    }
+
+
     /**
      * 获取原始区块数据
      * @return 原始区块数据
      */
-    public FlexChunkData getRawBlockData(){
+    public FlexChunkData getFlexChunkData(){
         return blockData;
     }
 
-    public void setRawBlockData(FlexChunkData blockData){
+    public void setFlexChunkData(FlexChunkData fcd){
 
         //为READY状态时无法设置原始区块数据
-        if(state == ChunkState.READY){
+        if(stage == Stage.READY){
             throw new RuntimeException("区块状态为READY时无法设置原始区块数据");
         }
 
         //设置原始区块数据
-        this.blockData = blockData;
+        this.blockData = fcd;
         isDirty = true;
     }
 

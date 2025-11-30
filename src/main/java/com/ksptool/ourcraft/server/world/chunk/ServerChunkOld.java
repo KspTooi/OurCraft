@@ -2,6 +2,7 @@ package com.ksptool.ourcraft.server.world.chunk;
 
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedChunk;
 import lombok.Getter;
@@ -33,6 +34,10 @@ public class ServerChunkOld implements SharedChunk {
     private int chunkX;
     @Getter
     private int chunkZ;
+
+    @Getter
+    private final ChunkPos chunkPos;
+
     private boolean needsUpdate;
     @Setter
     @Getter
@@ -56,6 +61,7 @@ public class ServerChunkOld implements SharedChunk {
         float minZ = chunkZ * CHUNK_SIZE;
         float maxZ = minZ + CHUNK_SIZE;
         this.boundingBox = new BoundingBox(minX, 0, minZ, maxX, CHUNK_HEIGHT, maxZ);
+        this.chunkPos = ChunkPos.of(chunkX, chunkZ);
     }
 
     @Override
@@ -122,6 +128,7 @@ public class ServerChunkOld implements SharedChunk {
     public int getSizeZ() {
         return CHUNK_SIZE;
     }
+
 
     public void cleanup() {
     }

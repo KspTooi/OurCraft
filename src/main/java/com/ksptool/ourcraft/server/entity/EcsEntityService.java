@@ -1,16 +1,16 @@
-package com.ksptool.ourcraft.server.manager;
+package com.ksptool.ourcraft.server.entity;
 
 import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import lombok.Getter;
 import org.joml.Vector3d;
 
-public class EcsEntityManager {
+public class EcsEntityService {
 
     @Getter
     private final SharedWorld world;
 
-    public EcsEntityManager(SharedWorld world) {
+    public EcsEntityService(SharedWorld world) {
         this.world = world;
     }
 

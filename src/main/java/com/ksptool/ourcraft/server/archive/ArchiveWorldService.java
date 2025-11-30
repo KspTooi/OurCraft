@@ -5,6 +5,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
@@ -18,21 +21,21 @@ import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ArchiveWorldManager {
+public class ArchiveWorldService {
 
     //归档管理器
-    private final ArchiveManager archiveManager;
+    private final ArchiveService archiveService;
 
     //归档调色板管理器
-    private final ArchivePaletteManager paletteManager;
+    private final ArchivePaletteService paletteManager;
 
     //归档区块管理器
-    private final ArchiveSuperChunkManager chunkManager;
+    private final ArchiveSuperChunkService chunkService;
 
-    public ArchiveWorldManager(ArchiveManager archiveManager, ArchivePaletteManager paletteManager, ArchiveSuperChunkManager chunkManager){
-        this.archiveManager = archiveManager;
+    public ArchiveWorldService(ArchiveService archiveService, ArchivePaletteService paletteManager, ArchiveSuperChunkService chunkService){
+        this.archiveService = archiveService;
         this.paletteManager = paletteManager;
-        this.chunkManager = chunkManager;
+        this.chunkService = chunkService;
     }
 
     public void saveWorld(ServerWorld world){
@@ -42,7 +45,7 @@ public class ArchiveWorldManager {
             return;
         }
 
-        var archiveName = archiveManager.getCurrentArchiveName();
+        var archiveName = archiveService.getCurrentArchiveName();
         
         if(StringUtils.isBlank(archiveName)){
             log.error("当前未连接到归档，无法保存世界数据");
@@ -50,11 +53,21 @@ public class ArchiveWorldManager {
         }
 
         //直接保存世界运行时到归档索引(归档索引不存在时自动创建)
+        var existWorldIndex = loadWorldIndex(world.getName());
+
         var dto = new ArchiveWorldIndexDto();
         dto.setName(world.getName());
-        dto.setSeed(world.getSeed()+"");
-        dto.setTotalTick(world.getGameTime()); //@待完善 GameTime不一定为总Tick
+        dto.setSeed(world.getSeed());
+        dto.setTotalTick(world.getGameTime());
         dto.setTemplateStdRegName(world.getTemplate().getStdRegName().toString());
+        dto.setSpawnX(world.getDefaultSpawnPos().getX());
+        dto.setSpawnY(world.getDefaultSpawnPos().getY());
+        dto.setSpawnZ(world.getDefaultSpawnPos().getZ());
+        dto.setDefaultSpawnCreated(0); //0:否, 1:是
+
+        if(existWorldIndex != null){
+            dto.setDefaultSpawnCreated(existWorldIndex.getDefaultSpawnCreated());
+        }
         saveWorldIndex(dto);
         
         //保存当前的全局调色板数据
@@ -67,8 +80,7 @@ public class ArchiveWorldManager {
         for (ServerChunkOld chunk : dirtyChunks) {
             try {
                 byte[] compressedData = ChunkSerializerOld.serialize(chunk);
-                SuperChunkArchiveFile scaf = chunkManager.openSCAF(world.getName(), chunk.getChunkX(), chunk.getChunkZ());
-                scaf.writeChunk(chunk.getChunkX(), chunk.getChunkZ(), compressedData);
+                chunkService.writeChunk(world.getName(),chunk.getChunkPos(),compressedData);
                 chunk.markDirty(false);
                 chunkCount++;
             } catch (IOException e) {
@@ -95,7 +107,7 @@ public class ArchiveWorldManager {
             return;
         }
 
-        var ds = archiveManager.getDataSource();
+        var ds = archiveService.getDataSource();
         if(ds == null){
             log.error("归档管理器当前未连接到归档，无法保存世界索引数据");
             return;
@@ -115,15 +127,17 @@ public class ArchiveWorldManager {
                     return;
                 }
 
-                var sql = "INSERT INTO WORLD_INDEX (NAME, SEED, TOTAL_TICK, TEMPLATE_STD_REG_NAME, SPAWN_X, SPAWN_Y, SPAWN_Z) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                var sql = "INSERT INTO WORLD_INDEX (NAME, SEED, TOTAL_TICK, TEMPLATE_STD_REG_NAME, SPAWN_X, SPAWN_Y, SPAWN_Z, SPAWN_CREATED, CREATE_TIME) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 try(PreparedStatement stmt = conn.prepareStatement(sql)){
                     stmt.setString(1, dto.getName());
                     stmt.setString(2, dto.getSeed());
                     stmt.setLong(3, dto.getTotalTick());
                     stmt.setString(4, dto.getTemplateStdRegName());
-                    stmt.setInt(5, 0);
-                    stmt.setInt(6, 0);
-                    stmt.setInt(7, 0);
+                    stmt.setInt(5, dto.getSpawnX());
+                    stmt.setInt(6, dto.getSpawnY());
+                    stmt.setInt(7, dto.getSpawnZ());
+                    stmt.setInt(8, dto.getDefaultSpawnCreated());
+                    stmt.setTimestamp(9, Timestamp.valueOf(LocalDateTime.now()));
                     stmt.executeUpdate();
                     log.info("为世界 {} 创建新的归档记录", dto.getName());
                 }
@@ -140,15 +154,16 @@ public class ArchiveWorldManager {
                     return;
                 }
 
-                var sql = "UPDATE WORLD_INDEX SET SEED = ?, TOTAL_TICK = ?, TEMPLATE_STD_REG_NAME = ?, SPAWN_X = ?, SPAWN_Y = ?, SPAWN_Z = ? WHERE ID = ?";
+                var sql = "UPDATE WORLD_INDEX SET SEED = ?, TOTAL_TICK = ?, TEMPLATE_STD_REG_NAME = ?, SPAWN_X = ?, SPAWN_Y = ?, SPAWN_Z = ?, SPAWN_CREATED = ? WHERE ID = ?";
                 try(PreparedStatement stmt = conn.prepareStatement(sql)){
                     stmt.setString(1, dto.getSeed());
                     stmt.setLong(2, dto.getTotalTick());
                     stmt.setString(3, dto.getTemplateStdRegName());
-                    stmt.setInt(4, 0);
-                    stmt.setInt(5, 0);
-                    stmt.setInt(6, 0);
-                    stmt.setLong(7, existWorldIndex.getId());
+                    stmt.setInt(4, dto.getSpawnX());
+                    stmt.setInt(5, dto.getSpawnY());
+                    stmt.setInt(6, dto.getSpawnZ());
+                    stmt.setInt(7, dto.getDefaultSpawnCreated());
+                    stmt.setLong(8, existWorldIndex.getId());
                     stmt.executeUpdate();
                     log.info("为世界 {} 更新归档记录", dto.getName());
                 }
@@ -173,7 +188,7 @@ public class ArchiveWorldManager {
             return null;
         }
 
-        var ds = archiveManager.getDataSource();
+        var ds = archiveService.getDataSource();
         if(ds == null){
             log.error("归档管理器当前未连接到归档，无法加载世界索引数据");
             return null;
@@ -199,6 +214,14 @@ public class ArchiveWorldManager {
                     vo.setSeed(rs.getString("SEED"));
                     vo.setTotalTick(rs.getLong("TOTAL_TICK"));
                     vo.setTemplateStdRegName(rs.getString("TEMPLATE_STD_REG_NAME"));
+                    vo.setDefaultSpawnX(rs.getInt("SPAWN_X"));
+                    vo.setDefaultSpawnY(rs.getInt("SPAWN_Y"));
+                    vo.setDefaultSpawnZ(rs.getInt("SPAWN_Z"));
+                    vo.setDefaultSpawnCreated(rs.getInt("SPAWN_CREATED"));
+                    var timestamp = rs.getTimestamp("CREATE_TIME");
+                    if(timestamp != null){
+                        vo.setCreateTime(timestamp.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+                    }
                     return vo;
                 }
             }

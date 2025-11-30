@@ -4,24 +4,7 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * CREATE TABLE PUBLIC.PLAYER_INDEX (
- * 	ID BIGINT NOT NULL AUTO_INCREMENT,
- * 	UUID CHARACTER VARYING(128) NOT NULL,
- * 	NAME CHARACTER VARYING(128) NOT NULL,
- * 	POS_X NUMERIC(32,16) NOT NULL,
- * 	POS_Y NUMERIC(32,16) NOT NULL,
- * 	POS_Z NUMERIC(32,16),
- * 	PITCH NUMERIC(32,16) NOT NULL,
- * 	YAW NUMERIC(32,16) NOT NULL,
- * 	HEALTH INTEGER NOT NULL,
- * 	HUNGRY INTEGER NOT NULL,
- * 	"EXP" BIGINT NOT NULL,
- * 	BIN_DATA BINARY LARGE OBJECT,
- * 	CREATE_TIME TIMESTAMP WITH TIME ZONE NOT NULL,
- * 	CONSTRAINT PLAYER_INDEX_PK PRIMARY KEY (ID)
- * );
- */
+
 @Getter@Setter
 public class ArchivePlayerVo {
 
@@ -33,6 +16,15 @@ public class ArchivePlayerVo {
 
     //玩家名称
     private String name;
+
+    //登录次数
+    private Integer loginCount;
+
+    //最后登录时间
+    private LocalDateTime lastLoginTime;
+
+    //玩家所在世界
+    private String worldName;
 
     //玩家位置X
     private Double posX;

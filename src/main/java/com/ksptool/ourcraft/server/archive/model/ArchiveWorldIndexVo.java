@@ -4,20 +4,6 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * 用于表示一个归档中的世界索引数据
- * CREATE TABLE PUBLIC.WORLD_INDEX (
- * 	ID BIGINT NOT NULL AUTO_INCREMENT,
- * 	NAME CHARACTER VARYING(128) NOT NULL,
- * 	SEED CHARACTER VARYING(512) NOT NULL,
- * 	TOTAL_TICK BIGINT NOT NULL,
- * 	TEMPLATE_STD_REG_NAME CHARACTER VARYING(512) NOT NULL,
- * 	SPAWN_X INTEGER NOT NULL,
- * 	SPAWN_Y INTEGER,
- * 	SPAWN_Z INTEGER,
- * 	CONSTRAINT WORLD_INDEX_PK PRIMARY KEY (ID)
- * );
- */
 @Getter@Setter
 public class ArchiveWorldIndexVo {
 
@@ -36,7 +22,18 @@ public class ArchiveWorldIndexVo {
     //世界模板(世界模板标准注册名称)
     private String templateStdRegName;
 
-    //生成时间(世界生成时间)
-    private LocalDateTime createTime;
+    //默认玩家出生点X
+    private Integer defaultSpawnX;
 
+    //默认玩家出生点Y
+    private Integer defaultSpawnY;
+
+    //默认玩家出生点Z
+    private Integer defaultSpawnZ;
+
+    //默认玩家出生点是否已被创建/初始化（0=否, 1=是）
+    private Integer defaultSpawnCreated;
+
+    //创建时间
+    private LocalDateTime createTime;
 }

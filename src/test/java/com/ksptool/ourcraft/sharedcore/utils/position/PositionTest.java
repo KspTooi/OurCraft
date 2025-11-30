@@ -49,8 +49,8 @@ public class PositionTest {
     @Test
     public void worldPosToLocalPosTest() {
         Pos worldPos = Pos.of(254, 64, 0);
-        LocalPos localPos = worldPos.toLocalPos(DEFAULT_CHUNK_SIZE_X, DEFAULT_CHUNK_SIZE_Z);
-        System.out.println(localPos);
+        ChunkLocalPos chunkLocalPos = worldPos.toLocalPos(DEFAULT_CHUNK_SIZE_X, DEFAULT_CHUNK_SIZE_Z);
+        System.out.println(chunkLocalPos);
     }
 
     /**
