@@ -1,6 +1,7 @@
 package com.ksptool.ourcraft.sharedcore.events;
 
 import lombok.Getter;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 /**
@@ -8,20 +9,20 @@ import org.joml.Vector3f;
  */
 @Getter
 public class PlayerUpdateEvent extends GameEvent {
-    private final Vector3f position;
-    private final Vector3f previousPosition;
+    private final Vector3d position;
+    private final Vector3d previousPosition;
     private final float yaw;
     private final float pitch;
     private final float previousYaw;
     private final float previousPitch;
     private final int selectedSlot;
     
-    public PlayerUpdateEvent(Vector3f position, Vector3f previousPosition, 
+    public PlayerUpdateEvent(Vector3d position, Vector3d previousPosition,
                              float yaw, float pitch, 
                              float previousYaw, float previousPitch,
                              int selectedSlot) {
-        this.position = new Vector3f(position);
-        this.previousPosition = new Vector3f(previousPosition);
+        this.position = new Vector3d(position);
+        this.previousPosition = new Vector3d(previousPosition);
         this.yaw = yaw;
         this.pitch = pitch;
         this.previousYaw = previousYaw;

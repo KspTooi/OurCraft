@@ -1,5 +1,6 @@
 package com.ksptool.ourcraft.sharedcore.world;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -19,5 +20,25 @@ public interface WorldEventBus {
      * @param handler 事件处理函数
      */
     void processEvents(Consumer<WorldEvent> handler);
+
+
+    /**
+     * 获取一批世界事件
+     * @return 世界事件列表
+     */
+    List<WorldEvent> getBatchEvents();
+
+
+    /**
+     * 是否有下一个事件
+     * @return 是否有下一个事件
+     */ 
+    boolean hasNext();
+
+    /**
+     * 获取下一个事件
+     * @return 下一个事件
+     */
+    WorldEvent next();
 
 }

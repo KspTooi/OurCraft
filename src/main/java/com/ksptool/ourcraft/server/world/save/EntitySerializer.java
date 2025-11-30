@@ -162,7 +162,7 @@ public class EntitySerializer {
         if ("mycraft:entity".equals(entityType)) {
             entity = new ServerEntity(world, uuid) {
                 @Override
-                public void update(float delta) {
+                public void update(double delta) {
                 }
             };
         } else {

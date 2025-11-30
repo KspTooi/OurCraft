@@ -1,7 +1,7 @@
 package com.ksptool.ourcraft.sharedcore;
 
 import lombok.Getter;
-import org.joml.Vector3f;
+import org.joml.Vector3d;
 
 /**
  * 碰撞边界框类，用于实体碰撞检测
@@ -10,25 +10,25 @@ import org.joml.Vector3f;
 public class BoundingBox {
 
     //X轴最小值
-    private float minX;
+    private double minX;
 
     //Y轴最小值
-    private float minY;
+    private double minY;
 
     //Z轴最小值
-    private float minZ;
+    private double minZ;
 
     //X轴最大值
-    private float maxX;
+    private double maxX;
 
     //Y轴最大值
-    private float maxY;
+    private double maxY;
 
     //Z轴最大值
-    private float maxZ;
+    private double maxZ;
 
 
-    public BoundingBox(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+    public BoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
         this.minX = minX;
         this.minY = minY;
         this.minZ = minZ;
@@ -37,8 +37,8 @@ public class BoundingBox {
         this.maxZ = maxZ;
     }
 
-    public BoundingBox(Vector3f position, float width, float height) {
-        float halfWidth = width / 2.0f;
+    public BoundingBox(Vector3d position, double width, double height) {
+        double halfWidth = width / 2.0;
         this.minX = position.x - halfWidth;
         this.minY = position.y;
         this.minZ = position.z - halfWidth;
@@ -51,10 +51,10 @@ public class BoundingBox {
      * 根据新位置更新边界框，保持宽度和高度不变
      * @param position 新的位置
      */
-    public void update(Vector3f position) {
-        float width = maxX - minX;
-        float height = maxY - minY;
-        float halfWidth = width / 2.0f;
+    public void update(Vector3d position) {
+        double width = maxX - minX;
+        double height = maxY - minY;
+        double halfWidth = width / 2.0;
         
         this.minX = position.x - halfWidth;
         this.minY = position.y;
@@ -69,7 +69,7 @@ public class BoundingBox {
      * @param offset 偏移量
      * @return 偏移后的新边界框
      */
-    public BoundingBox offset(Vector3f offset) {
+    public BoundingBox offset(Vector3d offset) {
         return new BoundingBox(
             minX + offset.x, minY + offset.y, minZ + offset.z,
             maxX + offset.x, maxY + offset.y, maxZ + offset.z
@@ -87,15 +87,15 @@ public class BoundingBox {
                minZ < other.maxZ && maxZ > other.minZ;
     }
 
-    public float getWidth() {
+    public double getWidth() {
         return maxX - minX;
     }
 
-    public float getHeight() {
+    public double getHeight() {
         return maxY - minY;
     }
 
-    public float getDepth() {
+    public double getDepth() {
         return maxZ - minZ;
     }
 }

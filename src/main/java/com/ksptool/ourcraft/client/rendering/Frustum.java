@@ -40,9 +40,9 @@ public class Frustum {
             float c = plane.z;
             float d = plane.w;
             
-            float nx = a >= 0 ? box.getMaxX() : box.getMinX();
-            float ny = b >= 0 ? box.getMaxY() : box.getMinY();
-            float nz = c >= 0 ? box.getMaxZ() : box.getMinZ();
+            float nx = (float) (a >= 0 ? box.getMaxX() : box.getMinX());
+            float ny = (float) (b >= 0 ? box.getMaxY() : box.getMinY());
+            float nz = (float) (c >= 0 ? box.getMaxZ() : box.getMinZ());
             
             float distance = a * nx + b * ny + c * nz + d;
             if (distance < 0) {

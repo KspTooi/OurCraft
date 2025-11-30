@@ -27,9 +27,12 @@ public class ServerChunkOld implements SharedChunk {
         READY
     }
 
+    //区块中的方块数据
     @Setter
     @Getter
     private int[][][] blockStates;
+
+    
     @Getter
     private int chunkX;
     @Getter

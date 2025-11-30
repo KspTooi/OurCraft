@@ -5,6 +5,7 @@ import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import lombok.Getter;
 import lombok.Setter;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 /**
@@ -44,24 +45,24 @@ public abstract class LivingEntity extends ServerEntity {
     }
 
     @Override
-    public void update(float delta) {
+    public void update(double delta) {
         handlePhysics(delta);
     }
 
     
-    protected void handlePhysics(float delta) {
+    protected void handlePhysics(double delta) {
         if (delta <= 0) {
             return;
         }
-        
-        float clampedDelta = Math.min(delta, 0.1f);
+
+        double clampedDelta = Math.min(delta, 0.1f);
         
         velocity.y += GRAVITY * clampedDelta;
         
-        Vector3f movement = new Vector3f(velocity);
+        Vector3d movement = new Vector3d(velocity);
         movement.mul(clampedDelta);
         
-        Vector3f newPosition = new Vector3f(position);
+        Vector3d newPosition = new Vector3d(position);
         
         if (boundingBox == null) {
             boundingBox = new BoundingBox(position, 0.6f, 1.8f);
@@ -69,21 +70,21 @@ public abstract class LivingEntity extends ServerEntity {
         
         // 服务端实体总是有world，执行完整的碰撞检测
         newPosition.x += movement.x;
-        BoundingBox testBox = boundingBox.offset(new Vector3f(movement.x, 0, 0));
+        BoundingBox testBox = boundingBox.offset(new Vector3d(movement.x, 0, 0));
         if (!world.canMoveTo(testBox)) {
             newPosition.x = position.x;
             velocity.x = 0;
         }
         
         newPosition.z += movement.z;
-        testBox = boundingBox.offset(new Vector3f(0, 0, movement.z));
+        testBox = boundingBox.offset(new Vector3d(0, 0, movement.z));
         if (!world.canMoveTo(testBox)) {
             newPosition.z = position.z;
             velocity.z = 0;
         }
         
         newPosition.y += movement.y;
-        testBox = boundingBox.offset(new Vector3f(0, movement.y, 0));
+        testBox = boundingBox.offset(new Vector3d(0, movement.y, 0));
         if (!world.canMoveTo(testBox)) {
             if (movement.y < 0) {
                 onGround = true;

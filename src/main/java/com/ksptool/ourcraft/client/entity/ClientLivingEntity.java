@@ -5,6 +5,7 @@ import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import lombok.Getter;
 import lombok.Setter;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.UUID;
@@ -22,7 +23,7 @@ public abstract class ClientLivingEntity extends ClientEntity {
     protected static final float JUMP_VELOCITY = 8.0f;
 
     //速度
-    protected final Vector3f velocity;
+    protected final Vector3d velocity;
 
     //是否在地面上
     @Setter
@@ -57,7 +58,7 @@ public abstract class ClientLivingEntity extends ClientEntity {
     public ClientLivingEntity(UUID uniqueId, ClientWorld world) {
         super(uniqueId);
         this.world = world;
-        this.velocity = new Vector3f();
+        this.velocity = new Vector3d();
         this.onGround = false;
         if (world != null) {
             this.collisionManager = new ClientCollisionManager(world);
@@ -88,7 +89,7 @@ public abstract class ClientLivingEntity extends ClientEntity {
         Vector3f movement = new Vector3f(velocity);
         movement.mul(clampedDelta);
 
-        Vector3f newPosition = new Vector3f(position);
+        Vector3d newPosition = new Vector3d(position);
 
         if (boundingBox == null) {
             boundingBox = new BoundingBox(position, 0.6f, 1.8f);
@@ -96,7 +97,7 @@ public abstract class ClientLivingEntity extends ClientEntity {
 
         // X轴移动
         newPosition.x += movement.x;
-        BoundingBox testBox = boundingBox.offset(new Vector3f(movement.x, 0, 0));
+        BoundingBox testBox = boundingBox.offset(new Vector3d(movement.x, 0, 0));
         if (!collisionManager.canMoveTo(testBox)) {
             newPosition.x = position.x;
             velocity.x = 0;
@@ -104,7 +105,7 @@ public abstract class ClientLivingEntity extends ClientEntity {
 
         // Z轴移动
         newPosition.z += movement.z;
-        testBox = boundingBox.offset(new Vector3f(0, 0, movement.z));
+        testBox = boundingBox.offset(new Vector3d(0, 0, movement.z));
         if (!collisionManager.canMoveTo(testBox)) {
             newPosition.z = position.z;
             velocity.z = 0;
@@ -112,7 +113,7 @@ public abstract class ClientLivingEntity extends ClientEntity {
 
         // Y轴移动
         newPosition.y += movement.y;
-        testBox = boundingBox.offset(new Vector3f(0, movement.y, 0));
+        testBox = boundingBox.offset(new Vector3d(0, movement.y, 0));
         if (!collisionManager.canMoveTo(testBox)) {
             if (movement.y < 0) {
                 onGround = true;
@@ -125,7 +126,7 @@ public abstract class ClientLivingEntity extends ClientEntity {
             onGround = false;
         }
 
-        Vector3f oldPosition = new Vector3f(position);
+        Vector3d oldPosition = new Vector3d(position);
         previousPosition.set(position);
         position.set(newPosition);
         

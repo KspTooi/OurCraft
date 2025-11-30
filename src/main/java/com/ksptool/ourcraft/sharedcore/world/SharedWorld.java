@@ -16,7 +16,8 @@ public interface SharedWorld {
 
     /**
      * 用于驱动世界逻辑的执行
+     * @param delta 距离上一帧经过的时间（秒），用于平滑动画和物理计算
      */
-    void action();
+    void action(double delta);
 
 }

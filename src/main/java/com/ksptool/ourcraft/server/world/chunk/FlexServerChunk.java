@@ -73,13 +73,13 @@ public class FlexServerChunk implements SharedChunk {
     @Setter
     private volatile boolean isDirty = false;
 
-    //区块数据
+    //区块中的方块数据(Flex)
     private FlexChunkData blockData;
 
     //所属世界
     private final ServerWorld world;
 
-    //区块生存时间 当区块中没有玩家也没有被观看时每Tick减一 当减到0时区块会被卸载
+    //区块生存时间 当区块中没有玩家也没有被观看时每经过一个Action会被扣减1点 当减到0时区块会被卸载
     private final AtomicInteger ttl;
 
     //区块加载任务

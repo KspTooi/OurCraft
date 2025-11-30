@@ -5,6 +5,7 @@ import com.ksptool.ourcraft.server.item.ServerInventory;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
+import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
@@ -14,10 +15,9 @@ import com.ksptool.ourcraft.sharedcore.world.RaycastResult;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
 import lombok.Setter;
-import org.joml.Vector2f;
-import org.joml.Vector3f;
-import org.joml.Vector3i;
+import org.joml.*;
 
+import java.lang.Math;
 import java.util.UUID;
 
 /**
@@ -25,6 +25,9 @@ import java.util.UUID;
  */
 @Getter
 public class ServerPlayer extends ServerLivingEntity {
+
+    //玩家会话ID
+    private final long sessionId;
 
     //玩家名称
     private final String name;
@@ -54,8 +57,9 @@ public class ServerPlayer extends ServerLivingEntity {
     /**
      * 服务端构造函数：创建一个与服务端世界关联的玩家对象（带UUID）
      */
-    public ServerPlayer(ServerWorld world, ArchivePlayerVo vo) {
+    public ServerPlayer(ServerWorld world, ArchivePlayerVo vo, long sessionId) {
         super(world, vo != null && vo.getUuid() != null ? UUID.fromString(vo.getUuid()) : UUID.randomUUID());
+        this.sessionId = sessionId;
 
         if(vo == null){
             throw new IllegalArgumentException("玩家数据不能为空");
@@ -89,10 +93,14 @@ public class ServerPlayer extends ServerLivingEntity {
     }
 
     @Override
-    public void update(float delta) {
+    public void update(double delta) {
         super.update(delta);
     }
     
+
+    
+
+
     /**
      * 应用玩家输入（移动方向）
      * 注意：这个方法现在接收的是已经处理过的移动方向，而不是原始输入事件
@@ -126,7 +134,7 @@ public class ServerPlayer extends ServerLivingEntity {
             velocity.x += moveDirection.x * acceleration * tickDelta;
             velocity.z += moveDirection.z * acceleration * tickDelta;
             
-            Vector2f horizontalVelocity = new Vector2f(velocity.x, velocity.z);
+            Vector2d horizontalVelocity = new Vector2d(velocity.x, velocity.z);
             if (horizontalVelocity.lengthSquared() > MAX_SPEED * MAX_SPEED) {
                 horizontalVelocity.normalize().mul(MAX_SPEED);
                 velocity.x = horizontalVelocity.x;
@@ -138,6 +146,23 @@ public class ServerPlayer extends ServerLivingEntity {
             velocity.y = JUMP_VELOCITY;
             onGround = false;
         }
+    }
+
+    /**
+     * 应用玩家输入（适配ServerPlayerInputEvent）
+     */
+    public void applyInput(ServerPlayerInputEvent event) {
+        if (event == null) {
+            return;
+        }
+        PlayerInputEvent inputEvent = new PlayerInputEvent(
+            event.isW(),
+            event.isS(),
+            event.isA(),
+            event.isD(),
+            event.isSpace()
+        );
+        applyInput(inputEvent);
     }
 
     /**
@@ -177,7 +202,7 @@ public class ServerPlayer extends ServerLivingEntity {
         RaycastResult result = ServerRaycast.cast(world, eyePosition, direction, 5.0f);
         if (result.isHit()) {
             Vector3i placePos = new Vector3i(result.getBlockPosition()).add(result.getFaceNormal());
-            if (world.canMoveTo(new Vector3f(placePos.x, placePos.y, placePos.z), boundingBox.getHeight())) {
+            if (world.canMoveTo(new Vector3d(placePos.x, placePos.y, placePos.z), boundingBox.getHeight())) {
                 String blockId = selectedStack.getItem().getBlockNamespacedID();
                 if (blockId != null) {
                     GlobalPalette palette = GlobalPalette.getInstance();

@@ -2,6 +2,7 @@ package com.ksptool.ourcraft.client.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.UUID;
@@ -15,21 +16,21 @@ public class ClientEntity {
     protected final UUID uniqueId;
 
     //位置
-    protected final Vector3f position;
+    protected final Vector3d position;
     
     //上一逻辑刻的位置（用于插值）
-    protected final Vector3f previousPosition;
+    protected final Vector3d previousPosition;
 
     public ClientEntity(UUID uniqueId) {
         this.uniqueId = uniqueId != null ? uniqueId : UUID.randomUUID();
-        this.position = new Vector3f();
-        this.previousPosition = new Vector3f();
+        this.position = new Vector3d();
+        this.previousPosition = new Vector3d();
     }
 
     /**
      * 更新实体位置（从服务器同步）
      */
-    public void updatePosition(Vector3f newPosition) {
+    public void updatePosition(Vector3d newPosition) {
         previousPosition.set(position);
         position.set(newPosition);
     }
@@ -38,7 +39,7 @@ public class ClientEntity {
      * 设置实体位置（用于初始化）
      * 如果previousPosition尚未被有意义地设置过，则同时设置它
      */
-    public void setPosition(Vector3f newPosition) {
+    public void setPosition(Vector3d newPosition) {
         position.set(newPosition);
         // 如果previousPosition尚未被有意义地设置过（仍为0,0,0），则用当前位置初始化它
         // 避免(0,0,0)的初始值导致错误的插值

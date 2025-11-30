@@ -33,6 +33,7 @@ import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
 import com.ksptool.ourcraft.sharedcore.world.gen.SpawnPlatformGenerator;
 
 import lombok.extern.slf4j.Slf4j;
+import org.joml.Vector3d;
 
 /**
  * 游戏客户端，负责渲染、输入处理和事件消费
@@ -90,7 +91,7 @@ public class GameClient {
 
         GlobalPalette.getInstance().bake();
         
-        window = new Window(1280, 720, "OurCraft 1.2E2 \uD83E\uDD86 内部预览版");
+        window = new Window(1280, 720, "OurCraft " + EngineDefault.ENGINE_VERSION + "\uD83E\uDD86 内部预览版");
         window.init();
         input = new Input(window.getWindowHandle());
         input.setMouseLocked(false);
@@ -546,7 +547,7 @@ public class GameClient {
         
         // 创建玩家
         ClientPlayer newPlayer = new ClientPlayer(newClientWorld);
-        org.joml.Vector3f spawnPos = new org.joml.Vector3f((float) x, (float) y, (float) z);
+        Vector3d spawnPos = new Vector3d(x, y, z);
         newPlayer.setPosition(spawnPos); // 使用setPosition确保previousPosition也被正确初始化
         newPlayer.setYaw(yaw);
         newPlayer.setPitch(pitch);

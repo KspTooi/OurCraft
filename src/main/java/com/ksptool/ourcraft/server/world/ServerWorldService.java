@@ -157,7 +157,7 @@ public class ServerWorldService {
         ServerWorld sw = new ServerWorld(server,template);
         sw.setName(worldIndexVo.getName());
         sw.setSeed(worldIndexVo.getSeed());
-        sw.setGameTime(worldIndexVo.getTotalTick());
+        sw.setTotalTicks(worldIndexVo.getTotalTick());
         sw.setSaveName(worldIndexVo.getName());
         sw.setArchiveService(archiveService);
 

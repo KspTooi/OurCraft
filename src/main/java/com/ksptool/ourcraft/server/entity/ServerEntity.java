@@ -5,6 +5,7 @@ import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
 import lombok.Setter;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.UUID;
@@ -22,10 +23,10 @@ public abstract class ServerEntity {
     protected final UUID uniqueId;
 
     //位置
-    protected final Vector3f position;
+    protected final Vector3d position;
 
     //速度
-    protected final Vector3f velocity;
+    protected final Vector3d velocity;
 
     //是否在地面上
     @Setter
@@ -52,13 +53,13 @@ public abstract class ServerEntity {
         }
         this.world = world;
         this.uniqueId = uniqueId != null ? uniqueId : UUID.randomUUID();
-        this.position = new Vector3f();
-        this.velocity = new Vector3f();
+        this.position = new Vector3d();
+        this.velocity = new Vector3d();
         this.onGround = false;
         this.isDead = false;
     }
 
-    public abstract void update(float delta);
+    public abstract void update(double delta);
 
     /**
      * 标记实体为脏

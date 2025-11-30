@@ -58,7 +58,7 @@ public class ArchiveWorldService {
         var dto = new ArchiveWorldIndexDto();
         dto.setName(world.getName());
         dto.setSeed(world.getSeed());
-        dto.setTotalTick(world.getGameTime());
+        dto.setTotalTick(world.getTotalTicks());
         dto.setTemplateStdRegName(world.getTemplate().getStdRegName().toString());
         dto.setSpawnX(world.getDefaultSpawnPos().getX());
         dto.setSpawnY(world.getDefaultSpawnPos().getY());
@@ -89,7 +89,7 @@ public class ArchiveWorldService {
         }
 
         //保存实体数据
-        world.getEntityManager().saveAllDirtyEntities();
+        world.getEntityService().saveAllDirtyEntities();
 
         log.info("世界 {} 保存完成，保存区块数: {}", world.getName(), chunkCount);
     }

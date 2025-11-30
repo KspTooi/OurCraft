@@ -6,6 +6,8 @@ import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import lombok.extern.slf4j.Slf4j;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
 /**
@@ -67,12 +69,12 @@ public class Renderer {
         com.ksptool.ourcraft.client.entity.Camera camera = player.getCamera();
         
         // 计算插值后的位置和朝向
-        org.joml.Vector3f interpolatedPos = new org.joml.Vector3f(player.getPreviousPosition()).lerp(player.getPosition(), partialTick);
+        Vector3d interpolatedPos = new Vector3d(player.getPreviousPosition()).lerp(player.getPosition(), partialTick);
         float interpolatedYaw = player.getPreviousYaw() + (player.getYaw() - player.getPreviousYaw()) * partialTick;
         float interpolatedPitch = player.getPreviousPitch() + (player.getPitch() - player.getPreviousPitch()) * partialTick;
         
         // 计算眼睛位置（脚部位置 + 眼睛高度）
-        org.joml.Vector3f eyePos = new org.joml.Vector3f(interpolatedPos);
+        org.joml.Vector3f eyePos = new Vector3f(interpolatedPos);
         eyePos.y += player.getEyeHeight();
         
         // 设置相机位置和朝向

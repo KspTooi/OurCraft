@@ -27,6 +27,7 @@ public class FlexChunkData {
     //预计算层面积 (width * depth)，用于加速索引计算
     private final int layerArea;
 
+    //区块中的方块数据(使用压缩的Long数组)
     @Getter
     private volatile BitStorage storage;
 

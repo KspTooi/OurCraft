@@ -3,6 +3,8 @@ package com.ksptool.ourcraft.server.world;
 import com.ksptool.ourcraft.sharedcore.world.WorldEvent;
 import com.ksptool.ourcraft.sharedcore.world.WorldEventBus;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
@@ -28,6 +30,29 @@ public class ServerWorldEventBus implements WorldEventBus {
         while ((event = eventQueue.poll()) != null) {
             handler.accept(event);
         }
+    }
+
+    /**
+     * 获取一批世界事件
+     * @return 世界事件列表
+     */
+    @Override
+    public List<WorldEvent> getBatchEvents() {
+        List<WorldEvent> events = new ArrayList<>();
+        while (!eventQueue.isEmpty()) {
+            events.add(eventQueue.poll());
+        }
+        return events;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return !eventQueue.isEmpty();
+    }
+
+    @Override
+    public WorldEvent next() {
+        return eventQueue.poll();
     }
 
 }

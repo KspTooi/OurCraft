@@ -15,8 +15,11 @@ import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
+import com.ksptool.ourcraft.sharedcore.world.WorldEvent;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
+import com.ksptool.ourcraft.server.event.ServerPlayerCameraInputEvent;
+import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
@@ -24,8 +27,13 @@ import com.ksptool.ourcraft.sharedcore.world.gen.TerrainGenerator;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 服务端世界类，负责所有逻辑，不包含任何渲染相关代码
@@ -50,12 +58,12 @@ public class ServerWorld implements SharedWorld {
 
     private final FlexServerChunkService flexServerChunkService;
 
-    private final EntityManager entityManager;
+    private final EntityServiceOld entityService;
 
     private final ServerCollisionManager collisionManager;
     
     @Setter
-    private long gameTime = 0;
+    private long totalTicks = 0;
     
     @Setter
     private String name;
@@ -84,7 +92,7 @@ public class ServerWorld implements SharedWorld {
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
         this.template = template;
         this.chunkManagerOld = new ChunkManagerOld(this);
-        this.entityManager = new EntityManager(this);
+        this.entityService = new EntityServiceOld(this);
         this.collisionManager = new ServerCollisionManager(this);
         this.seed = String.valueOf(System.currentTimeMillis());
         this.eventQueue = EventQueue.getInstance();
@@ -107,17 +115,12 @@ public class ServerWorld implements SharedWorld {
     public void setSaveName(String saveName) {
         //this.saveName = saveName;
         this.chunkManagerOld.setSaveName(saveName);
-        this.entityManager.setSaveName(saveName);
+        this.entityService.setSaveName(saveName);
     }
-    
-    //public void setRegionManager(RegionManager regionManager) {
-    //    this.regionManager = regionManager;
-    //    this.chunkManager.setRegionManager(regionManager);
-    //}
-    
+
     public void setEntityRegionManager(RegionManager entityRegionManager) {
         this.entityRegionManager = entityRegionManager;
-        this.entityManager.setEntityRegionManager(entityRegionManager);
+        this.entityService.setEntityRegionManager(entityRegionManager);
     }
 
     public void init() {
@@ -153,7 +156,7 @@ public class ServerWorld implements SharedWorld {
      */
     private void tick(Vector3f playerPosition, Runnable playerTickCallback) {
 
-        gameTime++;
+        totalTicks++;
         chunkManagerOld.update(playerPosition);
         
         eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
@@ -184,8 +187,80 @@ public class ServerWorld implements SharedWorld {
         return (float) (timeAccumulator / tickTime);
     }
 
+    /**
+     * 执行世界逻辑
+     * @param delta 距离上一帧经过的时间（秒）由SWEU传入
+     */
     @Override
-    public void action() {
+    public void action(double delta) {
+
+        //世界时间推进
+        totalTicks += delta;
+
+        Map<Long, List<WorldEvent>> actionPlayerEvents = new HashMap<>();
+        List<WorldEvent> actionOtherEvents = new ArrayList<>();
+        
+        //循环拉取事件 并将玩家事件按SessionID分组
+        while (eventBus.hasNext()) {
+            var event = eventBus.next();
+            if (event instanceof ServerPlayerCameraInputEvent e) {
+                actionPlayerEvents.computeIfAbsent(e.getSessionId(), k -> new ArrayList<>()).add(event);
+                continue;
+            }
+            if (event instanceof ServerPlayerInputEvent e) {
+                actionPlayerEvents.computeIfAbsent(e.getSessionId(), k -> new ArrayList<>()).add(event);
+                continue;
+            }
+            //其他事件 不分组
+            actionOtherEvents.add(event);
+        }
+
+        //优先处理已分组的玩家事件
+        for (Map.Entry<Long, List<WorldEvent>> entry : actionPlayerEvents.entrySet()) {
+
+            var player = entityService.getPlayerBySessionId(entry.getKey());
+
+            if (player == null) {
+                log.warn("世界:{} 无法找到玩家会话ID:{} 对应的玩家实体", name, entry.getKey());
+                continue;
+            }
+
+            //应用玩家输入
+            for (WorldEvent event : entry.getValue()) {
+                //应用玩家相机视角输入事件
+                if (event instanceof ServerPlayerCameraInputEvent e) {
+                    player.updateCameraOrientation(e.getDeltaYaw(), e.getDeltaPitch());
+                }
+
+                //应用玩家键盘输入事件
+                if (event instanceof ServerPlayerInputEvent e) {
+                    player.applyInput(e);
+                }
+            }
+        }
+
+        //TODO: 处理其他事件
+
+
+        //实体物理模拟
+        for (ServerEntity entity : getEntities()) {
+            entity.update(delta);
+        }
+
+
+
+        //计算玩家移动逻辑以及票据
+        var allEntities = entityService.getEntities();
+
+        //遍历在现在还在这个世界的所有玩家
+        for (ServerEntity entity : allEntities) {
+            if (!(entity instanceof ServerPlayer)) {
+                continue;
+            }
+
+        }
+
+
 
     }
 
@@ -260,7 +335,7 @@ public class ServerWorld implements SharedWorld {
         ArchiveWorldIndexDto dto = new ArchiveWorldIndexDto();
         dto.setName(name);
         dto.setSeed(seed);
-        dto.setTotalTick(gameTime);
+        dto.setTotalTick(totalTicks);
         dto.setTemplateStdRegName(template.getStdRegName().toString());
         dto.setSpawnX(bestSpawnX);
         dto.setSpawnY(spawnY);
@@ -300,7 +375,7 @@ public class ServerWorld implements SharedWorld {
         chunkManagerOld.setBlockState(x, y, z, stateId);
     }
 
-    public boolean canMoveTo(Vector3f position, float height) {
+    public boolean canMoveTo(Vector3d position, double height) {
         return collisionManager.canMoveTo(position, height);
     }
 
@@ -309,15 +384,15 @@ public class ServerWorld implements SharedWorld {
     }
 
     public void addEntity(ServerEntity entity) {
-        entityManager.addEntity(entity);
+        entityService.addEntity(entity);
     }
 
     public void removeEntity(ServerEntity entity) {
-        entityManager.removeEntity(entity);
+        entityService.removeEntity(entity);
     }
 
     public List<ServerEntity> getEntities() {
-        return entityManager.getEntities();
+        return entityService.getEntities();
     }
 
     public void cleanup() {
@@ -325,7 +400,7 @@ public class ServerWorld implements SharedWorld {
     }
     
     public float getTimeOfDay() {
-        return (float) (gameTime % TICKS_PER_DAY) / TICKS_PER_DAY;
+        return (float) (totalTicks % TICKS_PER_DAY) / TICKS_PER_DAY;
     }
 
     @Override

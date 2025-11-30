@@ -297,9 +297,10 @@ public class ClientWorld implements SharedWorld {
     }
 
     @Override
-    public void action() {
+    public void action(double delta) {
 
     }
+
 
 }
 

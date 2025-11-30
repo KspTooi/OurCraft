@@ -231,7 +231,7 @@ public class PlayerSession implements Runnable {
 
 
             //创建玩家的实体 并投入世界中
-            ServerPlayer newPlayer = new ServerPlayer(world, playerVo);
+            ServerPlayer newPlayer = new ServerPlayer(world, playerVo, sessionId);
             world.addEntity(newPlayer);
             this.player = newPlayer;
             return;

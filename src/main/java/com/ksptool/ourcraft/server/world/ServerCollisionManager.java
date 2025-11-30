@@ -4,6 +4,7 @@ import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 /**
@@ -16,7 +17,7 @@ public class ServerCollisionManager {
         this.world = world;
     }
 
-    public boolean canMoveTo(Vector3f position, float height) {
+    public boolean canMoveTo(Vector3d position, double height) {
         int minX = (int) Math.floor(position.x - 0.3f);
         int maxX = (int) Math.floor(position.x + 0.3f);
         int minY = (int) Math.floor(position.y);

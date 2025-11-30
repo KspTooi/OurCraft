@@ -4,6 +4,7 @@ import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
 import lombok.Setter;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 /**
@@ -44,12 +45,12 @@ public abstract class ServerLivingEntity extends ServerEntity {
     }
 
     @Override
-    public void update(float delta) {
+    public void update(double delta) {
         handlePhysics(delta);
     }
 
 
-    protected void handlePhysics(float delta) {
+    protected void handlePhysics(double delta) {
         //基础合法性检查
         if (delta <= 0) {
             return;
@@ -59,18 +60,18 @@ public abstract class ServerLivingEntity extends ServerEntity {
         //限制最大时间步长为 0.1秒。
         //解释：如果服务器卡顿导致 delta 很大（例如 1.0s），物体会一次移动很远从而穿过墙壁。
         //强制截断 delta 可以保证物理模拟的连续性和稳定性。
-        float clampedDelta = Math.min(delta, 0.1f);
+        double clampedDelta = Math.min(delta, 0.1f);
 
         //应用重力
         //根据时间流逝增加垂直向下的速度
         velocity.y += GRAVITY * clampedDelta;
 
         //计算本帧预期的位移向量 (速度 * 时间)
-        Vector3f movement = new Vector3f(velocity);
+        Vector3d movement = new Vector3d(velocity);
         movement.mul(clampedDelta);
 
         //用于计算的新位置副本
-        Vector3f newPosition = new Vector3f(position);
+        Vector3d newPosition = new Vector3d(position);
 
         //确保包围盒已初始化 (Lazy initialization)
         if (boundingBox == null) {
@@ -84,7 +85,7 @@ public abstract class ServerLivingEntity extends ServerEntity {
         //[X轴处理]
         newPosition.x += movement.x;
         //创建一个向 X 轴偏移的测试包围盒
-        BoundingBox testBox = boundingBox.offset(new Vector3f(movement.x, 0, 0));
+        BoundingBox testBox = boundingBox.offset(new Vector3d(movement.x, 0, 0));
         //如果 X 轴方向有阻挡
         if (!world.canMoveTo(testBox)) {
             newPosition.x = position.x; // 回滚 X 轴位置
@@ -93,7 +94,7 @@ public abstract class ServerLivingEntity extends ServerEntity {
 
         //[Z轴处理]
         newPosition.z += movement.z;
-        testBox = boundingBox.offset(new Vector3f(0, 0, movement.z));
+        testBox = boundingBox.offset(new Vector3d(0, 0, movement.z));
         //如果 Z 轴方向有阻挡
         if (!world.canMoveTo(testBox)) {
             newPosition.z = position.z; // 回滚 Z 轴位置
@@ -102,7 +103,7 @@ public abstract class ServerLivingEntity extends ServerEntity {
 
         //[Y轴处理] (处理落地或顶头)
         newPosition.y += movement.y;
-        testBox = boundingBox.offset(new Vector3f(0, movement.y, 0));
+        testBox = boundingBox.offset(new Vector3d(0, movement.y, 0));
         if (!world.canMoveTo(testBox)) {
             // 如果是向下运动且发生碰撞，说明落地了
             if (movement.y < 0) {

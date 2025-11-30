@@ -21,6 +21,6 @@ public class PhysicsComponent implements EntityComponent {
     private double gravityMultiplier = -20.0f;
 
     public PhysicsComponent(float width, float height) {
-        this.boundingBox = new BoundingBox(new Vector3f(), width, height);
+        this.boundingBox = new BoundingBox(new Vector3d(), width, height);
     }
 }

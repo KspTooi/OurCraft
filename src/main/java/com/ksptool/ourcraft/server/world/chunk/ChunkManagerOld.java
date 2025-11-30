@@ -59,7 +59,11 @@ public class ChunkManagerOld {
     public void setRegionManager(RegionManager regionManager) {
         this.regionManager = regionManager;
     }
-    
+
+    /**
+     * 更新区块管理器
+     * @param playerPosition 玩家位置，用于计算玩家周围的区块
+     */
     public void update(Vector3f playerPosition) {
         int playerChunkX = (int) Math.floor(playerPosition.x / ServerChunkOld.CHUNK_SIZE);
         int playerChunkZ = (int) Math.floor(playerPosition.z / ServerChunkOld.CHUNK_SIZE);
@@ -115,9 +119,9 @@ public class ChunkManagerOld {
                             log.error("卸载时保存区块失败 [{},{}]", chunkX, chunkZ, e);
                         }
                     }
-                    if (chunk.areEntitiesDirty() && world.getEntityManager().getEntityRegionManager() != null && StringUtils.isNotBlank(saveName)) {
+                    if (chunk.areEntitiesDirty() && world.getEntityService().getEntityRegionManager() != null && StringUtils.isNotBlank(saveName)) {
                         log.debug("卸载时保存脏实体区块 [{},{}]", chunkX, chunkZ);
-                        world.getEntityManager().saveEntitiesForChunk(chunkX, chunkZ);
+                        world.getEntityService().saveEntitiesForChunk(chunkX, chunkZ);
                         chunk.markEntitiesDirty(false);
                     }
                     chunk.cleanup();
@@ -182,8 +186,8 @@ public class ChunkManagerOld {
             }
             
             log.debug("成功加载区块 [{},{}]", chunkX, chunkZ);
-            if (world.getEntityManager().getEntityRegionManager() != null) {
-                world.getEntityManager().loadEntitiesForChunk(chunkX, chunkZ);
+            if (world.getEntityService().getEntityRegionManager() != null) {
+                world.getEntityService().loadEntitiesForChunk(chunkX, chunkZ);
             }
             
             return chunk;

@@ -8,6 +8,7 @@ import com.ksptool.ourcraft.sharedcore.events.PlayerUpdateEvent;
 import lombok.Getter;
 import org.joml.Vector2d;
 import org.joml.Vector2f;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.UUID;
@@ -145,7 +146,7 @@ public class ClientPlayer extends ClientLivingEntity {
             velocity.x += moveDirection.x * acceleration * tickDelta;
             velocity.z += moveDirection.z * acceleration * tickDelta;
             
-            Vector2f horizontalVelocity = new Vector2f(velocity.x, velocity.z);
+            Vector2d horizontalVelocity = new Vector2d(velocity.x, velocity.z);
             if (horizontalVelocity.lengthSquared() > MAX_SPEED * MAX_SPEED) {
                 horizontalVelocity.normalize().mul(MAX_SPEED);
                 velocity.x = horizontalVelocity.x;
@@ -177,8 +178,8 @@ public class ClientPlayer extends ClientLivingEntity {
     public void updateFromServer(PlayerUpdateEvent event) {
         // 和解位置：服务端的位置是权威的
         // 如果客户端预测的位置与服务端位置差异较大，说明预测有误，需要强制同步
-        Vector3f serverPosition = event.getPosition();
-        float distance = position.distance(serverPosition);
+        Vector3d serverPosition = event.getPosition();
+        double distance = position.distance(serverPosition);
         
         // 如果差异超过阈值（例如0.5个单位），强制同步到服务端位置
         // 这可以防止客户端预测错误导致的"穿墙"等问题

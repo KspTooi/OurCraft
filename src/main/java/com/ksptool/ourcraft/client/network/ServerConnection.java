@@ -6,6 +6,7 @@ import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.extern.slf4j.Slf4j;
+import org.joml.Vector3d;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -226,8 +227,8 @@ public class ServerConnection {
 
             ClientPlayer player = gameClient.getPlayer();
             if (player != null) {
-                org.joml.Vector3f serverPos = new org.joml.Vector3f((float) packet.x(), (float) packet.y(), (float) packet.z());
-                float distance = player.getPosition().distance(serverPos);
+                Vector3d serverPos = new Vector3d((float) packet.x(), (float) packet.y(), (float) packet.z());
+                double distance = player.getPosition().distance(serverPos);
                 
                 // 如果玩家尚未初始化完成，直接同步到服务端位置（避免初始位置不同步）
                 if (!gameClient.isPlayerInitialized()) {
