@@ -1,5 +1,7 @@
 package com.ksptool.ourcraft.sharedcore.utils.position;
 
+import org.joml.Vector3d;
+
 import lombok.Getter;
 
 /**
@@ -34,6 +36,26 @@ public class Pos {
      */
     public static Pos of(int x, int y, int z) {
         return new Pos(x, y, z);
+    }
+
+    /**
+     * 创建一个位置
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @return 位置
+     */
+    public static Pos of(double x, double y, double z) {
+        return new Pos((int) x, (int) y, (int) z);
+    }
+
+    /**
+     * 创建一个位置
+     * @param position 位置
+     * @return 位置
+     */
+    public static Pos of(Vector3d position) {
+        return new Pos((int) position.x, (int) position.y, (int) position.z);
     }
 
     /**

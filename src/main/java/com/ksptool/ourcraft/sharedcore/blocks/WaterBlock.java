@@ -22,6 +22,7 @@ public class WaterBlock extends SharedBlock {
             return null;
         }
         return "water_still.png";
+        //return "oc_water.png";
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.archive.ArchiveService;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
 import com.ksptool.ourcraft.server.world.chunk.ChunkManagerOld;
+import com.ksptool.ourcraft.server.world.chunk.FlexChunkTokenService;
 import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
 import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
 import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
@@ -86,10 +87,14 @@ public class ServerWorld implements SharedWorld {
     //服务端世界事件总线
     private final ServerWorldEventBus eventBus;
 
+    //区块令牌服务
+    private final FlexChunkTokenService chunkTokenService;
+
     @Setter
     private ArchiveService archiveService;
 
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
+        this.chunkTokenService = new FlexChunkTokenService(this);
         this.template = template;
         this.chunkManagerOld = new ChunkManagerOld(this);
         this.entityService = new EntityServiceOld(this);
@@ -241,26 +246,32 @@ public class ServerWorld implements SharedWorld {
 
         //TODO: 处理其他事件
 
-
-        //实体物理模拟
+        //处理全部实体物理模拟
         for (ServerEntity entity : getEntities()) {
+
+            //处理玩家实体物理模拟
+            if (entity instanceof ServerPlayer pl) {
+
+                //记录移动前的所在区块
+                var oldChunkPos = Pos.of(pl.getPosition()).toChunkPos(template.getChunkSizeX(), template.getChunkSizeZ());
+
+                //更新玩家位置
+                pl.update(delta);
+
+                //记录移动后的所在区块
+                var newChunkPos = Pos.of(pl.getPosition()).toChunkPos(template.getChunkSizeX(), template.getChunkSizeZ());
+
+                //更新玩家令牌
+                chunkTokenService.updatePlayerTokens(pl.getSessionId(), oldChunkPos, newChunkPos, 8);
+            }
+
+            //处理其他实体物理模拟
             entity.update(delta);
         }
 
+        //处理区块加载/卸载
 
-
-        //计算玩家移动逻辑以及票据
-        var allEntities = entityService.getEntities();
-
-        //遍历在现在还在这个世界的所有玩家
-        for (ServerEntity entity : allEntities) {
-            if (!(entity instanceof ServerPlayer)) {
-                continue;
-            }
-
-        }
-
-
+        
 
     }
 

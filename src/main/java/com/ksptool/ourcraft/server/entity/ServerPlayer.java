@@ -11,6 +11,7 @@ import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.server.world.ServerRaycast;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
+import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.RaycastResult;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
@@ -54,6 +55,9 @@ public class ServerPlayer extends ServerLivingEntity {
     //最大移动速度
     private static final float MAX_SPEED = 40F;
 
+    //上一个Action所在的区块地址
+    private ChunkPos previousActionChunkPos;
+
     /**
      * 服务端构造函数：创建一个与服务端世界关联的玩家对象（带UUID）
      */
@@ -94,11 +98,30 @@ public class ServerPlayer extends ServerLivingEntity {
 
     @Override
     public void update(double delta) {
-        super.update(delta);
-    }
-    
+        // 在更新物理位置之前，先保存当前的区块位置作为"上一次"的位置
+        // 或者，如果你想比较的是"上一帧的最终位置"和"这一帧的最终位置"，
+        // 那么应该在super.update之前记录。
 
-    
+        // 获取当前位置对应的区块（更新前）
+        ChunkPos currentChunk = Pos.of(position.x, position.y, position.z).toChunkPos(world.getTemplate().getChunkSizeX(), world.getTemplate().getChunkSizeZ());
+        
+        // 如果 previousActionChunkPos 还没初始化，先初始化它
+        if (previousActionChunkPos == null) {
+            previousActionChunkPos = currentChunk;
+        }
+
+        super.update(delta);
+        
+        // 注意：这里我们仅仅是执行物理更新。
+        // 实际上，票据更新逻辑（Token update）通常是在 ServerWorld.action 中
+        // 通过比较 player.getPreviousActionChunkPos() 和 player.getCurrentChunkPos() 来触发的。
+        // 触发完票据更新后，ServerWorld 会负责将 previousActionChunkPos 更新为当前位置。
+        
+        // 但如果你希望 ServerPlayer 自动维护这个字段，
+        // 你可以定义一个方法供外部调用，或者在这里不更新，
+        // 而是提供一个 setPreviousActionChunkPos 方法给 World 使用。
+    }
+
 
 
     /**

@@ -28,10 +28,13 @@ public class GrassBlock extends SharedBlock {
         }
         if (face == 0) {
             return "grass_top.png";
+            //return "oc_gb_top.png";
         }
         if (face == 1) {
             return "dirt.png";
+            //return "oc_gb_dirt.png";
         }
         return "grass_side.png";
+        //return "oc_gb_side.png";
     }
 }
