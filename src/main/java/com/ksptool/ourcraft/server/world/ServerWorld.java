@@ -5,7 +5,7 @@ import com.ksptool.ourcraft.server.archive.ArchiveService;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
 import com.ksptool.ourcraft.server.world.chunk.SimpleChunkManager;
 import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
-import com.ksptool.ourcraft.server.world.chunk.FlexChunkTokenService;
+import com.ksptool.ourcraft.server.world.chunk.FlexChunkLeaseService;
 import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
 import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
@@ -59,7 +59,7 @@ public class ServerWorld implements SharedWorld {
 
     private final FlexServerChunkService flexServerChunkService;
 
-    private final EntityServiceOld entityService;
+    private final SimpleEntityService entityService;
 
     private final ServerCollisionManager collisionManager;
     
@@ -88,16 +88,16 @@ public class ServerWorld implements SharedWorld {
     private final ServerWorldEventBus eventBus;
 
     //区块令牌服务
-    private final FlexChunkTokenService chunkTokenService;
+    private final FlexChunkLeaseService chunkTokenService;
 
     @Setter
     private ArchiveService archiveService;
 
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
-        this.chunkTokenService = new FlexChunkTokenService(this);
+        this.chunkTokenService = new FlexChunkLeaseService(this);
         this.template = template;
         this.simpleChunkManager = new SimpleChunkManager(this);
-        this.entityService = new EntityServiceOld(this);
+        this.entityService = new SimpleEntityService(this);
         this.collisionManager = new ServerCollisionManager(this);
         this.seed = String.valueOf(System.currentTimeMillis());
         this.eventQueue = EventQueue.getInstance();

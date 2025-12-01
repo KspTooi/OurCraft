@@ -1,11 +1,14 @@
 package com.ksptool.ourcraft.sharedcore.utils.position;
 
+import java.util.Objects;
+
 import lombok.Getter;
 
 /**
  * SCA文件内局部区块坐标系
  * 
  * 坐标系 SCA内部坐标系: 用于表示"这个区块"在SCA文件内部的相对坐标 (通常范围 0-39)
+ * 该类实现安全的相等性判断和哈希码计算 可以用作Map的Key
  */
 @Getter
 public class ScaLocalPos {
@@ -78,5 +81,22 @@ public class ScaLocalPos {
     @Override
     public String toString() {
         return "SCA内部坐标:[" + x + "," + z + "]";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ScaLocalPos other = (ScaLocalPos) obj;
+        return x == other.x && z == other.z;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, z);
     }
 }

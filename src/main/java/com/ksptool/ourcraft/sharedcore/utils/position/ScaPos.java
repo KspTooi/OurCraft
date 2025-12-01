@@ -1,5 +1,7 @@
 package com.ksptool.ourcraft.sharedcore.utils.position;
 
+import java.util.Objects;
+
 import lombok.Getter;
 
 /**
@@ -7,6 +9,7 @@ import lombok.Getter;
  * 
  * 坐标系 SCA文件坐标系: 表示某个SCA文件在世界网格中的位置（类似于Region坐标）
  * 例如：S.0.0.sca, S.-1.2.sca
+ * 该类实现安全的相等性判断和哈希码计算 可以用作Map的Key
  */
 @Getter
 public class ScaPos {
@@ -48,5 +51,22 @@ public class ScaPos {
     @Override
     public String toString() {
         return "SCA文件坐标:[" + x + "," + z + "]";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ScaPos other = (ScaPos) obj;
+        return x == other.x && z == other.z;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, z);
     }
 }

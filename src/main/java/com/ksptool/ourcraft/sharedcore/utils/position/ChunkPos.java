@@ -1,11 +1,14 @@
 package com.ksptool.ourcraft.sharedcore.utils.position;
 
+import java.util.Objects;
+
 import lombok.Getter;
 
 /**
  * 区块位置类
  * 
  * 坐标系 区块坐标系: 用于表示"这个方块"属于第几个区块
+ * 该类实现安全的相等性判断和哈希码计算 可以用作Map的Key
  */
 @Getter
 public class ChunkPos {
@@ -134,6 +137,25 @@ public class ChunkPos {
      */
     public String getChunkKey(String worldName){
         return worldName + "." + getChunkKey();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ChunkPos other = (ChunkPos) obj;
+        //Chunk坐标不比较Y坐标(但从Pos转换为ChunkPos时,Y坐标会保留)
+        return x == other.x && z == other.z;
+    }
+
+    @Override
+    public int hashCode() {
+        //Chunk坐标不计算Y坐标(但从Pos转换为ChunkPos时,Y坐标会保留)
+        return Objects.hash(x, z);
     }
 
 }

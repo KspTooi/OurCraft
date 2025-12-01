@@ -1,6 +1,5 @@
 package com.ksptool.ourcraft.server.world.chunk;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.HashSet;
@@ -17,15 +16,15 @@ import lombok.extern.slf4j.Slf4j;
  */
 
 @Slf4j
-public class FlexChunkTokenService {
+public class FlexChunkLeaseService {
 
     //全部区块令牌
-    private final List<FlexChunkToken> tokens = new CopyOnWriteArrayList<>();
+    private final List<FlexChunkLease> tokens = new CopyOnWriteArrayList<>();
 
     @Getter
     private final ServerWorld world;
 
-    public FlexChunkTokenService(ServerWorld world) {
+    public FlexChunkLeaseService(ServerWorld world) {
         this.world = world;
     }
 
@@ -35,19 +34,19 @@ public class FlexChunkTokenService {
      * @param chunkPos 区块坐标
      */
     public void addTokenForPlayer(long playerSessionId, ChunkPos chunkPos) {
-        var token = new FlexChunkToken(chunkPos, FlexChunkToken.OwnerKind.PLAYER, playerSessionId, -1, 10);
+        //var token = new FlexChunkLease(chunkPos, FlexChunkLease.HolderType.PLAYER, playerSessionId, -1, 10);
 
         //检查是否已有同坐标的令牌(同一个玩家不能拥有同一个区块的多个令牌)
-        boolean alreadyHasToken = tokens.stream()
+        /*boolean alreadyHasToken = tokens.stream()
         .anyMatch(t -> t.getChunkPos().equals(chunkPos) 
-                  && t.getOwnerKind() == FlexChunkToken.OwnerKind.PLAYER 
+                  && t.getHolderType() == FlexChunkLease.HolderType.PLAYER
                   && t.getOwnerSessionId() == playerSessionId);
     
         if (alreadyHasToken) {
             return; // 这个玩家已经拥有该区块的 Token 了，无需重复添加
-        }
+        }*/
 
-        tokens.add(token);
+        //tokens.add(token);
     }
 
     /**
@@ -56,7 +55,7 @@ public class FlexChunkTokenService {
      * @param chunkPos 区块坐标
      */
     public void removeTokenForPlayer(long playerSessionId, ChunkPos chunkPos) {
-        tokens.removeIf(token -> token.getChunkPos().equals(chunkPos) && token.getOwnerSessionId() == playerSessionId);
+        //tokens.removeIf(token -> token.getChunkPos().equals(chunkPos) && token.getOwnerSessionId() == playerSessionId);
     }
     
     /**
@@ -65,11 +64,7 @@ public class FlexChunkTokenService {
      * @return 优先级 优先级最高的令牌将被返回 如果没有任何令牌则返回0
      */
     public int getTokenPriority(ChunkPos chunkPos) {
-        return tokens.stream()
-            .filter(token -> token.getChunkPos().equals(chunkPos))
-            .map(FlexChunkToken::getPriority)
-            .max(Integer::compareTo)
-            .orElse(0);
+        return 1;
     }
 
     /**
@@ -77,10 +72,6 @@ public class FlexChunkTokenService {
      * 计算新旧视口差异，只增删必要的令牌
      *
      * @param playerSessionId 玩家SessionID
-     * @param oldChunkX 旧的中心区块X (如果是初次加载，可传null或无效值)
-     * @param oldChunkZ 旧的中心区块Z
-     * @param newChunkX 新的中心区块X
-     * @param newChunkZ 新的中心区块Z
      * @param viewDistance 视距（半径）
      */
     public void updatePlayerTokens(long playerSessionId, ChunkPos oldChunPos, ChunkPos newChunPos, int viewDistance) {

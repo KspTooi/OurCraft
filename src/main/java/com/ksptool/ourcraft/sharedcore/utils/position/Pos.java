@@ -1,5 +1,7 @@
 package com.ksptool.ourcraft.sharedcore.utils.position;
 
+import java.util.Objects;
+
 import org.joml.Vector3d;
 
 import lombok.Getter;
@@ -7,6 +9,7 @@ import lombok.Getter;
 /**
  * 位置类
  * 坐标系 世界坐标系: 用于表示一个世界中的绝对坐标
+ * 该类实现安全的相等性判断和哈希码计算 可以用作Map的Key
  */
 @Getter
 public class Pos {
@@ -199,6 +202,23 @@ public class Pos {
     @Override
     public String toString() {
         return "世界坐标:[" + x + "," + y + "," + z + "]";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Pos other = (Pos) obj;
+        return x == other.x && y == other.y && z == other.z;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y, z);
     }
 
 

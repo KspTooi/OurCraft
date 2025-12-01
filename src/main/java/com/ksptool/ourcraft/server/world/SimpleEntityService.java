@@ -19,8 +19,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * 实体管理器，负责实体的生命周期管理
  */
-public class EntityServiceOld {
-    private static final Logger logger = LoggerFactory.getLogger(EntityServiceOld.class);
+public class SimpleEntityService {
+    private static final Logger logger = LoggerFactory.getLogger(SimpleEntityService.class);
     
     private final ServerWorld world;
     private final CopyOnWriteArrayList<ServerEntity> entities;
@@ -30,7 +30,7 @@ public class EntityServiceOld {
     //玩家会话ID->玩家实体
     private final ConcurrentHashMap<Long, ServerPlayer> playerSessions = new ConcurrentHashMap<>();
     
-    public EntityServiceOld(ServerWorld world) {
+    public SimpleEntityService(ServerWorld world) {
         this.world = world;
         this.entities = new CopyOnWriteArrayList<>();
     }
