@@ -3,12 +3,11 @@ package com.ksptool.ourcraft.server;
 import com.ksptool.ourcraft.server.archive.ArchiveService;
 import com.ksptool.ourcraft.server.archive.ArchivePlayerService;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerDto;
-import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorldService;
 import com.ksptool.ourcraft.server.player.PlayerSession;
 import com.ksptool.ourcraft.server.player.ServerPlayerService;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
+import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.server.world.gen.layers.BaseDensityLayer;
 import com.ksptool.ourcraft.server.world.gen.layers.FeatureLayer;
 import com.ksptool.ourcraft.server.world.gen.layers.SurfaceLayer;
@@ -338,23 +337,23 @@ public class OurCraftServer {
         }
 
         int playerChunkX = (int) Math
-                .floor(player.getPosition().x / ServerChunkOld.CHUNK_SIZE);
+                .floor(player.getPosition().x / SimpleServerChunk.CHUNK_SIZE);
         int playerChunkZ = (int) Math
-                .floor(player.getPosition().z / ServerChunkOld.CHUNK_SIZE);
+                .floor(player.getPosition().z / SimpleServerChunk.CHUNK_SIZE);
 
         for (int x = playerChunkX - INITIAL_RENDER_DISTANCE; x <= playerChunkX + INITIAL_RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - INITIAL_RENDER_DISTANCE; z <= playerChunkZ + INITIAL_RENDER_DISTANCE; z++) {
-                ServerChunkOld chunk = worldService.getWorld(defaultWorldName).getChunk(x, z);
+                SimpleServerChunk chunk = worldService.getWorld(defaultWorldName).getChunk(x, z);
                 if (chunk == null) {
                     worldService.getWorld(defaultWorldName).generateChunkSynchronously(x, z);
                     chunk = worldService.getWorld(defaultWorldName).getChunk(x, z);
                 }
                 if (chunk != null) {
                     // 将区块数据转换为byte[]
-                    int[][][] blockStates = new int[ServerChunkOld.CHUNK_SIZE][ServerChunkOld.CHUNK_HEIGHT][ServerChunkOld.CHUNK_SIZE];
-                    for (int localX = 0; localX < ServerChunkOld.CHUNK_SIZE; localX++) {
-                        for (int y = 0; y < ServerChunkOld.CHUNK_HEIGHT; y++) {
-                            for (int localZ = 0; localZ < ServerChunkOld.CHUNK_SIZE; localZ++) {
+                    int[][][] blockStates = new int[SimpleServerChunk.CHUNK_SIZE][SimpleServerChunk.CHUNK_HEIGHT][SimpleServerChunk.CHUNK_SIZE];
+                    for (int localX = 0; localX < SimpleServerChunk.CHUNK_SIZE; localX++) {
+                        for (int y = 0; y < SimpleServerChunk.CHUNK_HEIGHT; y++) {
+                            for (int localZ = 0; localZ < SimpleServerChunk.CHUNK_SIZE; localZ++) {
                                 blockStates[localX][y][localZ] = chunk.getBlockStateId(localX, y, localZ);
                             }
                         }
@@ -378,13 +377,13 @@ public class OurCraftServer {
      * 将区块数据序列化为byte[]
      */
     private byte[] serializeChunkData(int[][][] blockStates) {
-        int size = ServerChunkOld.CHUNK_SIZE * ServerChunkOld.CHUNK_HEIGHT * ServerChunkOld.CHUNK_SIZE;
+        int size = SimpleServerChunk.CHUNK_SIZE * SimpleServerChunk.CHUNK_HEIGHT * SimpleServerChunk.CHUNK_SIZE;
         byte[] data = new byte[size * 4];
         int index = 0;
 
-        for (int x = 0; x < ServerChunkOld.CHUNK_SIZE; x++) {
-            for (int y = 0; y < ServerChunkOld.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < ServerChunkOld.CHUNK_SIZE; z++) {
+        for (int x = 0; x < SimpleServerChunk.CHUNK_SIZE; x++) {
+            for (int y = 0; y < SimpleServerChunk.CHUNK_HEIGHT; y++) {
+                for (int z = 0; z < SimpleServerChunk.CHUNK_SIZE; z++) {
                     int stateId = blockStates[x][y][z];
                     data[index++] = (byte) (stateId & 0xFF);
                     data[index++] = (byte) ((stateId >> 8) & 0xFF);

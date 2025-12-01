@@ -2,13 +2,12 @@ package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
+import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.server.world.save.EntitySerializer;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,10 +125,10 @@ public class EntityServiceOld {
         
         try {
             List<ServerEntity> chunkEntities = new ArrayList<>();
-            float chunkMinX = chunkX * ServerChunkOld.CHUNK_SIZE;
-            float chunkMaxX = chunkMinX + ServerChunkOld.CHUNK_SIZE;
-            float chunkMinZ = chunkZ * ServerChunkOld.CHUNK_SIZE;
-            float chunkMaxZ = chunkMinZ + ServerChunkOld.CHUNK_SIZE;
+            float chunkMinX = chunkX * SimpleServerChunk.CHUNK_SIZE;
+            float chunkMaxX = chunkMinX + SimpleServerChunk.CHUNK_SIZE;
+            float chunkMinZ = chunkZ * SimpleServerChunk.CHUNK_SIZE;
+            float chunkMaxZ = chunkMinZ + SimpleServerChunk.CHUNK_SIZE;
             
             for (ServerEntity entity : entities) {
                 Vector3d pos = entity.getPosition();
@@ -169,10 +168,10 @@ public class EntityServiceOld {
             
             for (ServerEntity entity : entities) {
                 Vector3d pos = entity.getPosition();
-                int entityChunkX = (int) Math.floor(pos.x / ServerChunkOld.CHUNK_SIZE);
-                int entityChunkZ = (int) Math.floor(pos.z / ServerChunkOld.CHUNK_SIZE);
+                int entityChunkX = (int) Math.floor(pos.x / SimpleServerChunk.CHUNK_SIZE);
+                int entityChunkZ = (int) Math.floor(pos.z / SimpleServerChunk.CHUNK_SIZE);
                 
-                ServerChunkOld chunk = world.getChunkManagerOld().getChunk(entityChunkX, entityChunkZ);
+                SimpleServerChunk chunk = world.getSimpleChunkManager().getChunk(entityChunkX, entityChunkZ);
                 if (chunk != null && chunk.areEntitiesDirty()) {
                     logger.debug("保存脏实体区块 [{},{}]", entityChunkX, entityChunkZ);
                     saveEntitiesForChunk(entityChunkX, entityChunkZ);

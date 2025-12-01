@@ -11,7 +11,7 @@ import lombok.Setter;
 /**
  * 服务端区块类，只负责存储和管理方块数据，不包含任何渲染相关代码
  */
-public class ServerChunkOld implements SharedChunk {
+public class SimpleServerChunk implements SharedChunk {
 
     //区块大小
     public static final int CHUNK_SIZE = 16;
@@ -52,7 +52,7 @@ public class ServerChunkOld implements SharedChunk {
     private boolean isDirty = false;
     private boolean entitiesDirty = false;
 
-    public ServerChunkOld(int chunkX, int chunkZ) {
+    public SimpleServerChunk(int chunkX, int chunkZ) {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         this.blockStates = new int[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE];

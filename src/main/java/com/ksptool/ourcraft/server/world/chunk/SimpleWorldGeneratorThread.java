@@ -10,12 +10,12 @@ import java.util.concurrent.BlockingQueue;
  * 世界生成线程类，在后台线程中生成区块数据
  */
 @Slf4j
-public class WorldGeneratorThreadOld extends Thread {
+public class SimpleWorldGeneratorThread extends Thread {
     private final BlockingQueue<ChunkGenerationTask> generationQueue;
     private final ServerWorld world;
     private volatile boolean running = true;
 
-    public WorldGeneratorThreadOld(ServerWorld world, BlockingQueue<ChunkGenerationTask> generationQueue) {
+    public SimpleWorldGeneratorThread(ServerWorld world, BlockingQueue<ChunkGenerationTask> generationQueue) {
         this.world = world;
         this.generationQueue = generationQueue;
         this.setDaemon(true);
@@ -28,9 +28,9 @@ public class WorldGeneratorThreadOld extends Thread {
             try {
                 ChunkGenerationTask task = generationQueue.take();
 
-                ServerChunkOld chunk = new ServerChunkOld(task.getChunkX(), task.getChunkZ());
+                SimpleServerChunk chunk = new SimpleServerChunk(task.getChunkX(), task.getChunkZ());
                 world.generateChunkData(chunk);
-                chunk.setState(ServerChunkOld.ChunkState.DATA_LOADED);
+                chunk.setState(SimpleServerChunk.ChunkState.DATA_LOADED);
                 task.setChunk(chunk);
                 task.setDataGenerated(true);
             } catch (InterruptedException e) {

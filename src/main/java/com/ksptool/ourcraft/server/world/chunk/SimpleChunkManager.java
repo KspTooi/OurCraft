@@ -23,14 +23,14 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Getter
-public class ChunkManagerOld {
+public class SimpleChunkManager {
     private static final int RENDER_DISTANCE = 8;
     
     private final ServerWorld world;
-    private Map<Long, ServerChunkOld> chunks;
+    private Map<Long, SimpleServerChunk> chunks;
     private final BlockingQueue<ChunkGenerationTask> generationQueue;
     private final Map<Long, ChunkGenerationTask> pendingChunks;
-    private WorldGeneratorThreadOld worldGeneratorThreadOld;
+    private SimpleWorldGeneratorThread simpleWorldGeneratorThread;
     
     private int lastPlayerChunkX = Integer.MIN_VALUE;
     private int lastPlayerChunkZ = Integer.MIN_VALUE;
@@ -44,7 +44,7 @@ public class ChunkManagerOld {
         return ChunkUtils.getChunkKey(x, z);
     }
     
-    public ChunkManagerOld(ServerWorld world) {
+    public SimpleChunkManager(ServerWorld world) {
         this.world = world;
         this.chunks = new ConcurrentHashMap<>();
         this.generationQueue = new LinkedBlockingQueue<>();
@@ -52,8 +52,8 @@ public class ChunkManagerOld {
     }
     
     public void init() {
-        worldGeneratorThreadOld = new WorldGeneratorThreadOld(world, generationQueue);
-        worldGeneratorThreadOld.start();
+        simpleWorldGeneratorThread = new SimpleWorldGeneratorThread(world, generationQueue);
+        simpleWorldGeneratorThread.start();
     }
     
     public void setRegionManager(RegionManager regionManager) {
@@ -65,8 +65,8 @@ public class ChunkManagerOld {
      * @param playerPosition 玩家位置，用于计算玩家周围的区块
      */
     public void update(Vector3f playerPosition) {
-        int playerChunkX = (int) Math.floor(playerPosition.x / ServerChunkOld.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / ServerChunkOld.CHUNK_SIZE);
+        int playerChunkX = (int) Math.floor(playerPosition.x / SimpleServerChunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / SimpleServerChunk.CHUNK_SIZE);
 
         if (playerChunkX != lastPlayerChunkX || playerChunkZ != lastPlayerChunkZ) {
             for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
@@ -85,12 +85,12 @@ public class ChunkManagerOld {
                     long key = getChunkKey(x, z);
                     ChunkGenerationTask task = pendingChunks.get(key);
                     if (task != null && task.isDataGenerated() && task.getChunk() != null) {
-                        ServerChunkOld chunk = task.getChunk();
+                        SimpleServerChunk chunk = task.getChunk();
                         if (!chunks.containsKey(key)) {
                             chunks.put(key, chunk);
                         }
-                        if (chunk.getState() == ServerChunkOld.ChunkState.DATA_LOADED) {
-                            chunk.setState(ServerChunkOld.ChunkState.READY);
+                        if (chunk.getState() == SimpleServerChunk.ChunkState.DATA_LOADED) {
+                            chunk.setState(SimpleServerChunk.ChunkState.READY);
                         }
                     }
                 }
@@ -98,7 +98,7 @@ public class ChunkManagerOld {
             
             chunks.entrySet().removeIf(entry -> {
                 long key = entry.getKey();
-                ServerChunkOld chunk = entry.getValue();
+                SimpleServerChunk chunk = entry.getValue();
                 int chunkX = chunk.getChunkX();
                 int chunkZ = chunk.getChunkZ();
                 int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
@@ -110,7 +110,7 @@ public class ChunkManagerOld {
                         int localZ = RegionManager.getLocalChunkZ(chunkZ);
                         try {
                             log.debug("卸载时保存脏区块 [{},{}]", chunkX, chunkZ);
-                            byte[] compressedData = ChunkSerializerOld.serialize(chunk);
+                            byte[] compressedData = SimpleChunkSerializer.serialize(chunk);
                             RegionFile regionFile = regionManager.getRegionFile(regionX, regionZ);
                             regionFile.open();
                             regionFile.writeChunk(localX, localZ, compressedData);
@@ -136,9 +136,9 @@ public class ChunkManagerOld {
         }
     }
     
-    public ServerChunkOld getChunk(int chunkX, int chunkZ) {
+    public SimpleServerChunk getChunk(int chunkX, int chunkZ) {
         long key = getChunkKey(chunkX, chunkZ);
-        ServerChunkOld chunk = chunks.get(key);
+        SimpleServerChunk chunk = chunks.get(key);
         
         if (chunk != null) {
             return chunk;
@@ -155,7 +155,7 @@ public class ChunkManagerOld {
         return null;
     }
     
-    private ServerChunkOld loadChunkFromRegion(int chunkX, int chunkZ) {
+    private SimpleServerChunk loadChunkFromRegion(int chunkX, int chunkZ) {
         if (regionManager == null) {
             log.debug("无法加载区块 [{},{}]: 区域管理器未初始化", chunkX, chunkZ);
             return null;
@@ -178,7 +178,7 @@ public class ChunkManagerOld {
                 return null;
             }
             
-            ServerChunkOld chunk = ChunkSerializerOld.deserialize(compressedData, chunkX, chunkZ);
+            SimpleServerChunk chunk = SimpleChunkSerializer.deserialize(compressedData, chunkX, chunkZ);
             
             if (chunk == null) {
                 log.warn("区块 [{},{}] 反序列化失败", chunkX, chunkZ);
@@ -198,49 +198,49 @@ public class ChunkManagerOld {
     }
     
     public int getBlockState(int x, int y, int z) {
-        int chunkX = (int) Math.floor((float) x / ServerChunkOld.CHUNK_SIZE);
-        int chunkZ = (int) Math.floor((float) z / ServerChunkOld.CHUNK_SIZE);
+        int chunkX = (int) Math.floor((float) x / SimpleServerChunk.CHUNK_SIZE);
+        int chunkZ = (int) Math.floor((float) z / SimpleServerChunk.CHUNK_SIZE);
         long key = getChunkKey(chunkX, chunkZ);
-        ServerChunkOld chunk = chunks.get(key);
+        SimpleServerChunk chunk = chunks.get(key);
         if (chunk == null) {
             return 0;
         }
-        int localX = x - chunkX * ServerChunkOld.CHUNK_SIZE;
-        int localZ = z - chunkZ * ServerChunkOld.CHUNK_SIZE;
+        int localX = x - chunkX * SimpleServerChunk.CHUNK_SIZE;
+        int localZ = z - chunkZ * SimpleServerChunk.CHUNK_SIZE;
         return chunk.getBlockStateId(localX, y, localZ);
     }
     
     public void setBlockState(int x, int y, int z, int stateId) {
-        int chunkX = (int) Math.floor((float) x / ServerChunkOld.CHUNK_SIZE);
-        int chunkZ = (int) Math.floor((float) z / ServerChunkOld.CHUNK_SIZE);
+        int chunkX = (int) Math.floor((float) x / SimpleServerChunk.CHUNK_SIZE);
+        int chunkZ = (int) Math.floor((float) z / SimpleServerChunk.CHUNK_SIZE);
         long key = getChunkKey(chunkX, chunkZ);
-        ServerChunkOld chunk = chunks.get(key);
+        SimpleServerChunk chunk = chunks.get(key);
         if (chunk == null) {
             chunk = getChunk(chunkX, chunkZ);
             if (chunk == null) {
                 return;
             }
         }
-        int localX = x - chunkX * ServerChunkOld.CHUNK_SIZE;
-        int localZ = z - chunkZ * ServerChunkOld.CHUNK_SIZE;
+        int localX = x - chunkX * SimpleServerChunk.CHUNK_SIZE;
+        int localZ = z - chunkZ * SimpleServerChunk.CHUNK_SIZE;
         chunk.setBlockState(localX, y, localZ, stateId);
-        if (chunk.getState() == ServerChunkOld.ChunkState.READY) {
-            chunk.setState(ServerChunkOld.ChunkState.DATA_LOADED);
+        if (chunk.getState() == SimpleServerChunk.ChunkState.READY) {
+            chunk.setState(SimpleServerChunk.ChunkState.DATA_LOADED);
         }
     }
     
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
-        ServerChunkOld chunk = getChunk(chunkX, chunkZ);
+        SimpleServerChunk chunk = getChunk(chunkX, chunkZ);
 
         if (chunk == null) {
             long key = getChunkKey(chunkX, chunkZ);
-            chunk = new ServerChunkOld(chunkX, chunkZ);
+            chunk = new SimpleServerChunk(chunkX, chunkZ);
             world.generateChunkData(chunk);
             chunks.put(key, chunk);
         }
 
-        if (chunk.getState() == ServerChunkOld.ChunkState.DATA_LOADED || chunk.getState() == ServerChunkOld.ChunkState.NEW) {
-            chunk.setState(ServerChunkOld.ChunkState.READY);
+        if (chunk.getState() == SimpleServerChunk.ChunkState.DATA_LOADED || chunk.getState() == SimpleServerChunk.ChunkState.NEW) {
+            chunk.setState(SimpleServerChunk.ChunkState.READY);
         }
     }
     
@@ -258,8 +258,8 @@ public class ChunkManagerOld {
         try {
             int dirtyChunkCount = 0;
             
-            for (Map.Entry<Long, ServerChunkOld> entry : chunks.entrySet()) {
-                ServerChunkOld chunk = entry.getValue();
+            for (Map.Entry<Long, SimpleServerChunk> entry : chunks.entrySet()) {
+                SimpleServerChunk chunk = entry.getValue();
                 if (chunk == null) {
                     continue;
                 }
@@ -275,7 +275,7 @@ public class ChunkManagerOld {
                     
                     log.debug("保存脏区块 [{},{}] 到区域 [{},{}] 本地坐标 [{},{}]", chunkX, chunkZ, regionX, regionZ, localX, localZ);
                     
-                    byte[] compressedData = ChunkSerializerOld.serialize(chunk);
+                    byte[] compressedData = SimpleChunkSerializer.serialize(chunk);
                     
                     RegionFile regionFile = regionManager.getRegionFile(regionX, regionZ);
                     regionFile.open();
@@ -302,23 +302,23 @@ public class ChunkManagerOld {
      * 获取脏区块快照
      * @return 所有脏区块的快照数据
      */
-    public List<ServerChunkOld> getDirtyChunkSnapshot() {
+    public List<SimpleServerChunk> getDirtyChunkSnapshot() {
         return chunks.values().stream()
-            .filter(ServerChunkOld::isDirty)
+            .filter(SimpleServerChunk::isDirty)
             .collect(Collectors.toList());
     }
 
     public void cleanup() {
-        if (worldGeneratorThreadOld != null) {
-            worldGeneratorThreadOld.stopGenerator();
+        if (simpleWorldGeneratorThread != null) {
+            simpleWorldGeneratorThread.stopGenerator();
             try {
-                worldGeneratorThreadOld.join(1000);
+                simpleWorldGeneratorThread.join(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
         
-        for (ServerChunkOld chunk : chunks.values()) {
+        for (SimpleServerChunk chunk : chunks.values()) {
             chunk.cleanup();
         }
         chunks.clear();

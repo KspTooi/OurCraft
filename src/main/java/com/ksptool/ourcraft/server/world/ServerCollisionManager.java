@@ -5,7 +5,6 @@ import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
 
 /**
  * 服务端碰撞管理器，负责权威的物理碰撞检测
@@ -29,7 +28,7 @@ public class ServerCollisionManager {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    int stateId = world.getChunkManagerOld().getBlockState(x, y, z);
+                    int stateId = world.getSimpleChunkManager().getBlockState(x, y, z);
                     BlockState state = palette.getState(stateId);
                     SharedBlock sharedBlock = state.getSharedBlock();
                     if (sharedBlock.isSolid()) {
@@ -53,7 +52,7 @@ public class ServerCollisionManager {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    int stateId = world.getChunkManagerOld().getBlockState(x, y, z);
+                    int stateId = world.getSimpleChunkManager().getBlockState(x, y, z);
                     BlockState state = palette.getState(stateId);
                     SharedBlock sharedBlock = state.getSharedBlock();
                     if (sharedBlock.isSolid()) {

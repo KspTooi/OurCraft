@@ -15,7 +15,8 @@ import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 
 /**
- * 超级区块管理器，负责区块的加载、卸载、缓存和存盘
+ * Flex区块管理器，负责区块的加载、卸载、缓存和存盘
+ * 新一代的区块管理器 负责接替Simple系列组件
  */
 @Slf4j
 public class FlexServerChunkService {
@@ -26,23 +27,23 @@ public class FlexServerChunkService {
     //世界实例
     private final ServerWorld world;
 
-    //超级区块 区块Key(可通过ChunkUtils.getChunkKey(x,z)获取)->超级区块
+    //Flex区块 区块Key(可通过ChunkUtils.getChunkKey(x,z)获取)->Flex区块
     private final Map<Long, FlexServerChunk> chunks = new ConcurrentHashMap<>();
 
     //归档区块管理器
-    private ArchiveSuperChunkService ascm;
+    private final ArchiveSuperChunkService ascs;
 
     //玩家视距
     private final int playerRenderDistance = 8;
 
-
     public FlexServerChunkService(OurCraftServer server, ServerWorld world) {
+
         this.server = server;
         this.world = world;
-        ascm = server.getArchiveService().getChunkService();
+        ascs = server.getArchiveService().getChunkService();
 
         if(!server.getArchiveService().isConnectedArchiveIndex()){
-            throw new RuntimeException("未连接到归档索引,无法创建超级区块管理器");
+            throw new RuntimeException("未连接到归档索引,无法创建Flex区块管理器");
         }
 
         //从世界模板中获取区块生成管道
@@ -94,58 +95,58 @@ public class FlexServerChunkService {
 
 
     /**
-     * 从SCA加载或生成区块数据
+     * 从SCA加载或生成区块数据(线程安全)
      * @param pos 块坐标
      * @return 区块加载任务
      */
-    public CompletableFuture<FlexServerChunk> loadOrGenerate(ChunkPos pos){
+    public CompletableFuture<FlexServerChunk> loadOrGenerate(ChunkPos pos) {
 
-        //判断FSCM缓存中是否已有该区块
-        FlexServerChunk chunk = chunks.get(pos.getChunkKey());
+        // 使用 computeIfAbsent 实现原子性的"检查并初始化"
+        // existsChunk 要么是刚生成的，要么是原本就有的，一定是同一个对象
+        FlexServerChunk chunk = chunks.computeIfAbsent(pos.getChunkKey(), key -> {
 
-        //已有该区块 直接返回加载任务
-        if(chunk != null){
-            return chunk.getLoadFuture();
-        }
+            final var newChunk = new FlexServerChunk(pos, world);
 
-        //没有该区块、创建新区块引用并加载或生成数据
-        final var newChunk = new FlexServerChunk(pos, world);
-        chunks.put(pos.getChunkKey(), chunk);
+            var tp = server.getCHUNK_PROCESS_THREAD_POOL();
 
-        var tp = server.getCHUNK_PROCESS_THREAD_POOL();
+            //提交异步任务
+            tp.submit(() -> {
+                try {
+                    // 优先从归档加载
+                    if (ascs.hasChunk(world.getName(), pos)) {
+                        var data = ascs.readChunk(world.getName(), pos);
+                        var fcd = FlexChunkSerializer.deserialize(data);
+                        newChunk.setFlexChunkData(fcd);
+                        newChunk.setStage(FlexServerChunk.Stage.READY);
+                        log.info("从SCA归档中加载区块: {}", pos);
+                    }
+                    // 归档不存在则生成
+                    if(!ascs.hasChunk(world.getName(), pos)){
+                        //这里建议直接用外层的 world 变量，避免变量名遮蔽
+                        var tg = world.getTerrainGenerator();
+                        tg.execute(newChunk, world.getGenerationContext());
+                        newChunk.setStage(FlexServerChunk.Stage.READY);
+                        log.info("生成新区块数据: {}", pos);
+                    }
 
-        //向线程池提交区块加载任务
-        tp.submit(()->{
+                    //成功完成 Future
+                    newChunk.getLoadFuture().complete(newChunk);
 
-            //优先从SCAF归档中加载  判断SCAF中是否存在该区块
-            if(ascm.hasChunk(world.getName(), pos)){
+                    //发布事件 (应放在 complete 之后，确保监听者拿到的是完成状态的 Future)
+                    world.getEventBus().publish(new ServerChunkReadyEvent(newChunk));
 
-                //存在则加载区块数据
-                var data = ascm.readChunk(world.getName(), pos);
-                var fcd = FlexChunkSerializer.deserialize(data);
-                newChunk.setFlexChunkData(fcd);
-                newChunk.setStage(FlexServerChunk.Stage.READY);
-                log.info("从SCA归档中加载区块数据: {}", pos);
+                } catch (Exception e) {
+                    log.error("区块加载/生成失败: {}", pos, e);
+                    newChunk.getLoadFuture().completeExceptionally(e);
+                    // 可选：如果加载失败，可能需要从 chunks Map 中移除这个损坏的占位符区块
+                    // chunks.remove(key);
+                }
+            });
 
-                //完成异步加载任务 并发布区块就绪事件
-                newChunk.getLoadFuture().complete(chunk);
-                world.getEventBus().publish(new ServerChunkReadyEvent(newChunk));
-                return newChunk;
-            }
-
-            //SCAF中不存在该区块 则生成区块数据
-            var world = newChunk.getWorld();
-            var tg = world.getTerrainGenerator();
-            tg.execute(newChunk, world.getGenerationContext());
-            newChunk.setStage(FlexServerChunk.Stage.READY);
-            log.info("生成区块数据: {}", pos);
-            //完成异步加载任务 并发布区块就绪事件
-            newChunk.getLoadFuture().complete(newChunk);
-            world.getEventBus().publish(new ServerChunkReadyEvent(newChunk));
             return newChunk;
         });
 
-        return newChunk.getLoadFuture();
+        return chunk.getLoadFuture();
     }
 
     /**

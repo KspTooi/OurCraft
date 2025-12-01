@@ -1,12 +1,11 @@
 package com.ksptool.ourcraft.server.entity;
 
-import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
+import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
 import lombok.Setter;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
 
 import java.util.UUID;
 
@@ -68,9 +67,9 @@ public abstract class ServerEntity {
     public void markDirty(boolean isDirty) {
         this.isDirty = isDirty;
         if (isDirty && world != null) {
-            int chunkX = (int) Math.floor(position.x / ServerChunkOld.CHUNK_SIZE);
-            int chunkZ = (int) Math.floor(position.z / ServerChunkOld.CHUNK_SIZE);
-            ServerChunkOld chunk = world.getChunk(chunkX, chunkZ);
+            int chunkX = (int) Math.floor(position.x / SimpleServerChunk.CHUNK_SIZE);
+            int chunkZ = (int) Math.floor(position.z / SimpleServerChunk.CHUNK_SIZE);
+            SimpleServerChunk chunk = world.getChunk(chunkX, chunkZ);
             if (chunk != null) {
                 chunk.markEntitiesDirty(true);
             }

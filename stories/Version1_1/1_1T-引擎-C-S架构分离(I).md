@@ -195,7 +195,7 @@
 ### 第五步：全局更新代码引用
 
 -   **操作**: 这是最关键的一步，需要细致地修改所有引用旧 `Chunk` 类的地方。
-    -   **服务端**: 在所有服务端相关的类中（例如 `ServerWorld`, `GameServer`, `world.ChunkManager`, `world.save.*`, `world.gen.*`），将 `import com.ksptool.ourcraft.world.Chunk;` 替换为 `import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;`，并将所有 `Chunk` 类型变量改为 `ServerChunk`。
+    -   **服务端**: 在所有服务端相关的类中（例如 `ServerWorld`, `GameServer`, `world.ChunkManager`, `world.save.*`, `world.gen.*`），将 `import com.ksptool.ourcraft.world.Chunk;` 替换为 `import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;`，并将所有 `Chunk` 类型变量改为 `ServerChunk`。
     -   **客户端**: 在所有客户端相关的类中（例如 `ClientWorld`, `ClientIWorld`），确保它们使用的是 `ClientChunk`。
     -   **事件系统**: 检查 `sharedcore.events` 中的事件，确保它们只传递原始数据（如 `int[][][] blockStates`），而不引用任何 `Chunk`、`ServerChunk` 或 `ClientChunk` 对象。
 

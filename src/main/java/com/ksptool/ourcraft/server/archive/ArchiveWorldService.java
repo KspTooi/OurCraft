@@ -11,8 +11,8 @@ import java.time.ZoneId;
 import java.util.List;
 
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
-import com.ksptool.ourcraft.server.world.chunk.ServerChunkOld;
-import com.ksptool.ourcraft.server.world.chunk.ChunkSerializerOld;
+import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
+import com.ksptool.ourcraft.server.world.chunk.SimpleChunkSerializer;
 import org.apache.commons.lang3.StringUtils;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
 import com.ksptool.ourcraft.server.world.ServerWorld;
@@ -74,12 +74,12 @@ public class ArchiveWorldService {
         paletteManager.saveGlobalPalette(GlobalPalette.getInstance());
 
         //保存当前的区块数据
-        List<ServerChunkOld> dirtyChunks = world.getChunkManagerOld().getDirtyChunkSnapshot();
+        List<SimpleServerChunk> dirtyChunks = world.getSimpleChunkManager().getDirtyChunkSnapshot();
         int chunkCount = 0;
 
-        for (ServerChunkOld chunk : dirtyChunks) {
+        for (SimpleServerChunk chunk : dirtyChunks) {
             try {
-                byte[] compressedData = ChunkSerializerOld.serialize(chunk);
+                byte[] compressedData = SimpleChunkSerializer.serialize(chunk);
                 chunkService.writeChunk(world.getName(),chunk.getChunkPos(),compressedData);
                 chunk.markDirty(false);
                 chunkCount++;

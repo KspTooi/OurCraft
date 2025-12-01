@@ -21,15 +21,15 @@ import java.util.zip.Inflater;
  * 2. 使用游程编码（RLE）压缩连续相同的方块
  * 3. 使用 zlib 压缩数据
  */
-public class ChunkSerializerOld {
+public class SimpleChunkSerializer {
 
     //区块大小
-    private static final int CHUNK_SIZE = ServerChunkOld.CHUNK_SIZE;
+    private static final int CHUNK_SIZE = SimpleServerChunk.CHUNK_SIZE;
 
     //区块高度
-    private static final int CHUNK_HEIGHT = ServerChunkOld.CHUNK_HEIGHT;
+    private static final int CHUNK_HEIGHT = SimpleServerChunk.CHUNK_HEIGHT;
     
-    public static byte[] serialize(ServerChunkOld chunk) throws IOException {
+    public static byte[] serialize(SimpleServerChunk chunk) throws IOException {
         GlobalPalette globalPalette = GlobalPalette.getInstance();
         
         Map<Integer, Integer> localPalette = new HashMap<>();
@@ -104,7 +104,7 @@ public class ChunkSerializerOld {
         return compressedBaos.toByteArray();
     }
     
-    public static ServerChunkOld deserialize(byte[] compressedData, int chunkX, int chunkZ) throws IOException {
+    public static SimpleServerChunk deserialize(byte[] compressedData, int chunkX, int chunkZ) throws IOException {
         Inflater inflater = new Inflater();
         inflater.setInput(compressedData);
         
@@ -138,7 +138,7 @@ public class ChunkSerializerOld {
             rleData.add(new RleEntry(localId, count));
         }
         
-        ServerChunkOld chunk = new ServerChunkOld(chunkX, chunkZ);
+        SimpleServerChunk chunk = new SimpleServerChunk(chunkX, chunkZ);
         
         int index = 0;
         for (RleEntry entry : rleData) {
@@ -152,7 +152,7 @@ public class ChunkSerializerOld {
             }
         }
         
-        chunk.setState(ServerChunkOld.ChunkState.DATA_LOADED);
+        chunk.setState(SimpleServerChunk.ChunkState.DATA_LOADED);
         chunk.markDirty(false);
         return chunk;
     }
