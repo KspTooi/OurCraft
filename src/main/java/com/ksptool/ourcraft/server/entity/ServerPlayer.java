@@ -20,6 +20,7 @@ import org.joml.*;
 
 import java.lang.Math;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 服务端玩家实体类，处理玩家移动、方块放置和破坏
@@ -43,8 +44,13 @@ public class ServerPlayer extends ServerLivingEntity {
     @Setter
     private double pitch = 0.0;
 
-    //玩家所在区块坐标
-    private ChunkPos lastChunk;
+    //本次Action结束时的区块地址
+    @Setter
+    private ChunkPos currentChunkPos;
+
+    //上一个Action结束时的区块地址
+    @Setter
+    private ChunkPos previousChunkPos;
 
     //地面加速度
     private static final float GROUND_ACCELERATION = 40F;
@@ -55,8 +61,6 @@ public class ServerPlayer extends ServerLivingEntity {
     //最大移动速度
     private static final float MAX_SPEED = 40F;
 
-    //上一个Action所在的区块地址
-    private ChunkPos previousActionChunkPos;
 
     /**
      * 服务端构造函数：创建一个与服务端世界关联的玩家对象（带UUID）
@@ -103,12 +107,12 @@ public class ServerPlayer extends ServerLivingEntity {
         // 那么应该在super.update之前记录。
 
         // 获取当前位置对应的区块（更新前）
-        ChunkPos currentChunk = Pos.of(position.x, position.y, position.z).toChunkPos(world.getTemplate().getChunkSizeX(), world.getTemplate().getChunkSizeZ());
-        
+        //ChunkPos currentChunk = Pos.of(position.x, position.y, position.z).toChunkPos(world.getTemplate().getChunkSizeX(), world.getTemplate().getChunkSizeZ());
+
         // 如果 previousActionChunkPos 还没初始化，先初始化它
-        if (previousActionChunkPos == null) {
-            previousActionChunkPos = currentChunk;
-        }
+        //if (previousActionChunkPos == null) {
+        //    previousActionChunkPos = currentChunk;
+        //}
 
         super.update(delta);
         
@@ -153,7 +157,7 @@ public class ServerPlayer extends ServerLivingEntity {
             moveDirection.normalize();
             
             float acceleration = onGround ? GROUND_ACCELERATION : AIR_ACCELERATION;
-            float tickDelta = 1.0f / world.getTemplate().getTps();
+            float tickDelta = 1.0f / world.getTemplate().getActionPerSecond();
             velocity.x += moveDirection.x * acceleration * tickDelta;
             velocity.z += moveDirection.z * acceleration * tickDelta;
             

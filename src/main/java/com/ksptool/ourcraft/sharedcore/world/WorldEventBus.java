@@ -10,10 +10,24 @@ import java.util.function.Consumer;
 public interface WorldEventBus {
 
     /**
+     * 注册监听器
+     * @param eventType 事件类型
+     * @param listener 事件处理器
+     */
+    <T extends WorldEvent> void subscribe(Class<T> eventType, Consumer<T> listener);
+
+    /**
      * 发布世界事件 可以在任何线程中发布事件
      * @param event 世界事件
      */
     void publish(WorldEvent event);
+
+
+    /**
+     * 处理事件
+     */
+    void process();
+
 
     /**
      * 处理世界事件

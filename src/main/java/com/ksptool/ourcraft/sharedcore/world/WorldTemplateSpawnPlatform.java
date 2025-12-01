@@ -31,7 +31,7 @@ public class WorldTemplateSpawnPlatform extends WorldTemplate {
         setFogDensity(0.0001);
         setSkyLightLevel(15.0);
         setAmbientLightLevel(0.0);
-        setTps(20);
+        setActionPerSecond(20);
         setChunkSizeX(16);
         setChunkSizeY(320);
         setChunkSizeZ(16);

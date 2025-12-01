@@ -46,7 +46,7 @@ public class FlexChunkLease {
     private final AtomicInteger ttl;
 
     //租约是否永久
-    private final AtomicBoolean isPermanent;
+    private final AtomicBoolean permanent;
 
     //区块坐标
     private final ChunkPos chunkPos;
@@ -56,20 +56,92 @@ public class FlexChunkLease {
         this.holderType = holderType;
         this.holderId = holderId;
         this.ttl = new AtomicInteger(ttl);
-        this.isPermanent = new AtomicBoolean(false);
+        this.permanent = new AtomicBoolean(true);
         this.level = level;
     }
 
+    /**
+     * 创建高级别租约
+     * @param chunkPos 区块坐标
+     * @param holderType 持有人类型
+     * @param holderId 持有人ID
+     * @return 租约
+     */
     public static FlexChunkLease ofHigh(ChunkPos chunkPos, HolderType holderType, long holderId){
-        return new FlexChunkLease(chunkPos, holderType, holderId, Level.HIGH, Level.HIGH.value);
+        return new FlexChunkLease(chunkPos, holderType, holderId, Level.HIGH, -1);
     }
 
+    /**
+     * 创建中级别租约
+     * @param chunkPos 区块坐标
+     * @param holderType 持有人类型
+     * @param holderId 持有人ID
+     * @return 租约
+     */
     public static FlexChunkLease ofMedium(ChunkPos chunkPos, HolderType holderType, long holderId){
-        return new FlexChunkLease(chunkPos, holderType, holderId, Level.MEDIUM, Level.MEDIUM.value);
+        return new FlexChunkLease(chunkPos, holderType, holderId, Level.MEDIUM, -1);
     }
 
+    /**
+     * 创建低级别租约
+     * @param chunkPos 区块坐标
+     * @param holderType 持有人类型
+     * @param holderId 持有人ID
+     * @return 租约
+     */
     public static FlexChunkLease ofLow(ChunkPos chunkPos, HolderType holderType, long holderId){
-        return new FlexChunkLease(chunkPos, holderType, holderId, Level.LOW, Level.LOW.value);
+        return new FlexChunkLease(chunkPos, holderType, holderId, Level.LOW, -1);
+    }
+
+    /**
+     * 续租(如果租约是永久租约则不续租)
+     * @param newTTL 新的TTL
+     */
+    public void renew(int newTTL) {
+        if(permanent.get()){
+            return;
+        }
+        ttl.set(newTTL);
+    }
+
+    /**
+     * 是否是永久租约
+     * @return 是否是永久租约
+     */
+    public boolean isPermanent() {
+        return permanent.get();
+    }
+
+    /**
+     * 设置是否是永久租约
+     * @param permanent 是否是永久租约
+     */
+    public void setPermanent(boolean permanent) {
+        this.permanent.set(permanent);
+    }
+
+    /**
+     * 是否已过期
+     * @return 是否已过期
+     */
+    public boolean isExpired() {
+        return ttl.get() <= 0;
+    }
+
+    /**
+     * 是否是玩家租约
+     * @return 是否是玩家租约
+     */
+    public boolean isPlayer() {
+        return holderType == HolderType.PLAYER;
+    }
+
+    /**
+     * 是否是服务器租约
+     * @return 是否是服务器租约
+     */
+    public boolean isServer() {
+        return holderType == HolderType.SERVER;
     }
 
     @Override
@@ -90,4 +162,5 @@ public class FlexChunkLease {
     public int hashCode() {
         return Objects.hash(chunkPos, holderType, holderId, level);
     }
+
 }

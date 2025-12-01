@@ -57,7 +57,7 @@ public class ServerWorldExecutionUnit implements Runnable {
             return;
         }
 
-        final double tickRate = serverWorld.getTemplate().getTps();
+        final double tickRate = serverWorld.getTemplate().getActionPerSecond();
         final double tickTime = 1.0 / tickRate;
 
         double lastTime = System.nanoTime() / 1_000_000_000.0;

@@ -20,7 +20,6 @@ public class EngineDefault {
     //最大服务端世界执行单元队列大小(-1表示不限制)
     public static int MAX_SWEU_QUEUE_SIZE = -1;
 
-
     //最大区块处理线程数(-1表示不限制)
     public static int MAX_CHUNK_PROCESS_THREAD_COUNT = 2;
 

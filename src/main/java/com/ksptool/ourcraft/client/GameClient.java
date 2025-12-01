@@ -140,7 +140,7 @@ public class GameClient {
             
             // 如果世界已加载，使用世界的tickRate
             if (clientWorld != null && clientWorld.getTemplate() != null) {
-                tickRate = clientWorld.getTemplate().getTps();
+                tickRate = clientWorld.getTemplate().getActionPerSecond();
                 tickTime = 1.0 / tickRate;
             }
             

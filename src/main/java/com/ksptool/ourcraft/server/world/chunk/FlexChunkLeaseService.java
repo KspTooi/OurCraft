@@ -1,25 +1,26 @@
 package com.ksptool.ourcraft.server.world.chunk;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.HashSet;
 import java.util.Set;
-
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
-
+import com.ksptool.ourcraft.sharedcore.world.SequenceUpdate;
+import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 区块令牌服务，负责管理区块的令牌
+ * 区块租约服务，负责管理区块的租约
  */
-
 @Slf4j
-public class FlexChunkLeaseService {
+public class FlexChunkLeaseService implements SequenceUpdate{
 
-    //全部区块令牌
-    private final List<FlexChunkLease> tokens = new CopyOnWriteArrayList<>();
+    //区块坐标->区块租约
+    private final Map<ChunkPos, FlexChunkLease> chunkLeases = new ConcurrentHashMap<>();
 
     @Getter
     private final ServerWorld world;
@@ -29,43 +30,40 @@ public class FlexChunkLeaseService {
     }
 
     /**
-     * 添加区块令牌
-     * @param playerSessionId 玩家SessionID
+     * 签发租约(此函数签发服务器级别永久租约)
      * @param chunkPos 区块坐标
+     * @param lease 租约
      */
-    public void addTokenForPlayer(long playerSessionId, ChunkPos chunkPos) {
-        //var token = new FlexChunkLease(chunkPos, FlexChunkLease.HolderType.PLAYER, playerSessionId, -1, 10);
-
-        //检查是否已有同坐标的令牌(同一个玩家不能拥有同一个区块的多个令牌)
-        /*boolean alreadyHasToken = tokens.stream()
-        .anyMatch(t -> t.getChunkPos().equals(chunkPos) 
-                  && t.getHolderType() == FlexChunkLease.HolderType.PLAYER
-                  && t.getOwnerSessionId() == playerSessionId);
-    
-        if (alreadyHasToken) {
-            return; // 这个玩家已经拥有该区块的 Token 了，无需重复添加
-        }*/
-
-        //tokens.add(token);
+    public void issueLease(ChunkPos chunkPos) {
+        var lease = chunkLeases.computeIfAbsent(chunkPos, k -> FlexChunkLease.ofHigh(k, FlexChunkLease.HolderType.SERVER, -1));
+        lease.getPermanent().set(true);
     }
 
     /**
-     * 移除区块令牌
+     * 签发租约(此函数签发Player级别租约,如果已有租约则续租)
+     * @param chunkPos 区块坐标
      * @param playerSessionId 玩家SessionID
-     * @param chunkPos 区块坐标
      */
-    public void removeTokenForPlayer(long playerSessionId, ChunkPos chunkPos) {
-        //tokens.removeIf(token -> token.getChunkPos().equals(chunkPos) && token.getOwnerSessionId() == playerSessionId);
+    public void issueLease(ChunkPos chunkPos, long playerSessionId) {
+
+        if(chunkPos == null || playerSessionId == -1){
+            throw new IllegalArgumentException("无法签发租约: 区块坐标或SessionID不能为空");
+        }
+
+        var lease = chunkLeases.computeIfAbsent(chunkPos, k -> FlexChunkLease.ofHigh(k, FlexChunkLease.HolderType.PLAYER, playerSessionId));
+        lease.getPermanent().set(false);
+        lease.renew(world.getTemplate().getMaxPlayerChunkLeaseAction());
     }
-    
-    /**
-     * 获取区块令牌的优先级
-     * @param chunkPos 区块坐标
-     * @return 优先级 优先级最高的令牌将被返回 如果没有任何令牌则返回0
-     */
-    public int getTokenPriority(ChunkPos chunkPos) {
-        return 1;
+
+    @Override
+    public void action(double delta, SharedWorld world) {
+
+        
+
+        throw new UnsupportedOperationException("Unimplemented method 'action'");
     }
+
+
 
     /**
      * 更新玩家的区块令牌（移动视口）
@@ -121,5 +119,8 @@ public class FlexChunkLeaseService {
             }
         }
     }
+
+
+
 
 }

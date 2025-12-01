@@ -16,7 +16,6 @@ import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.world.WorldEvent;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.event.ServerPlayerCameraInputEvent;
@@ -30,11 +29,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
-
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 服务端世界类，负责所有逻辑，不包含任何渲染相关代码
@@ -115,6 +110,10 @@ public class ServerWorld implements SharedWorld {
         var noiseGenerator = new NoiseGenerator(seed);
         this.generationContext = new GenerationContext(noiseGenerator, this, seed);
         this.eventBus = new ServerWorldEventBus();
+
+        //注册事件处理器
+        eventBus.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
+        eventBus.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
     }
     
     public void setSaveName(String saveName) {
@@ -140,7 +139,7 @@ public class ServerWorld implements SharedWorld {
      * 否则使用累加器模式处理可变时间增量（向后兼容）
      */
     public void update(float deltaTime, Vector3f playerPosition, Runnable playerTickCallback) {
-        double tickTime = 1.0 / template.getTps();
+        double tickTime = 1.0 / template.getActionPerSecond();
         
         // 如果传入的时间增量等于tickTime（固定时间步长），直接执行一次tick
         if (Math.abs(deltaTime - tickTime) < 0.001) {
@@ -166,7 +165,7 @@ public class ServerWorld implements SharedWorld {
         
         eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
         
-        float tickDelta = 1.0f / template.getTps();
+        float tickDelta = 1.0f / template.getActionPerSecond();
         
         if (playerTickCallback != null) {
             playerTickCallback.run();
@@ -185,10 +184,10 @@ public class ServerWorld implements SharedWorld {
      * @return 0.0 到 1.0 之间的值，表示距离下一次tick的进度
      */
     public float getPartialTick() {
-        if (template.getTps() == 0) {
+        if (template.getActionPerSecond() == 0) {
             return 0.0f;
         }
-        double tickTime = 1.0 / template.getTps();
+        double tickTime = 1.0 / template.getActionPerSecond();
         return (float) (timeAccumulator / tickTime);
     }
 
@@ -202,49 +201,11 @@ public class ServerWorld implements SharedWorld {
         //世界时间推进
         totalTicks += delta;
 
-        Map<Long, List<WorldEvent>> actionPlayerEvents = new HashMap<>();
-        List<WorldEvent> actionOtherEvents = new ArrayList<>();
+        //处理全部事件(通常包括输入)
+        eventBus.process();
+
+        //计算实体物理
         
-        //循环拉取事件 并将玩家事件按SessionID分组
-        while (eventBus.hasNext()) {
-            var event = eventBus.next();
-            if (event instanceof ServerPlayerCameraInputEvent e) {
-                actionPlayerEvents.computeIfAbsent(e.getSessionId(), k -> new ArrayList<>()).add(event);
-                continue;
-            }
-            if (event instanceof ServerPlayerInputEvent e) {
-                actionPlayerEvents.computeIfAbsent(e.getSessionId(), k -> new ArrayList<>()).add(event);
-                continue;
-            }
-            //其他事件 不分组
-            actionOtherEvents.add(event);
-        }
-
-        //优先处理已分组的玩家事件
-        for (Map.Entry<Long, List<WorldEvent>> entry : actionPlayerEvents.entrySet()) {
-
-            var player = entityService.getPlayerBySessionId(entry.getKey());
-
-            if (player == null) {
-                log.warn("世界:{} 无法找到玩家会话ID:{} 对应的玩家实体", name, entry.getKey());
-                continue;
-            }
-
-            //应用玩家输入
-            for (WorldEvent event : entry.getValue()) {
-                //应用玩家相机视角输入事件
-                if (event instanceof ServerPlayerCameraInputEvent e) {
-                    player.updateCameraOrientation(e.getDeltaYaw(), e.getDeltaPitch());
-                }
-
-                //应用玩家键盘输入事件
-                if (event instanceof ServerPlayerInputEvent e) {
-                    player.applyInput(e);
-                }
-            }
-        }
-
-        //TODO: 处理其他事件
 
         //处理全部实体物理模拟
         for (ServerEntity entity : getEntities()) {
@@ -356,6 +317,38 @@ public class ServerWorld implements SharedWorld {
         server.getArchiveService().getWorldService().saveWorldIndex(dto);
         log.info("世界:{} 的默认出生点已创建:{}", name, spawnPos);
     }
+
+    /**
+     * 处理Player输入事件(这些事件通常由网络线程投入到EventQueue)
+     * @param e Player输入事件
+     */
+    private void processPlayerInput(ServerPlayerInputEvent e){
+
+        var player = entityService.getPlayerBySessionId(e.getSessionId());
+
+        if (player == null) {
+            log.warn("世界:{} 无法找到Player会话ID:{} 对应的PlayerEntity", name, e.getSessionId());
+            return;
+        }
+        //应用玩家键盘输入事件(为Player增加速度以便在物理更新时生效)
+        player.applyInput(e);
+    }
+
+    /**
+     * 处理Player相机视角输入事件(这些事件通常由网络线程投入到EventQueue)
+     * @param e Player相机视角输入事件
+     */
+    private void processPlayerCameraInput(ServerPlayerCameraInputEvent e){
+        var player = entityService.getPlayerBySessionId(e.getSessionId());
+
+        if (player == null) {
+            log.warn("世界:{} 无法找到Player会话ID:{} 对应的PlayerEntity", name, e.getSessionId());
+            return;
+        }
+        //应用相机视角输入事件(为Player更新相机视角)
+        player.updateCameraOrientation(e.getDeltaYaw(), e.getDeltaPitch());
+    }
+
 
 
     public void generateChunkData(SimpleServerChunk chunk) {

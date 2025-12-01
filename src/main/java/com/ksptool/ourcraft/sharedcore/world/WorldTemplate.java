@@ -67,13 +67,15 @@ public abstract class WorldTemplate {
     /**
      * World Engine Settings
      */
-    private int tps;
+    private int actionPerSecond = 20; //该世界每秒执行Action的次数 默认20
 
-    private int chunkMaxTTL = 6000; //以TPS算
-
+    private int chunkMaxTTL = 6000; //以APS算
     private int chunkSizeX = 16;
     private int chunkSizeZ = 16;
     private int chunkSizeY = 256;
+
+    //最大玩家区块租约TTL(当服务器为20APS时 大约为30分钟 (20*60)*30=6000)
+    private int maxPlayerChunkLeaseAction = 6000;
 
     private StdRegName terrainGenerator = StdRegName.of("ourcraft:terrain_generator:earth_like");
 }

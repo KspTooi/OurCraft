@@ -57,7 +57,7 @@ public class GuiRenderer {
         FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(quadVertices.length);
         verticesBuffer.put(quadVertices).flip();
 
-        // 3. 上传数据 (使用 GL15)
+        // 3. 上传数据到显卡 (使用 GL15)
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, verticesBuffer, GL15.GL_STATIC_DRAW);
         MemoryUtil.memFree(verticesBuffer);
 

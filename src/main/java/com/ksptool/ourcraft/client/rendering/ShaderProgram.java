@@ -23,7 +23,7 @@ public class ShaderProgram {
     //顶点着色器ID
     private int vertexShaderId;
 
-    //片段着色器ID
+    //片元着色器ID
     private int fragmentShaderId;
 
     //加载着色器

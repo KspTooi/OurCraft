@@ -7,7 +7,6 @@ import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.events.PlayerUpdateEvent;
 import lombok.Getter;
 import org.joml.Vector2d;
-import org.joml.Vector2f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 
@@ -141,7 +140,7 @@ public class ClientPlayer extends ClientLivingEntity {
             float acceleration = onGround ? GROUND_ACCELERATION : AIR_ACCELERATION;
             float tickDelta = 1.0f / 20.0f; // 假设20 TPS，后续可以从WorldTemplate获取
             if (world != null && world.getTemplate() != null) {
-                tickDelta = 1.0f / world.getTemplate().getTps();
+                tickDelta = 1.0f / world.getTemplate().getActionPerSecond();
             }
             velocity.x += moveDirection.x * acceleration * tickDelta;
             velocity.z += moveDirection.z * acceleration * tickDelta;
