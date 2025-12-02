@@ -47,13 +47,15 @@ public class ServerWorldEventBus implements WorldEventBus {
         WorldEvent event;
         while ((event = eventQueue.poll()) != null) {
             List<Consumer<WorldEvent>> handlers = listeners.get(event.getClass());
-            if (handlers != null) {
-                for (Consumer<WorldEvent> handler : handlers) {
-                    try{
-                        handler.accept(event);
-                    }catch(Exception e){
-                        log.error("处理事件时发生错误: {}", e.getMessage());
-                    }
+            if (handlers == null) {
+                log.warn("已丢弃事件: {} 原因: 该事件没有监听者", event.getClass().getName());
+                continue;
+            }
+            for (Consumer<WorldEvent> handler : handlers) {
+                try{
+                    handler.accept(event);
+                }catch(Exception e){
+                    log.error("处理事件时发生错误: {}", e.getMessage());
                 }
             }
         }

@@ -39,7 +39,7 @@ public class FlexServerChunk implements SharedChunk {
         PROCESSING_UNLOAD,
 
         /**
-         * INVALID(无效): 区块已被移除，不应再被使用。(当区块中无玩家，也没有被观看时。服务器会在每个Action中扣减TTL,当TTL小于1时，区块将会被卸载)
+         * INVALID(无效): 区块已被移除，不应再被使用。
          */
         INVALID,
     }
