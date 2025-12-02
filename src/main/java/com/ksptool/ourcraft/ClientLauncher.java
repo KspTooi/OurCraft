@@ -10,11 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClientLauncher {
 
-
-    public static void main(String[] args) {
+    void main() {
         GameClient gameClient = new GameClient();
         gameClient.run();
     }
-
 
 }

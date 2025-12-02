@@ -40,7 +40,7 @@ public class DemoLauncher {
     private float sensitivity = 0.1f; // 鼠标灵敏度
     private boolean mouseLeftPressed = false; // 鼠标左键是否被按下
 
-    public static void main(String[] args) {
+    void main() {
         new DemoLauncher().run();
     }
 

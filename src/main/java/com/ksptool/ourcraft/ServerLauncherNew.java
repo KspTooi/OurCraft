@@ -1,8 +1,6 @@
 package com.ksptool.ourcraft;
 
 import com.ksptool.ourcraft.server.OurCraftServer;
-import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.sharedcore.Registry;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -14,7 +12,7 @@ public class ServerLauncherNew {
     
     private static OurCraftServer ourCraftServer;
     
-    public static void main(String[] args) {
+    void main() {
 
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

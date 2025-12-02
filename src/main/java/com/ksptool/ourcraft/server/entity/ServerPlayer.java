@@ -61,9 +61,15 @@ public class ServerPlayer extends ServerLivingEntity {
     //最大移动速度
     private static final float MAX_SPEED = 40F;
 
+    //视口距离
+    private int viewDistance = 8;
+
+    //租约是否初始化过(当Player第一次加入这个世界时,他并没有跨过区块边界,因此无法通过跨区块检测来触发初始租约签发,需要特殊处理来初始化其视口范围内的区块租约)
+    private AtomicBoolean isLeaseInited = new AtomicBoolean(false);
+
 
     /**
-     * 服务端构造函数：创建一个与服务端世界关联的玩家对象（带UUID）
+     * 服务端构造函数：创建一个与服务端世界关联的Player对象（带UUID）
      */
     public ServerPlayer(ServerWorld world, ArchivePlayerVo vo, long sessionId) {
         super(world, vo != null && vo.getUuid() != null ? UUID.fromString(vo.getUuid()) : UUID.randomUUID());
@@ -254,6 +260,14 @@ public class ServerPlayer extends ServerLivingEntity {
                 (float) (-Math.sin(pitchRad)),
                 (float) (-Math.cos(yawRad) * Math.cos(pitchRad))
         );
+    }
+
+    public boolean isLeaseInited() {
+        return isLeaseInited.get();
+    }
+
+    public void markLeaseInited() {
+        isLeaseInited.set(true);
     }
 
 }

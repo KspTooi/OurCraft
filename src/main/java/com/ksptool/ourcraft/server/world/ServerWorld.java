@@ -10,11 +10,13 @@ import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
 import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.Registry;
+import com.ksptool.ourcraft.sharedcore.StdRegName;
 import com.ksptool.ourcraft.sharedcore.events.EventQueue;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
+import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.event.ServerPlayerCameraInputEvent;
@@ -31,7 +33,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import java.util.List;
-
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * 服务端世界类，负责所有逻辑，不包含任何渲染相关代码
  */
@@ -42,6 +46,12 @@ public class ServerWorld implements SharedWorld {
     //该世界的默认玩家出生点
     @Setter
     private Pos defaultSpawnPos;
+
+    //该世界上挂载的服务
+    private final Map<Class<?>, Object> serviceMap = new ConcurrentHashMap<>();
+
+    //该世界上挂载的服务(按优先级排序)
+    private final List<WorldService> services = new CopyOnWriteArrayList<>();
 
     private final OurCraftServer server;
 
@@ -245,15 +255,19 @@ public class ServerWorld implements SharedWorld {
         //时间服务动作(时间推进)
         swts.action(delta, this);
 
-        //处理全部事件(通常包括输入,这会应用Player的输入为他们的速度)
+        //处理全部事件(通常包括输入,(网络线程会异步将玩家输入投入到队列中)这会应用Player的输入为他们的速度)
         eb.process();
 
         //物理服务动作(实体物理模拟,这会根据Player的速度模拟并更新他们的位置)
         swps.action(delta, this);
 
-        //处理区块加载/卸载
+        //处理租约更新
+        fcls.action(delta, this);
 
-        
+        //处理区块加载/卸载
+        fscs.action(delta, this);
+
+        //TODO:处理网络事件同步 
 
     }
 
@@ -434,5 +448,6 @@ public class ServerWorld implements SharedWorld {
     public boolean isClientSide() {
         return false;
     }
+
 }
 

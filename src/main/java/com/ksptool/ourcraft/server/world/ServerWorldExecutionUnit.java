@@ -39,16 +39,19 @@ public class ServerWorldExecutionUnit implements Runnable {
     @Getter
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
+    private final int actionPerSecond;
+
     public ServerWorldExecutionUnit(ServerWorld serverWorld, OurCraftServer serverInstance) {
         this.worldName = serverWorld.getName();
         this.serverWorld = serverWorld;
         this.serverInstance = serverInstance;
+        this.actionPerSecond = serverWorld.getTemplate().getActionPerSecond();
     }
 
     @Override
     public void run() {
         
-        log.info("世界执行单元已启动: {}", worldName);
+        log.info("世界 {} 已启动 APS:{}", worldName, actionPerSecond);
         isRunning.set(true);
 
         if (serverWorld.getTemplate() == null) {

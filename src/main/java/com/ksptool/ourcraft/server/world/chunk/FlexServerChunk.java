@@ -8,9 +8,7 @@ import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedChunk;
 import lombok.Getter;
 import lombok.Setter;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
@@ -45,12 +43,6 @@ public class FlexServerChunk implements SharedChunk {
          */
         INVALID,
     }
-
-    //物理位置在这个区块内的玩家 UUID
-    private final Set<String> playersInside = ConcurrentHashMap.newKeySet();
-
-    //视距包含这个区块的玩家 UUID
-    private final Set<String> playersWatching = ConcurrentHashMap.newKeySet();
 
     //区块状态
     @Setter
@@ -102,35 +94,6 @@ public class FlexServerChunk implements SharedChunk {
         stage = Stage.NEW;
         globalPalette = GlobalPalette.getInstance();
         ttl = new AtomicInteger(t.getChunkMaxTTL());
-    }
-
-    public void addPlayerInside(String playerUUID) {
-        playersInside.add(playerUUID);
-        // 这里可以触发 "玩家进入区块" 事件
-    }
-
-    public void removePlayerInside(String playerUUID) {
-        playersInside.remove(playerUUID);
-        // 这里可以触发 "玩家离开区块" 事件
-    }
-
-    public void addWatcher(String playerUUID) {
-        playersWatching.add(playerUUID);
-        // 如果这是第一个观看者，可能需要初始化某些网络同步状态
-    }
-
-    public void removeWatcher(String playerUUID) {
-        playersWatching.remove(playerUUID);
-        // 如果集合变空，可以将此区块标记为 "待卸载"
-    }
-
-
-    public boolean hasWatchers() {
-        return !playersWatching.isEmpty();
-    }
-
-    public int getPlayersCount() {
-        return playersInside.size();
     }
 
     @Override

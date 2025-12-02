@@ -6,13 +6,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import lombok.Getter;
+import com.ksptool.ourcraft.sharedcore.world.SequenceUpdate;
+import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 
 /**
  * 区块租约，负责管理区块的租约
  * 该类实现安全的相等性判断和哈希码计算 可以用作Map的Key
  */
 @Getter
-public class FlexChunkLease {
+public class FlexChunkLease implements SequenceUpdate{
 
     //租约持有人类型
     public enum HolderType {
@@ -125,6 +127,12 @@ public class FlexChunkLease {
      * @return 是否已过期
      */
     public boolean isExpired() {
+
+        //永久租约不会过期 无论TTL是否为0
+        if(isPermanent()){
+            return false;
+        }
+
         return ttl.get() <= 0;
     }
 
@@ -161,6 +169,20 @@ public class FlexChunkLease {
     @Override
     public int hashCode() {
         return Objects.hash(chunkPos, holderType, holderId, level);
+    }
+
+    /**
+     * 执行租约更新
+     * @param delta 距离上一帧经过的时间（秒）由SWEU传入
+     * @param world 世界
+     * 通常会在这个方法中扣减租约TTL 如果租约是永久租约则不扣减
+     */
+    @Override
+    public void action(double delta, SharedWorld world) {
+        if(isPermanent()){
+            return;
+        }
+        ttl.decrementAndGet();
     }
 
 }
