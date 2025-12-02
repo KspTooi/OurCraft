@@ -13,7 +13,6 @@ import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import lombok.extern.slf4j.Slf4j;
 import java.io.File;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -154,10 +153,7 @@ public class ServerWorldService {
             return;
         }
 
-        ServerWorld sw = new ServerWorld(server,template);
-        sw.setName(worldIndexVo.getName());
-        sw.setSeed(worldIndexVo.getSeed());
-        sw.setTotalTicks(worldIndexVo.getTotalTick());
+        ServerWorld sw = new ServerWorld(server, worldIndexVo);
         sw.setSaveName(worldIndexVo.getName());
         sw.setArchiveService(archiveService);
 

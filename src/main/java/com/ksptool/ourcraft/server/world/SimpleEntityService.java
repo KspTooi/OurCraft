@@ -171,7 +171,7 @@ public class SimpleEntityService {
                 int entityChunkX = (int) Math.floor(pos.x / SimpleServerChunk.CHUNK_SIZE);
                 int entityChunkZ = (int) Math.floor(pos.z / SimpleServerChunk.CHUNK_SIZE);
                 
-                SimpleServerChunk chunk = world.getSimpleChunkManager().getChunk(entityChunkX, entityChunkZ);
+                SimpleServerChunk chunk = world.getScm().getChunk(entityChunkX, entityChunkZ);
                 if (chunk != null && chunk.areEntitiesDirty()) {
                     logger.debug("保存脏实体区块 [{},{}]", entityChunkX, entityChunkZ);
                     saveEntitiesForChunk(entityChunkX, entityChunkZ);

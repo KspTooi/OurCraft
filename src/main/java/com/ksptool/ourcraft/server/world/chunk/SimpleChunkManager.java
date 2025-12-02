@@ -119,9 +119,9 @@ public class SimpleChunkManager {
                             log.error("卸载时保存区块失败 [{},{}]", chunkX, chunkZ, e);
                         }
                     }
-                    if (chunk.areEntitiesDirty() && world.getEntityService().getEntityRegionManager() != null && StringUtils.isNotBlank(saveName)) {
+                    if (chunk.areEntitiesDirty() && world.getSes().getEntityRegionManager() != null && StringUtils.isNotBlank(saveName)) {
                         log.debug("卸载时保存脏实体区块 [{},{}]", chunkX, chunkZ);
-                        world.getEntityService().saveEntitiesForChunk(chunkX, chunkZ);
+                        world.getSes().saveEntitiesForChunk(chunkX, chunkZ);
                         chunk.markEntitiesDirty(false);
                     }
                     chunk.cleanup();
@@ -186,8 +186,8 @@ public class SimpleChunkManager {
             }
             
             log.debug("成功加载区块 [{},{}]", chunkX, chunkZ);
-            if (world.getEntityService().getEntityRegionManager() != null) {
-                world.getEntityService().loadEntitiesForChunk(chunkX, chunkZ);
+            if (world.getSes().getEntityRegionManager() != null) {
+                world.getSes().loadEntitiesForChunk(chunkX, chunkZ);
             }
             
             return chunk;

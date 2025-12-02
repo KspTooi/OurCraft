@@ -58,7 +58,7 @@ public class ArchiveWorldService {
         var dto = new ArchiveWorldIndexDto();
         dto.setName(world.getName());
         dto.setSeed(world.getSeed());
-        dto.setTotalTick(world.getTotalTicks());
+        dto.setTotalTick(world.getSwts().getTotalActions());
         dto.setTemplateStdRegName(world.getTemplate().getStdRegName().toString());
         dto.setSpawnX(world.getDefaultSpawnPos().getX());
         dto.setSpawnY(world.getDefaultSpawnPos().getY());
@@ -74,7 +74,7 @@ public class ArchiveWorldService {
         paletteManager.saveGlobalPalette(GlobalPalette.getInstance());
 
         //保存当前的区块数据
-        List<SimpleServerChunk> dirtyChunks = world.getSimpleChunkManager().getDirtyChunkSnapshot();
+        List<SimpleServerChunk> dirtyChunks = world.getScm().getDirtyChunkSnapshot();
         int chunkCount = 0;
 
         for (SimpleServerChunk chunk : dirtyChunks) {
@@ -89,7 +89,7 @@ public class ArchiveWorldService {
         }
 
         //保存实体数据
-        world.getEntityService().saveAllDirtyEntities();
+        world.getSes().saveAllDirtyEntities();
 
         log.info("世界 {} 保存完成，保存区块数: {}", world.getName(), chunkCount);
     }

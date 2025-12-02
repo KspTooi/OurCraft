@@ -133,7 +133,7 @@ public class FlexServerChunkService {
                     newChunk.getLoadFuture().complete(newChunk);
 
                     //发布事件 (应放在 complete 之后，确保监听者拿到的是完成状态的 Future)
-                    world.getEventBus().publish(new ServerChunkReadyEvent(newChunk));
+                    world.getEb().publish(new ServerChunkReadyEvent(newChunk));
 
                 } catch (Exception e) {
                     log.error("区块加载/生成失败: {}", pos, e);

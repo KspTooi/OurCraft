@@ -1,5 +1,8 @@
 package com.ksptool.ourcraft.sharedcore.world;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
+
 import org.joml.Vector4f;
 
 import com.ksptool.ourcraft.sharedcore.StdRegName;
@@ -76,6 +79,14 @@ public abstract class WorldTemplate {
 
     //最大玩家区块租约TTL(当服务器为20APS时 大约为30分钟 (20*60)*30=6000)
     private int maxPlayerChunkLeaseAction = 6000;
+
+    //1世界天 = 24000 Actions (约20分钟现实时间 计算公式:24000/20/60=20)
+    //1世界天 = 86400世界秒(计算公式:24000*3.6=86400)
+    //1Action = 3.6世界秒(计算公式:86400/24000=3.6)
+    private double worldSecondsPerAction = 3.6;
+
+    //世界开始时间(默认为0001年3月1日 通常从早晨6点开始)
+    private LocalDateTime startDateTime = LocalDateTime.of(1, 3, 1, 6, 0, 0);
 
     private StdRegName terrainGenerator = StdRegName.of("ourcraft:terrain_generator:earth_like");
 }

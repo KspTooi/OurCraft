@@ -11,7 +11,6 @@ import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.events.EventQueue;
-import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
@@ -22,11 +21,13 @@ import com.ksptool.ourcraft.server.event.ServerPlayerCameraInputEvent;
 import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import com.ksptool.ourcraft.server.world.save.RegionManager;
+import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 import com.ksptool.ourcraft.sharedcore.world.gen.TerrainGenerator;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import java.util.List;
@@ -38,37 +39,42 @@ import java.util.List;
 @Slf4j
 public class ServerWorld implements SharedWorld {
 
-    private static final int TICKS_PER_DAY = 24000;
-
     //该世界的默认玩家出生点
     @Setter
     private Pos defaultSpawnPos;
 
     private final OurCraftServer server;
-    
+
+    private final SimpleChunkManager scm;
+
+    private final SimpleEntityService ses;
+
+    private RegionManager entityRegionManager;
+
+    //服务端世界事件总线
+    private final ServerWorldEventBus eb;
+
+    //区块令牌服务
+    private final FlexChunkLeaseService fcls;
+
+    private final FlexServerChunkService fscs;
+
+    private final ServerWorldPhysicsService swps;
+
+    private final ServerWorldTimeService swts;
+
+    @Setter
+    private ArchiveService archiveService;
+
     private final WorldTemplate template;
 
     private double timeAccumulator = 0.0;
 
-    private final SimpleChunkManager simpleChunkManager;
-
-    private final FlexServerChunkService flexServerChunkService;
-
-    private final SimpleEntityService entityService;
-
-    private final ServerCollisionManager collisionManager;
-    
-    @Setter
-    private long totalTicks = 0;
-    
     @Setter
     private String name;
 
     @Setter
     private String seed;
-
-    @Getter
-    private RegionManager entityRegionManager;
 
     @Getter
     private final GenerationContext generationContext;
@@ -79,24 +85,17 @@ public class ServerWorld implements SharedWorld {
 
     private final EventQueue eventQueue;
 
-    //服务端世界事件总线
-    private final ServerWorldEventBus eventBus;
-
-    //区块令牌服务
-    private final FlexChunkLeaseService chunkTokenService;
-
-    @Setter
-    private ArchiveService archiveService;
 
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
-        this.chunkTokenService = new FlexChunkLeaseService(this);
+        this.fcls = new FlexChunkLeaseService(this);
         this.template = template;
-        this.simpleChunkManager = new SimpleChunkManager(this);
-        this.entityService = new SimpleEntityService(this);
-        this.collisionManager = new ServerCollisionManager(this);
+        this.scm = new SimpleChunkManager(this);
+        this.ses = new SimpleEntityService(this);
+        this.swps = new ServerWorldPhysicsService(this);
+        this.swts = new ServerWorldTimeService(this, 0L);
         this.seed = String.valueOf(System.currentTimeMillis());
         this.eventQueue = EventQueue.getInstance();
-        this.flexServerChunkService = new FlexServerChunkService(server,this);
+        this.fscs = new FlexServerChunkService(server,this);
         this.server = server;
 
         //从注册表获取地形生成器
@@ -109,26 +108,83 @@ public class ServerWorld implements SharedWorld {
         this.terrainGenerator = terrainGenerator;
         var noiseGenerator = new NoiseGenerator(seed);
         this.generationContext = new GenerationContext(noiseGenerator, this, seed);
-        this.eventBus = new ServerWorldEventBus();
+        this.eb = new ServerWorldEventBus();
 
         //注册事件处理器
-        eventBus.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
-        eventBus.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
+        eb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
+        eb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
+    }
+
+    /**
+     * 从世界索引Vo中导入数据创建世界（用于恢复已有世界）
+     * @param server 服务器实例
+     * @param worldIndexVo 世界索引Vo
+     */
+    public ServerWorld(OurCraftServer server, ArchiveWorldIndexVo worldIndexVo) {
+        if (worldIndexVo == null) {
+            throw new IllegalArgumentException("世界索引Vo不能为空");
+        }
+
+        if (StringUtils.isBlank(worldIndexVo.getTemplateStdRegName())) {
+            throw new IllegalArgumentException("世界模板标准注册名不能为空");
+        }
+
+        //从注册表获取世界模板
+        WorldTemplate template = Registry.getInstance().getWorldTemplate(worldIndexVo.getTemplateStdRegName());
+        if (template == null) {
+            throw new IllegalArgumentException("无法初始化世界: " + worldIndexVo.getName() + " 因为世界模板未注册: " + worldIndexVo.getTemplateStdRegName());
+        }
+
+        this.fcls = new FlexChunkLeaseService(this);
+        this.template = template;
+        this.scm = new SimpleChunkManager(this);
+        this.ses = new SimpleEntityService(this);
+        this.swps = new ServerWorldPhysicsService(this);
+        this.server = server;
+        this.seed = worldIndexVo.getSeed();
+        this.name = worldIndexVo.getName();
+        long totalActions = worldIndexVo.getTotalTick() != null ? worldIndexVo.getTotalTick() : 0L;
+        this.swts = new ServerWorldTimeService(this, totalActions);
+        this.eventQueue = EventQueue.getInstance();
+        this.fscs = new FlexServerChunkService(server, this);
+
+        //从注册表获取地形生成器
+        TerrainGenerator terrainGenerator = Registry.getInstance().getTerrainGenerator(template.getTerrainGenerator());
+        if (terrainGenerator == null) {
+            throw new IllegalArgumentException("无法初始化世界: " + template.getStdRegName() + " 因为地形生成器未注册: " + template.getTerrainGenerator());
+        }
+
+        this.terrainGenerator = terrainGenerator;
+        var noiseGenerator = new NoiseGenerator(seed);
+        this.generationContext = new GenerationContext(noiseGenerator, this, seed);
+        this.eb = new ServerWorldEventBus();
+
+        //注册事件处理器
+        eb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
+        eb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
+
+        //设置出生点（如果已创建）
+        if (worldIndexVo.getDefaultSpawnCreated() != null && worldIndexVo.getDefaultSpawnCreated() == 1) {
+            if (worldIndexVo.getDefaultSpawnX() != null && worldIndexVo.getDefaultSpawnY() != null && worldIndexVo.getDefaultSpawnZ() != null) {
+                this.defaultSpawnPos = Pos.of(worldIndexVo.getDefaultSpawnX(), worldIndexVo.getDefaultSpawnY(), worldIndexVo.getDefaultSpawnZ());
+            }
+        }
     }
     
     public void setSaveName(String saveName) {
         //this.saveName = saveName;
-        this.simpleChunkManager.setSaveName(saveName);
-        this.entityService.setSaveName(saveName);
+        this.scm.setSaveName(saveName);
+        this.ses.setSaveName(saveName);
     }
 
     public void setEntityRegionManager(RegionManager entityRegionManager) {
         this.entityRegionManager = entityRegionManager;
-        this.entityService.setEntityRegionManager(entityRegionManager);
+        this.ses.setEntityRegionManager(entityRegionManager);
     }
 
+
     public void init() {
-        simpleChunkManager.init();
+        scm.init();
         //创建默认出生点
         createDefaultSpawn();
     }
@@ -160,10 +216,9 @@ public class ServerWorld implements SharedWorld {
      */
     private void tick(Vector3f playerPosition, Runnable playerTickCallback) {
 
-        totalTicks++;
-        simpleChunkManager.update(playerPosition);
+        scm.update(playerPosition);
         
-        eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
+        //eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
         
         float tickDelta = 1.0f / template.getActionPerSecond();
         
@@ -179,17 +234,6 @@ public class ServerWorld implements SharedWorld {
         }
     }
     
-    /**
-     * 获取部分刻（Partial Tick），用于渲染插值
-     * @return 0.0 到 1.0 之间的值，表示距离下一次tick的进度
-     */
-    public float getPartialTick() {
-        if (template.getActionPerSecond() == 0) {
-            return 0.0f;
-        }
-        double tickTime = 1.0 / template.getActionPerSecond();
-        return (float) (timeAccumulator / tickTime);
-    }
 
     /**
      * 执行世界逻辑
@@ -198,37 +242,14 @@ public class ServerWorld implements SharedWorld {
     @Override
     public void action(double delta) {
 
-        //世界时间推进
-        totalTicks += delta;
+        //时间服务动作(时间推进)
+        swts.action(delta, this);
 
-        //处理全部事件(通常包括输入)
-        eventBus.process();
+        //处理全部事件(通常包括输入,这会应用Player的输入为他们的速度)
+        eb.process();
 
-        //计算实体物理
-        
-
-        //处理全部实体物理模拟
-        for (ServerEntity entity : getEntities()) {
-
-            //处理玩家实体物理模拟
-            if (entity instanceof ServerPlayer pl) {
-
-                //记录移动前的所在区块
-                var oldChunkPos = Pos.of(pl.getPosition()).toChunkPos(template.getChunkSizeX(), template.getChunkSizeZ());
-
-                //更新玩家位置
-                pl.update(delta);
-
-                //记录移动后的所在区块
-                var newChunkPos = Pos.of(pl.getPosition()).toChunkPos(template.getChunkSizeX(), template.getChunkSizeZ());
-
-                //更新玩家令牌
-                chunkTokenService.updatePlayerTokens(pl.getSessionId(), oldChunkPos, newChunkPos, 8);
-            }
-
-            //处理其他实体物理模拟
-            entity.update(delta);
-        }
+        //物理服务动作(实体物理模拟,这会根据Player的速度模拟并更新他们的位置)
+        swps.action(delta, this);
 
         //处理区块加载/卸载
 
@@ -307,7 +328,7 @@ public class ServerWorld implements SharedWorld {
         ArchiveWorldIndexDto dto = new ArchiveWorldIndexDto();
         dto.setName(name);
         dto.setSeed(seed);
-        dto.setTotalTick(totalTicks);
+        dto.setTotalTick(swts.getTotalActions());
         dto.setTemplateStdRegName(template.getStdRegName().toString());
         dto.setSpawnX(bestSpawnX);
         dto.setSpawnY(spawnY);
@@ -324,7 +345,7 @@ public class ServerWorld implements SharedWorld {
      */
     private void processPlayerInput(ServerPlayerInputEvent e){
 
-        var player = entityService.getPlayerBySessionId(e.getSessionId());
+        var player = ses.getPlayerBySessionId(e.getSessionId());
 
         if (player == null) {
             log.warn("世界:{} 无法找到Player会话ID:{} 对应的PlayerEntity", name, e.getSessionId());
@@ -339,7 +360,7 @@ public class ServerWorld implements SharedWorld {
      * @param e Player相机视角输入事件
      */
     private void processPlayerCameraInput(ServerPlayerCameraInputEvent e){
-        var player = entityService.getPlayerBySessionId(e.getSessionId());
+        var player = ses.getPlayerBySessionId(e.getSessionId());
 
         if (player == null) {
             log.warn("世界:{} 无法找到Player会话ID:{} 对应的PlayerEntity", name, e.getSessionId());
@@ -359,53 +380,50 @@ public class ServerWorld implements SharedWorld {
     }
     
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
-        simpleChunkManager.generateChunkSynchronously(chunkX, chunkZ);
+        scm.generateChunkSynchronously(chunkX, chunkZ);
     }
 
 
     public int getChunkCount() {
-        return simpleChunkManager.getChunkCount();
+        return scm.getChunkCount();
     }
 
     public int getBlockState(int x, int y, int z) {
-        return simpleChunkManager.getBlockState(x, y, z);
+        return scm.getBlockState(x, y, z);
     }
 
     public SimpleServerChunk getChunk(int chunkX, int chunkZ) {
-        return simpleChunkManager.getChunk(chunkX, chunkZ);
+        return scm.getChunk(chunkX, chunkZ);
     }
 
     public void setBlockState(int x, int y, int z, int stateId) {
-        simpleChunkManager.setBlockState(x, y, z, stateId);
+        scm.setBlockState(x, y, z, stateId);
     }
 
     public boolean canMoveTo(Vector3d position, double height) {
-        return collisionManager.canMoveTo(position, height);
+        return swps.canMoveTo(position, height);
     }
 
     public boolean canMoveTo(BoundingBox box) {
-        return collisionManager.canMoveTo(box);
+        return swps.canMoveTo(box);
     }
 
     public void addEntity(ServerEntity entity) {
-        entityService.addEntity(entity);
+        ses.addEntity(entity);
     }
 
     public void removeEntity(ServerEntity entity) {
-        entityService.removeEntity(entity);
+        ses.removeEntity(entity);
     }
 
     public List<ServerEntity> getEntities() {
-        return entityService.getEntities();
+        return ses.getEntities();
     }
 
     public void cleanup() {
-        simpleChunkManager.cleanup();
+        scm.cleanup();
     }
     
-    public float getTimeOfDay() {
-        return (float) (totalTicks % TICKS_PER_DAY) / TICKS_PER_DAY;
-    }
 
     @Override
     public boolean isServerSide() {
