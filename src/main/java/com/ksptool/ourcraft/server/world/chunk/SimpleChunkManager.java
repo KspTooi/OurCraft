@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.server.world.chunk;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.gen.ChunkGenerationTask;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
-import com.ksptool.ourcraft.server.world.save.RegionManager;
+import com.ksptool.ourcraft.server.world.save.SimpleRegionManager;
 import com.ksptool.ourcraft.sharedcore.utils.ChunkUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,7 +35,7 @@ public class SimpleChunkManager {
     private int lastPlayerChunkX = Integer.MIN_VALUE;
     private int lastPlayerChunkZ = Integer.MIN_VALUE;
     
-    private RegionManager regionManager;
+    private SimpleRegionManager simpleRegionManager;
 
     @Setter
     private String saveName;
@@ -56,8 +56,8 @@ public class SimpleChunkManager {
         simpleWorldGeneratorThread.start();
     }
     
-    public void setRegionManager(RegionManager regionManager) {
-        this.regionManager = regionManager;
+    public void setSimpleRegionManager(SimpleRegionManager simpleRegionManager) {
+        this.simpleRegionManager = simpleRegionManager;
     }
 
     /**
@@ -103,15 +103,15 @@ public class SimpleChunkManager {
                 int chunkZ = chunk.getChunkZ();
                 int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
                 if (distance > RENDER_DISTANCE + 5) {
-                    if (chunk.isDirty() && regionManager != null && StringUtils.isNotBlank(saveName)) {
-                        int regionX = RegionManager.getRegionX(chunkX);
-                        int regionZ = RegionManager.getRegionZ(chunkZ);
-                        int localX = RegionManager.getLocalChunkX(chunkX);
-                        int localZ = RegionManager.getLocalChunkZ(chunkZ);
+                    if (chunk.isDirty() && simpleRegionManager != null && StringUtils.isNotBlank(saveName)) {
+                        int regionX = SimpleRegionManager.getRegionX(chunkX);
+                        int regionZ = SimpleRegionManager.getRegionZ(chunkZ);
+                        int localX = SimpleRegionManager.getLocalChunkX(chunkX);
+                        int localZ = SimpleRegionManager.getLocalChunkZ(chunkZ);
                         try {
                             log.debug("卸载时保存脏区块 [{},{}]", chunkX, chunkZ);
                             byte[] compressedData = SimpleChunkSerializer.serialize(chunk);
-                            RegionFile regionFile = regionManager.getRegionFile(regionX, regionZ);
+                            RegionFile regionFile = simpleRegionManager.getRegionFile(regionX, regionZ);
                             regionFile.open();
                             regionFile.writeChunk(localX, localZ, compressedData);
                             chunk.markDirty(false);
@@ -144,7 +144,7 @@ public class SimpleChunkManager {
             return chunk;
         }
         
-        if (regionManager != null && StringUtils.isNotBlank(saveName)) {
+        if (simpleRegionManager != null && StringUtils.isNotBlank(saveName)) {
             chunk = loadChunkFromRegion(chunkX, chunkZ);
             if (chunk != null) {
                 chunks.put(key, chunk);
@@ -156,20 +156,20 @@ public class SimpleChunkManager {
     }
     
     private SimpleServerChunk loadChunkFromRegion(int chunkX, int chunkZ) {
-        if (regionManager == null) {
+        if (simpleRegionManager == null) {
             log.debug("无法加载区块 [{},{}]: 区域管理器未初始化", chunkX, chunkZ);
             return null;
         }
         
         try {
-            int regionX = RegionManager.getRegionX(chunkX);
-            int regionZ = RegionManager.getRegionZ(chunkZ);
-            int localX = RegionManager.getLocalChunkX(chunkX);
-            int localZ = RegionManager.getLocalChunkZ(chunkZ);
+            int regionX = SimpleRegionManager.getRegionX(chunkX);
+            int regionZ = SimpleRegionManager.getRegionZ(chunkZ);
+            int localX = SimpleRegionManager.getLocalChunkX(chunkX);
+            int localZ = SimpleRegionManager.getLocalChunkZ(chunkZ);
             
             log.debug("动态加载区块 [{},{}] 从区域 [{},{}] 本地坐标 [{},{}]", chunkX, chunkZ, regionX, regionZ, localX, localZ);
             
-            RegionFile regionFile = regionManager.getRegionFile(regionX, regionZ);
+            RegionFile regionFile = simpleRegionManager.getRegionFile(regionX, regionZ);
             regionFile.open();
             
             byte[] compressedData = regionFile.readChunk(localX, localZ);
@@ -250,7 +250,7 @@ public class SimpleChunkManager {
     
     
     public void saveAllDirtyChunks() {
-        if (regionManager == null || StringUtils.isBlank(saveName)) {
+        if (simpleRegionManager == null || StringUtils.isBlank(saveName)) {
             log.debug("跳过保存: 区域管理器未初始化或存档名称为空");
             return;
         }
@@ -268,16 +268,16 @@ public class SimpleChunkManager {
                 int chunkZ = chunk.getChunkZ();
                 
                 if (chunk.isDirty()) {
-                    int regionX = RegionManager.getRegionX(chunkX);
-                    int regionZ = RegionManager.getRegionZ(chunkZ);
-                    int localX = RegionManager.getLocalChunkX(chunkX);
-                    int localZ = RegionManager.getLocalChunkZ(chunkZ);
+                    int regionX = SimpleRegionManager.getRegionX(chunkX);
+                    int regionZ = SimpleRegionManager.getRegionZ(chunkZ);
+                    int localX = SimpleRegionManager.getLocalChunkX(chunkX);
+                    int localZ = SimpleRegionManager.getLocalChunkZ(chunkZ);
                     
                     log.debug("保存脏区块 [{},{}] 到区域 [{},{}] 本地坐标 [{},{}]", chunkX, chunkZ, regionX, regionZ, localX, localZ);
                     
                     byte[] compressedData = SimpleChunkSerializer.serialize(chunk);
                     
-                    RegionFile regionFile = regionManager.getRegionFile(regionX, regionZ);
+                    RegionFile regionFile = simpleRegionManager.getRegionFile(regionX, regionZ);
                     regionFile.open();
                     regionFile.writeChunk(localX, localZ, compressedData);
                     

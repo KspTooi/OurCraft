@@ -17,6 +17,9 @@ import javax.sql.DataSource;
 import com.ksptool.ourcraft.server.archive.model.ArchiveVo;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 
+import com.ksptool.ourcraft.sharedcore.world.GlobalService;
+import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
+import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import org.apache.commons.lang3.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -29,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Getter@Setter
-public class ArchiveService {
+public class ArchiveService implements GlobalService{
 
     //当前运行目录
     private String CURRENT_RUN_DIR = System.getProperty("user.dir");
@@ -65,6 +68,7 @@ public class ArchiveService {
         this.worldService = new ArchiveWorldService(this, this.paletteService, this.chunkService);
     }
 
+
     /**
      * 判断是否连接到归档索引
      * @return 是否连接到归档索引
@@ -82,7 +86,6 @@ public class ArchiveService {
             log.warn("归档管理器当前已连接到一个归档索引,如果要连接到另一个归档索引,请先断开当前连接");
             return;
         }
-
 
         //检查归档根目录是否存在
         if(!existsArchive(archiveName)){
@@ -529,5 +532,7 @@ public class ArchiveService {
         }
 
     }
+
+
 
 }

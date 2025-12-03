@@ -7,7 +7,7 @@ import com.ksptool.ourcraft.server.archive.ArchiveWorldService;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
 import org.apache.commons.lang3.StringUtils;
-import com.ksptool.ourcraft.server.world.save.RegionManager;
+import com.ksptool.ourcraft.server.world.save.SimpleRegionManager;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
@@ -155,12 +155,12 @@ public class ServerWorldService {
 
         ServerWorld sw = new ServerWorld(server, worldIndexVo);
         sw.setSaveName(worldIndexVo.getName());
-        sw.setArchiveService(archiveService);
+        sw.setAs(archiveService);
 
-        RegionManager eam = new RegionManager(new File("chunksDir"), ".sce", "SCEF");
+        SimpleRegionManager eam = new SimpleRegionManager(new File("chunksDir"), ".sce", "SCEF");
 
         //sw.setRegionManager(aam);
-        sw.setEntityRegionManager(eam);
+        sw.setSrm(eam);
 
         sw.init();
 

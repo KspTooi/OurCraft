@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
@@ -24,7 +25,7 @@ public class ServerWorldTimeService implements SequenceUpdate{
 
     /**
      * 构造函数
-     * @param world 
+     * @param world World
      * @param previousTotalActions 上一次Action的总次数
      */
     public ServerWorldTimeService(ServerWorld world,long previousTotalActions) {
@@ -76,6 +77,16 @@ public class ServerWorldTimeService implements SequenceUpdate{
      */
     public long getTotalActions() {
         return totalActions.get();
+    }
+
+    /**
+     * 将现实时间转换为Actions(近似值 因为服务端Action不一定均匀)
+     * @param amount 时间量
+     * @param timeUnit 时间单位
+     * @return 总Action次数
+     */
+    public long getActions(long amount,TimeUnit timeUnit) {
+        return (long) (amount * timeUnit.toSeconds(1) * world.getTemplate().getActionPerSecond());
     }
 
 }

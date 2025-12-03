@@ -7,7 +7,7 @@ import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.utils.position.PrecisionPos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
-import com.ksptool.ourcraft.sharedcore.world.SequenceUpdate;
+import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import org.joml.Vector3d;
 
@@ -15,7 +15,7 @@ import org.joml.Vector3d;
  * 服务端碰撞管理器，负责权威的物理碰撞检测
  * 现在它已经被升级为一个物理服务，负责所有实体/区块的物理计算，并整合到ServerWorld的Action循环中
  */
-public class ServerWorldPhysicsService implements SequenceUpdate {
+public class ServerWorldPhysicsService extends WorldService {
 
     private final ServerWorld world;
 

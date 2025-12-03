@@ -18,13 +18,8 @@ import com.ksptool.ourcraft.client.gui.CreateWorldMenu;
 import com.ksptool.ourcraft.client.gui.UiConstants;
 import com.ksptool.ourcraft.client.network.ServerConnection;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
-import com.ksptool.ourcraft.sharedcore.events.EventQueue;
-import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
-import com.ksptool.ourcraft.sharedcore.events.PlayerHotbarSwitchEvent;
-import com.ksptool.ourcraft.sharedcore.events.PlayerActionEvent;
-import com.ksptool.ourcraft.sharedcore.events.PlayerAction;
-import com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent;
-import com.ksptool.ourcraft.sharedcore.events.ClientReadyEvent;
+import com.ksptool.ourcraft.sharedcore.events.*;
+import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
@@ -216,15 +211,15 @@ public class GameClient {
             ));
         } else {
             // 单人游戏模式，使用EventQueue
-            EventQueue eventQueue = EventQueue.getInstance();
-            eventQueue.offerC2S(inputEvent);
+            SimpleEventQueue simpleEventQueue = SimpleEventQueue.getInstance();
+            simpleEventQueue.offerC2S(inputEvent);
             
             org.joml.Vector2d mouseDelta = input.getMouseDelta();
             if (mouseDelta.x != 0 || mouseDelta.y != 0) {
                 float mouseSensitivity = 0.1f;
                 float deltaYaw = (float) mouseDelta.x * mouseSensitivity;
                 float deltaPitch = (float) mouseDelta.y * mouseSensitivity;
-                eventQueue.offerC2S(new PlayerCameraInputEvent(deltaYaw, deltaPitch));
+                simpleEventQueue.offerC2S(new PlayerCameraInputEvent(deltaYaw, deltaPitch));
             }
         }
     }
@@ -346,7 +341,7 @@ public class GameClient {
                     int newSlot = player.getInventory().getSelectedSlot() + (int) -scrollY;
                     serverConnection.sendPacket(new PlayerDshsNdto(newSlot));
                 } else {
-                    EventQueue.getInstance().offerC2S(new PlayerHotbarSwitchEvent((int) -scrollY));
+                    SimpleEventQueue.getInstance().offerC2S(new PlayerHotbarSwitchEvent((int) -scrollY));
                 }
             }
             
@@ -360,7 +355,7 @@ public class GameClient {
                         int currentSlot = player.getInventory().getSelectedSlot();
                         int slotDelta = slotIndex - currentSlot;
                         if (slotDelta != 0) {
-                            EventQueue.getInstance().offerC2S(new PlayerHotbarSwitchEvent(slotDelta));
+                            SimpleEventQueue.getInstance().offerC2S(new PlayerHotbarSwitchEvent(slotDelta));
                         }
                     }
                 }
@@ -372,7 +367,7 @@ public class GameClient {
                     // TODO: 获取目标方块位置和面
                     serverConnection.sendPacket(new PlayerDActionNDto(ActionType.FINISH_BREAKING, 0, 0, 0, 0));
                 } else {
-                    EventQueue.getInstance().offerC2S(new PlayerActionEvent(PlayerAction.ATTACK));
+                    SimpleEventQueue.getInstance().offerC2S(new PlayerActionEvent(PlayerAction.ATTACK));
                 }
             }
             if (input.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
@@ -380,7 +375,7 @@ public class GameClient {
                     // TODO: 获取目标方块位置和面
                     serverConnection.sendPacket(new PlayerDActionNDto(ActionType.PLACE_BLOCK, 0, 0, 0, 0));
                 } else {
-                    EventQueue.getInstance().offerC2S(new PlayerActionEvent(PlayerAction.USE));
+                    SimpleEventQueue.getInstance().offerC2S(new PlayerActionEvent(PlayerAction.USE));
                 }
             }
         }
@@ -586,7 +581,7 @@ public class GameClient {
             // 多人游戏模式下，等待服务端同步后再设置初始化标志
             playerInitialized = false;
         } else {
-            EventQueue.getInstance().offerC2S(new ClientReadyEvent());
+            SimpleEventQueue.getInstance().offerC2S(new ClientReadyEvent());
             // 单人游戏模式下，立即设置初始化标志
             playerInitialized = true;
         }

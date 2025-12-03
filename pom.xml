@@ -6,7 +6,7 @@
 
     <groupId>com.ksptool</groupId>
     <artifactId>our-craft</artifactId>
-    <version>1.2F8</version>
+    <version>1.2F20</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>

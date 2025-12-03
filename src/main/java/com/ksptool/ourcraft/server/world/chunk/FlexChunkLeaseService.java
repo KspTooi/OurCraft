@@ -7,12 +7,13 @@ import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.event.ServerChunkLeaseExpiredEvent;
 import com.ksptool.ourcraft.server.event.ServerChunkLeaseIssuedEvent;
 import com.ksptool.ourcraft.server.world.ServerWorld;
-import com.ksptool.ourcraft.server.world.ServerWorldEventBus;
+import com.ksptool.ourcraft.server.world.ServerWorldEventService;
 import com.ksptool.ourcraft.server.world.SimpleEntityService;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.utils.viewport.ChunkViewPort;
-import com.ksptool.ourcraft.sharedcore.world.SequenceUpdate;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
+import com.ksptool.ourcraft.sharedcore.world.WorldService;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
  * 区块租约服务，负责管理区块的租约
  */
 @Slf4j
-public class FlexChunkLeaseService implements SequenceUpdate{
+public class FlexChunkLeaseService extends WorldService{
 
     //发生变化的区块集合最大大小
     private static final int MAX_CHANGES_QUEUE_SIZE = 50000;
@@ -39,14 +40,14 @@ public class FlexChunkLeaseService implements SequenceUpdate{
 
     private final SimpleEntityService ses;
 
-    private final ServerWorldEventBus sweb;
+    private final ServerWorldEventService sweb;
 
     public FlexChunkLeaseService(ServerWorld world) {
+        initOrReload();
         this.world = world;
         this.ses = world.getSes();
-        this.sweb = world.getEb();
+        this.sweb = world.getSweb();
     }
-
 
     /**
      * 签发租约(此函数签发服务器级别永久租约)
@@ -376,5 +377,6 @@ public class FlexChunkLeaseService implements SequenceUpdate{
         }
         return snapshot;
     }
+
 
 }

@@ -8,21 +8,19 @@ import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.server.world.chunk.FlexChunkLeaseService;
 import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
 import com.ksptool.ourcraft.server.world.gen.NoiseGenerator;
+import com.ksptool.ourcraft.server.world.save.SimpleRegionManager;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.Registry;
-import com.ksptool.ourcraft.sharedcore.StdRegName;
-import com.ksptool.ourcraft.sharedcore.events.EventQueue;
+import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
-import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.event.ServerPlayerCameraInputEvent;
 import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
-import com.ksptool.ourcraft.server.world.save.RegionManager;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 import com.ksptool.ourcraft.sharedcore.world.gen.TerrainGenerator;
@@ -33,9 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+
 /**
  * 服务端世界类，负责所有逻辑，不包含任何渲染相关代码
  */
@@ -47,22 +43,16 @@ public class ServerWorld implements SharedWorld {
     @Setter
     private Pos defaultSpawnPos;
 
-    //该世界上挂载的服务
-    private final Map<Class<?>, Object> serviceMap = new ConcurrentHashMap<>();
-
-    //该世界上挂载的服务(按优先级排序)
-    private final List<WorldService> services = new CopyOnWriteArrayList<>();
-
     private final OurCraftServer server;
 
     private final SimpleChunkManager scm;
 
     private final SimpleEntityService ses;
 
-    private RegionManager entityRegionManager;
+    private SimpleRegionManager srm;
 
     //服务端世界事件总线
-    private final ServerWorldEventBus eb;
+    private final ServerWorldEventService sweb;
 
     //区块令牌服务
     private final FlexChunkLeaseService fcls;
@@ -74,7 +64,7 @@ public class ServerWorld implements SharedWorld {
     private final ServerWorldTimeService swts;
 
     @Setter
-    private ArchiveService archiveService;
+    private ArchiveService as;
 
     private final WorldTemplate template;
 
@@ -93,7 +83,7 @@ public class ServerWorld implements SharedWorld {
     @Getter
     private final TerrainGenerator terrainGenerator;
 
-    private final EventQueue eventQueue;
+    private final SimpleEventQueue seq;
 
 
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
@@ -104,7 +94,7 @@ public class ServerWorld implements SharedWorld {
         this.swps = new ServerWorldPhysicsService(this);
         this.swts = new ServerWorldTimeService(this, 0L);
         this.seed = String.valueOf(System.currentTimeMillis());
-        this.eventQueue = EventQueue.getInstance();
+        this.seq = SimpleEventQueue.getInstance();
         this.fscs = new FlexServerChunkService(server,this);
         this.server = server;
 
@@ -118,11 +108,11 @@ public class ServerWorld implements SharedWorld {
         this.terrainGenerator = terrainGenerator;
         var noiseGenerator = new NoiseGenerator(seed);
         this.generationContext = new GenerationContext(noiseGenerator, this, seed);
-        this.eb = new ServerWorldEventBus();
+        this.sweb = new ServerWorldEventService();
 
         //注册事件处理器
-        eb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
-        eb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
+        sweb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
+        sweb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
     }
 
     /**
@@ -155,7 +145,7 @@ public class ServerWorld implements SharedWorld {
         this.name = worldIndexVo.getName();
         long totalActions = worldIndexVo.getTotalTick() != null ? worldIndexVo.getTotalTick() : 0L;
         this.swts = new ServerWorldTimeService(this, totalActions);
-        this.eventQueue = EventQueue.getInstance();
+        this.seq = SimpleEventQueue.getInstance();
         this.fscs = new FlexServerChunkService(server, this);
 
         //从注册表获取地形生成器
@@ -167,11 +157,11 @@ public class ServerWorld implements SharedWorld {
         this.terrainGenerator = terrainGenerator;
         var noiseGenerator = new NoiseGenerator(seed);
         this.generationContext = new GenerationContext(noiseGenerator, this, seed);
-        this.eb = new ServerWorldEventBus();
+        this.sweb = new ServerWorldEventService();
 
         //注册事件处理器
-        eb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
-        eb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
+        sweb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
+        sweb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
 
         //设置出生点（如果已创建）
         if (worldIndexVo.getDefaultSpawnCreated() != null && worldIndexVo.getDefaultSpawnCreated() == 1) {
@@ -180,17 +170,6 @@ public class ServerWorld implements SharedWorld {
             }
         }
     }
-    
-    public void setSaveName(String saveName) {
-        //this.saveName = saveName;
-        this.scm.setSaveName(saveName);
-        this.ses.setSaveName(saveName);
-    }
-
-    public void setEntityRegionManager(RegionManager entityRegionManager) {
-        this.entityRegionManager = entityRegionManager;
-        this.ses.setEntityRegionManager(entityRegionManager);
-    }
 
 
     public void init() {
@@ -198,6 +177,19 @@ public class ServerWorld implements SharedWorld {
         //创建默认出生点
         createDefaultSpawn();
     }
+
+
+    public void setSaveName(String saveName) {
+        //this.saveName = saveName;
+        this.scm.setSaveName(saveName);
+        this.ses.setSaveName(saveName);
+    }
+
+    public void setSrm(SimpleRegionManager srm) {
+        this.srm = srm;
+        this.ses.setEntityRegionManager(srm);
+    }
+
 
     /**
      * 新的update方法，由GameServer的主循环调用
@@ -256,7 +248,7 @@ public class ServerWorld implements SharedWorld {
         swts.action(delta, this);
 
         //处理全部事件(通常包括输入,(网络线程会异步将玩家输入投入到队列中)这会应用Player的输入为他们的速度)
-        eb.process();
+        sweb.action(delta, this);
 
         //物理服务动作(实体物理模拟,这会根据Player的速度模拟并更新他们的位置)
         swps.action(delta, this);
@@ -267,7 +259,7 @@ public class ServerWorld implements SharedWorld {
         //处理区块加载/卸载
         fscs.action(delta, this);
 
-        //TODO:处理网络事件同步 
+        //TODO:处理网络事件同步
 
     }
 

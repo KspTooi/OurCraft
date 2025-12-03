@@ -13,7 +13,7 @@ import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
-import com.ksptool.ourcraft.sharedcore.world.SequenceUpdate;
+import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 
 /**
@@ -21,7 +21,7 @@ import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
  * 新一代的区块管理器 负责接替Simple系列组件
  */
 @Slf4j
-public class FlexServerChunkService implements SequenceUpdate{
+public class FlexServerChunkService extends WorldService{
 
     //服务器实例
     private final OurCraftServer server;
@@ -72,9 +72,26 @@ public class FlexServerChunkService implements SequenceUpdate{
     @Override
     public void action(double delta, SharedWorld world) {
 
-        
+        //从租约服务拉取发生变化的区块
+        var changedChunks = fcls.pollChanges();
 
+        //遍历发生变化的区块,查询它们的租约等级
+        for(var chunkPos : changedChunks){
 
+            var level = fcls.getLeaseLevel(chunkPos);
+
+            //无租约 异步卸载区块
+            if(level == null){
+                unloadAndSave(chunkPos);
+                continue;
+            }
+
+            //有租约 异步加载区块
+            if(!isChunkReady(chunkPos)){
+                loadOrGenerate(chunkPos);
+            }
+
+        }
     }
 
 
@@ -180,7 +197,7 @@ public class FlexServerChunkService implements SequenceUpdate{
                     newChunk.getLoadFuture().complete(newChunk);
 
                     //发布事件 (应放在 complete 之后，确保监听者拿到的是完成状态的 Future)
-                    world.getEb().publish(new ServerChunkReadyEvent(newChunk));
+                    world.getSweb().publish(new ServerChunkReadyEvent(newChunk));
 
                 } catch (Exception e) {
                     log.error("区块加载/生成失败: {}", pos, e);
@@ -199,7 +216,7 @@ public class FlexServerChunkService implements SequenceUpdate{
 
     /**
      * 卸载并保存区块数据(线程安全)
-     * @param pos 块坐标
+     * @param chunkPos 块坐标
      * @return 区块卸载任务
      */
     public CompletableFuture<FlexServerChunk> unloadAndSave(ChunkPos chunkPos) {
@@ -255,7 +272,7 @@ public class FlexServerChunkService implements SequenceUpdate{
                     newUnloadFuture.complete(chunk);
 
                     // 发布事件
-                    world.getEb().publish(new ServerChunkUnloadedEvent(chunk));
+                    world.getSweb().publish(new ServerChunkUnloadedEvent(chunk));
 
                     if(chunk.isDirty()){
                         log.info("区块卸载完成: {} 已保存", pos);

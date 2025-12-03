@@ -5,7 +5,7 @@ import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.server.world.save.EntitySerializer;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
-import com.ksptool.ourcraft.server.world.save.RegionManager;
+import com.ksptool.ourcraft.server.world.save.SimpleRegionManager;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
@@ -24,7 +24,7 @@ public class SimpleEntityService {
     
     private final ServerWorld world;
     private final CopyOnWriteArrayList<ServerEntity> entities;
-    private RegionManager entityRegionManager;
+    private SimpleRegionManager entitySimpleRegionManager;
     private String saveName;
 
     //玩家会话ID->玩家实体
@@ -39,12 +39,12 @@ public class SimpleEntityService {
         this.saveName = saveName;
     }
     
-    public void setEntityRegionManager(RegionManager entityRegionManager) {
-        this.entityRegionManager = entityRegionManager;
+    public void setEntityRegionManager(SimpleRegionManager entitySimpleRegionManager) {
+        this.entitySimpleRegionManager = entitySimpleRegionManager;
     }
     
-    public RegionManager getEntityRegionManager() {
-        return entityRegionManager;
+    public SimpleRegionManager getEntityRegionManager() {
+        return entitySimpleRegionManager;
     }
     
     public void addEntity(ServerEntity entity) {
@@ -80,17 +80,17 @@ public class SimpleEntityService {
     }
     
     public void loadEntitiesForChunk(int chunkX, int chunkZ) {
-        if (entityRegionManager == null) {
+        if (entitySimpleRegionManager == null) {
             return;
         }
         
         try {
-            int regionX = RegionManager.getRegionX(chunkX);
-            int regionZ = RegionManager.getRegionZ(chunkZ);
-            int localX = RegionManager.getLocalChunkX(chunkX);
-            int localZ = RegionManager.getLocalChunkZ(chunkZ);
+            int regionX = SimpleRegionManager.getRegionX(chunkX);
+            int regionZ = SimpleRegionManager.getRegionZ(chunkZ);
+            int localX = SimpleRegionManager.getLocalChunkX(chunkX);
+            int localZ = SimpleRegionManager.getLocalChunkZ(chunkZ);
             
-            RegionFile entityRegionFile = entityRegionManager.getRegionFile(regionX, regionZ);
+            RegionFile entityRegionFile = entitySimpleRegionManager.getRegionFile(regionX, regionZ);
             entityRegionFile.open();
             
             byte[] compressedData = entityRegionFile.readChunk(localX, localZ);
@@ -119,7 +119,7 @@ public class SimpleEntityService {
     }
     
     public void saveEntitiesForChunk(int chunkX, int chunkZ) {
-        if (entityRegionManager == null || StringUtils.isBlank(saveName)) {
+        if (entitySimpleRegionManager == null || StringUtils.isBlank(saveName)) {
             return;
         }
         
@@ -144,12 +144,12 @@ public class SimpleEntityService {
             
             byte[] compressedData = EntitySerializer.serialize(chunkEntities);
             
-            int regionX = RegionManager.getRegionX(chunkX);
-            int regionZ = RegionManager.getRegionZ(chunkZ);
-            int localX = RegionManager.getLocalChunkX(chunkX);
-            int localZ = RegionManager.getLocalChunkZ(chunkZ);
+            int regionX = SimpleRegionManager.getRegionX(chunkX);
+            int regionZ = SimpleRegionManager.getRegionZ(chunkZ);
+            int localX = SimpleRegionManager.getLocalChunkX(chunkX);
+            int localZ = SimpleRegionManager.getLocalChunkZ(chunkZ);
             
-            RegionFile entityRegionFile = entityRegionManager.getRegionFile(regionX, regionZ);
+            RegionFile entityRegionFile = entitySimpleRegionManager.getRegionFile(regionX, regionZ);
             entityRegionFile.open();
             entityRegionFile.writeChunk(localX, localZ, compressedData);
             logger.debug("成功保存区块 [{},{}] 的 {} 个实体", chunkX, chunkZ, chunkEntities.size());
@@ -159,7 +159,7 @@ public class SimpleEntityService {
     }
     
     public void saveAllDirtyEntities() {
-        if (entityRegionManager == null || StringUtils.isBlank(saveName)) {
+        if (entitySimpleRegionManager == null || StringUtils.isBlank(saveName)) {
             return;
         }
         

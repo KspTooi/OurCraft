@@ -1,5 +1,6 @@
 package com.ksptool.ourcraft.server.world;
 
+import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.WorldEvent;
 import com.ksptool.ourcraft.sharedcore.world.WorldEventBus;
 
@@ -14,7 +15,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 @Slf4j
-public class ServerWorldEventBus implements WorldEventBus {
+public class ServerWorldEventService implements WorldEventBus {
 
     //事件类型->事件处理器
     private final Map<Class<? extends WorldEvent>, List<Consumer<WorldEvent>>> listeners = new HashMap<>();
@@ -36,14 +37,18 @@ public class ServerWorldEventBus implements WorldEventBus {
         listeners.computeIfAbsent(eventType, k -> new ArrayList<>()).add((Consumer<WorldEvent>) listener);
     }
 
-
     @Override
     public void publish(WorldEvent event) {
         eventQueue.offer(event);
     }
 
+    /**
+     * 处理事件
+     * @param delta 距离上一帧经过的时间（秒）
+     * @param world 世界
+     */
     @Override
-    public void process() {
+    public void action(double delta, SharedWorld world) {
         WorldEvent event;
         while ((event = eventQueue.poll()) != null) {
             List<Consumer<WorldEvent>> handlers = listeners.get(event.getClass());
@@ -60,7 +65,6 @@ public class ServerWorldEventBus implements WorldEventBus {
             }
         }
     }
-
 
     /**
      * 处理所有积压的事件 (必须在 ServerWorld 的 Action 中调用)
@@ -97,7 +101,5 @@ public class ServerWorldEventBus implements WorldEventBus {
     public WorldEvent next() {
         return eventQueue.poll();
     }
-
-
 
 }

@@ -10,9 +10,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 区域管理器，负责管理区域文件的创建、打开和缓存
  */
-public class RegionManager {
+public class SimpleRegionManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(RegionManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(SimpleRegionManager.class);
     private static final int REGION_SIZE = 40;
     private final File baseDir;
     private final String fileExtension;
@@ -20,7 +20,7 @@ public class RegionManager {
 
     private final Map<String, RegionFile> openRegions;
     
-    public RegionManager(File baseDir, String fileExtension, String magicNumber) {
+    public SimpleRegionManager(File baseDir, String fileExtension, String magicNumber) {
         this.baseDir = baseDir;
         this.fileExtension = fileExtension;
         this.magicNumber = magicNumber;

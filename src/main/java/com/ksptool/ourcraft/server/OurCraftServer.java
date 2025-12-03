@@ -18,6 +18,7 @@ import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
+import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
 import com.ksptool.ourcraft.sharedcore.world.gen.SpawnPlatformGenerator;
@@ -273,7 +274,7 @@ public class OurCraftServer {
 
         // 将事件放入 C2S (Client to Server) 队列
         // 注意：这里假设 EventQueue 是线程安全的
-        com.ksptool.ourcraft.sharedcore.events.EventQueue.getInstance().offerC2S(inputEvent);
+        SimpleEventQueue.getInstance().offerC2S(inputEvent);
 
         // 相机更新也可以放入队列，或者暂时保持直接更新（视 EventQueue 支持的事件类型而定）
         // 为了保持一致性，建议也封装为事件，但目前先保留直接更新以最小化改动，
@@ -296,7 +297,7 @@ public class OurCraftServer {
         // 发送相机输入事件
         com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent cameraEvent = new com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent(
                 deltaYaw, deltaPitch);
-        com.ksptool.ourcraft.sharedcore.events.EventQueue.getInstance().offerC2S(cameraEvent);
+        SimpleEventQueue.getInstance().offerC2S(cameraEvent);
     }
 
     private void handlePlayerAction(PlayerDActionNDto packet, PlayerSession handler) {

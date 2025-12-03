@@ -11,6 +11,7 @@ import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncChunkDataNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncEntityPositionAndRotationNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncPlayerStateNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncUnloadChunkNVo;
+import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector3f;
@@ -50,7 +51,7 @@ public class ServerWorldExecutionUnit implements Runnable {
 
     @Override
     public void run() {
-        
+
         log.info("世界 {} 已启动 APS:{}", worldName, actionPerSecond);
         isRunning.set(true);
 
@@ -160,7 +161,7 @@ public class ServerWorldExecutionUnit implements Runnable {
     private void processEvents() {
         // 注意：EventQueue目前是全局的。在多世界环境下，事件应该包含WorldID，或者EventQueue应该按世界分发。
         // 这里假设 EventQueue.pollAllC2S 取出的事件如果是玩家输入，我们需要判断玩家是否在这个世界。
-        List<GameEvent> events = EventQueue.getInstance().pollAllC2S();
+        List<GameEvent> events = SimpleEventQueue.getInstance().pollAllC2S();
 
         // 简单的 SP/MP 混合处理逻辑
         if (!events.isEmpty()) {
@@ -207,7 +208,7 @@ public class ServerWorldExecutionUnit implements Runnable {
     private void processBlockUpdates() {
         // 获取本世界的 S2C 事件
         // TODO: EventQueue pollAllS2C 也是全局的，需要过滤属于本世界的事件
-        List<GameEvent> s2cEvents = EventQueue.getInstance().pollAllS2C();
+        List<GameEvent> s2cEvents = SimpleEventQueue.getInstance().pollAllS2C();
         
         for (GameEvent event : s2cEvents) {
             if (event instanceof BlockUpdateEvent) {

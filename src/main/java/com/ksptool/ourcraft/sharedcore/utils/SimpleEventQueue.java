@@ -1,4 +1,6 @@
-package com.ksptool.ourcraft.sharedcore.events;
+package com.ksptool.ourcraft.sharedcore.utils;
+
+import com.ksptool.ourcraft.sharedcore.events.GameEvent;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -8,8 +10,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * - C2S (Client to Server): 客户端发送给服务端的事件（如输入事件）
  * - S2C (Server to Client): 服务端发送给客户端的事件（如世界数据）
  */
-public class EventQueue {
-    private static final EventQueue instance = new EventQueue();
+public class SimpleEventQueue {
+    private static final SimpleEventQueue instance = new SimpleEventQueue();
     
     // 客户端到服务端的队列（输入事件等）
     private final ConcurrentLinkedQueue<GameEvent> c2sQueue = new ConcurrentLinkedQueue<>();
@@ -17,10 +19,10 @@ public class EventQueue {
     // 服务端到客户端的队列（世界数据等）
     private final ConcurrentLinkedQueue<GameEvent> s2cQueue = new ConcurrentLinkedQueue<>();
     
-    private EventQueue() {
+    private SimpleEventQueue() {
     }
     
-    public static EventQueue getInstance() {
+    public static SimpleEventQueue getInstance() {
         return instance;
     }
     

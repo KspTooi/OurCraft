@@ -1,6 +1,5 @@
 package com.ksptool.ourcraft.sharedcore.world;
 
-import com.ksptool.ourcraft.sharedcore.StdRegName;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,22 +9,18 @@ import lombok.Setter;
 @Getter
 public abstract class WorldService implements SequenceUpdate,Comparable<WorldService>{
 
-    //服务名称
-    private final StdRegName name;
-
     //服务优先级
     @Setter
     private int priority = 0;
 
-    public WorldService(StdRegName name) {
-        if(name == null){
-            throw new IllegalArgumentException("服务名称不能为空");
-        }
-        this.name = name;
-    }
+    //服务是否就绪
+    protected boolean isReady = false;
 
-    public WorldService(String name) {
-        this(StdRegName.of(name));
+    /**
+     * 初始化或重新加载服务 在服务被加载或重新加载时调用
+     */
+    public void initOrReload(){
+        isReady = true;
     }
 
     @Override

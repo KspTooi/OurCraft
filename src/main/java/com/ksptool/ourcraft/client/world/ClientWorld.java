@@ -2,14 +2,8 @@ package com.ksptool.ourcraft.client.world;
 
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.rendering.Mesh;
-import com.ksptool.ourcraft.sharedcore.events.BlockUpdateEvent;
-import com.ksptool.ourcraft.sharedcore.events.ChunkDataEvent;
-import com.ksptool.ourcraft.sharedcore.events.ChunkUnloadEvent;
-import com.ksptool.ourcraft.sharedcore.events.ChunkUpdateEvent;
-import com.ksptool.ourcraft.sharedcore.events.EventQueue;
-import com.ksptool.ourcraft.sharedcore.events.GameEvent;
-import com.ksptool.ourcraft.sharedcore.events.PlayerUpdateEvent;
-import com.ksptool.ourcraft.sharedcore.events.TimeUpdateEvent;
+import com.ksptool.ourcraft.sharedcore.events.*;
+import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import com.ksptool.ourcraft.sharedcore.utils.ChunkUtils;
@@ -29,7 +23,7 @@ public class ClientWorld implements SharedWorld {
     private final Map<Long, ClientChunk> chunks = new ConcurrentHashMap<>();
 
     //服务器发送到客户端的事件队列
-    private final EventQueue eventQueue;
+    private final SimpleEventQueue simpleEventQueue;
     
     //世界模板
     private final WorldTemplate template;
@@ -43,7 +37,7 @@ public class ClientWorld implements SharedWorld {
     
     public ClientWorld(WorldTemplate template) {
         this.template = template;
-        this.eventQueue = EventQueue.getInstance();
+        this.simpleEventQueue = SimpleEventQueue.getInstance();
         this.chunkMeshGenerator = new ChunkMeshGenerator(this);
     }
     
@@ -55,7 +49,7 @@ public class ClientWorld implements SharedWorld {
      * 处理服务器发送到客户端的事件队列中的所有事件
      */
     public void processEvents() {
-        java.util.List<GameEvent> events = eventQueue.pollAllS2C();
+        java.util.List<GameEvent> events = simpleEventQueue.pollAllS2C();
         for (GameEvent event : events) {
             if (event instanceof BlockUpdateEvent) {
                 handleBlockUpdate((BlockUpdateEvent) event);
