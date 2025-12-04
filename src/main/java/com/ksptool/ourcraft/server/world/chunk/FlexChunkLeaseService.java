@@ -2,18 +2,21 @@ package com.ksptool.ourcraft.server.world.chunk;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.event.ServerChunkLeaseExpiredEvent;
 import com.ksptool.ourcraft.server.event.ServerChunkLeaseIssuedEvent;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.ServerWorldEventService;
+import com.ksptool.ourcraft.server.world.ServerWorldTimeService;
 import com.ksptool.ourcraft.server.world.SimpleEntityService;
+import com.ksptool.ourcraft.server.world.chunk.FlexChunkLease.HolderType;
+import com.ksptool.ourcraft.server.world.chunk.FlexChunkLease.Level;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.utils.viewport.ChunkViewPort;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.WorldService;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,55 +29,71 @@ public class FlexChunkLeaseService extends WorldService{
     //发生变化的区块集合最大大小
     private static final int MAX_CHANGES_QUEUE_SIZE = 50000;
 
-    //区块坐标->区块租约集合(与playerLeaseMap强一致性)
+    //区块坐标->区块租约集合
     private final Map<ChunkPos, Set<FlexChunkLease>> chunkLeasesMap = new ConcurrentHashMap<>();
 
-    //Player SessionID->该玩家持有的所有区块坐标集合(用于快速查找 与chunkLeasesMap强一致性)
+    //Player SessionID->该玩家持有的所有区块坐标集
     private final Map<Long, Set<ChunkPos>> playerLeaseMap = new ConcurrentHashMap<>();
 
     //用于存储在action中发生变化的区块(原理: 这个集合会记录在每一次Action更新中发生变化的租约) 无论是主线程还是网络线程，统一写入这里，安全且无竞态
     private final Set<ChunkPos> changes = ConcurrentHashMap.newKeySet();
+
+    //有序队列(用于存储过期租约 过期时间越早的租约越靠前)
+    private final Queue<FlexChunkLease> expiredLeases = new PriorityBlockingQueue<>(64,Comparator.comparingLong(FlexChunkLease::getExpireAt));
 
     @Getter
     private final ServerWorld world;
 
     private final SimpleEntityService ses;
 
-    private final ServerWorldEventService sweb;
+    private final ServerWorldTimeService swts;
+
+    //租约过期时间
+    private final int maxPlayerChunkLeaseAction;
+
 
     public FlexChunkLeaseService(ServerWorld world) {
-        initOrReload();
         this.world = world;
         this.ses = world.getSes();
-        this.sweb = world.getSweb();
+        this.swts = world.getSwts();
+        this.maxPlayerChunkLeaseAction = world.getTemplate().getMaxPlayerChunkLeaseAction();
     }
 
     /**
-     * 签发租约(此函数签发服务器级别永久租约)
+     * 签发租约(此函数签发Server级别永久租约)
      * @param chunkPos 区块坐标
      */
     public void issuePermanentServerLease(ChunkPos chunkPos) {
 
-        if(chunkPos == null){
-            throw new IllegalArgumentException("无法签发租约: 区块坐标不能为空");
-        }
+        chunkLeasesMap.compute(chunkPos, (cp, set) -> {
 
-        chunkLeasesMap.compute(chunkPos, (pos, leases) -> {
-
-            if (leases == null){
-                leases = ConcurrentHashMap.newKeySet();
+            //无SET则创建新的SET
+            if(set == null){
+                set = ConcurrentHashMap.newKeySet();
             }
 
-            var lease = FlexChunkLease.ofHigh(pos, FlexChunkLease.HolderType.SERVER, -1);
-            lease.getPermanent().set(true);
+            //从SET中获取最高等级的服务器租约
+            var existsServerLease = getLeaseInternal(set, FlexChunkLease.HolderType.SERVER, FlexChunkLease.Level.HIGH);
 
-            if(leases.add(lease)){
-                markChanged(chunkPos);
-                //发布ServerChunkLeaseIssuedEvent事件
-                sweb.publish(new ServerChunkLeaseIssuedEvent(chunkPos, lease, this));
-                log.debug("签发服务器级别永久租约 区块:{} 等级:{}", chunkPos, lease.getLevel());
+            //如果同Chunk存在一个非永久的服务器租约则升级它为永久租约
+            if(existsServerLease != null){
+
+                //如果已经是永久租约则直接返回
+                if(existsServerLease.isPermanent()){
+                    return set;
+                }
+
+                existsServerLease.upgradeToPermanent();
+                return set;
             }
-            return leases;
+
+            //创建新的租约
+            var newLease = FlexChunkLease.ofHigh(chunkPos, FlexChunkLease.HolderType.SERVER, -1);
+            set.add(newLease);
+
+            //标记区块发生变化
+            markChangedInternal(chunkPos);
+            return set;
         });
 
     }
@@ -85,95 +104,82 @@ public class FlexChunkLeaseService extends WorldService{
      * @param playerSessionId Player SessionID
      */
     public void issuePermanentLease(ChunkPos chunkPos, long playerSessionId) {
+        
+        //查询玩家是否已持有该区块POS
+        playerLeaseMap.compute(playerSessionId, (cp, set) -> {
 
-        if(chunkPos == null || playerSessionId == -1){
-            throw new IllegalArgumentException("无法签发租约: 区块坐标或SessionID不能为空");
-        }
-
-        chunkLeasesMap.compute(chunkPos, (pos, leases) -> {
-
-            //租约Set为空 创建新Set
-            if (leases == null){
-                leases = ConcurrentHashMap.newKeySet();
+            if(set == null){
+                set = ConcurrentHashMap.newKeySet();
             }
 
-            //检查Set中是否已存在该玩家最高等级的租约 如果有 直接提升它为永久租约
-            for(var existingLease : leases){
+            //玩家在该区块POS已持有若干租约
+            if(set.contains(chunkPos)){
 
-                if(existingLease.isPlayer() && existingLease.getHolderId() == playerSessionId){
-                    if(existingLease.getLevel().equals(FlexChunkLease.Level.HIGH)){
-                        if(!existingLease.isPermanent()){
-                            existingLease.setPermanent(true);
-                            existingLease.renew(world.getTemplate().getMaxPlayerChunkLeaseAction()); //恢复TTL到最大值
-                            markChanged(chunkPos);
-                            sweb.publish(new ServerChunkLeaseIssuedEvent(chunkPos, existingLease, this));
-                            log.debug("提升玩家级别租约为永久租约 区块:{} 玩家SessionID:{}", chunkPos, playerSessionId);
-                        }
-                        return leases;
+                //查询一个最高等级的租约
+                var lease = getLeaseInternal(chunkLeasesMap.get(chunkPos), playerSessionId, FlexChunkLease.Level.HIGH);
+
+                //如果该租约已经是永久租约则直接返回
+                if(lease != null){
+                    if(lease.isPermanent()){
+                        return set;
                     }
+                    //升级为永久租约
+                    lease.upgradeToPermanent();
+                    return set;
                 }
 
+                return set;
             }
 
-            //如果Player在该区块没有最高等级的临时租约 则创建新的永久租约
+            //为玩家签发新租约
             var newLease = FlexChunkLease.ofHigh(chunkPos, FlexChunkLease.HolderType.PLAYER, playerSessionId);
-            newLease.setPermanent(true);
-            newLease.renew(world.getTemplate().getMaxPlayerChunkLeaseAction()); //恢复TTL到最大值
+            set.add(chunkPos); //标记玩家持有该区块POS
 
-            if(leases.add(newLease)){
-                markChanged(chunkPos);
-                //将新的租约添加到玩家租约池中并发布ServerChunkLeaseIssuedEvent事件
-                playerLeaseMap.computeIfAbsent(playerSessionId, k -> ConcurrentHashMap.newKeySet()).add(chunkPos);
-                sweb.publish(new ServerChunkLeaseIssuedEvent(chunkPos, newLease, this));
-                log.debug("签发玩家级别永久租约 区块:{} 玩家SessionID:{} 等级:{}", chunkPos, playerSessionId, newLease.getLevel());
-            }
+            //标记区块发生变化
+            markChangedInternal(chunkPos);
 
-            return leases;
+            //添加到区块租约集合
+            chunkLeasesMap.compute(chunkPos, (ccp, cSet) -> {
+                if(cSet == null){
+                    cSet = ConcurrentHashMap.newKeySet();
+                }
+                cSet.add(newLease);
+                return cSet;
+            });
+
+            return set;
         });
 
     }
 
 
     /**
-     * 吊销永久租约(此函数吊销Player级别永久租约使其降级为一个有限期租约，这不会删除任何租约 只是将它们降级(删除逻辑应统一到Action))
+     * 降级永久租约(此函数降级Player级别永久租约使其降级为一个有限期租约，这不会删除任何租约 只是将它们降级(删除逻辑应统一到Action))
      * @param chunkPos 区块坐标
      * @param playerSessionId 玩家SessionID
      */
-    public void revokePermanentLease(ChunkPos chunkPos, long playerSessionId) {
+    public void downgradePermanentLease(ChunkPos chunkPos, long playerSessionId) {
 
-        if(chunkPos == null || playerSessionId == -1){
-            throw new IllegalArgumentException("无法吊销租约: 区块坐标或SessionID不能为空");
-        }
+        //查询玩家是否已持有该区块POS
+        playerLeaseMap.computeIfPresent(playerSessionId, (cp, set) -> {
 
-        chunkLeasesMap.compute(chunkPos, (pos, chunkLeases) -> {
-
-            if(chunkLeases == null){
-                return null;
+            //不持有该区块POS则直接返回
+            if(!set.contains(chunkPos)){
+                return set;
             }
 
-            //搜集需要吊销的租约
-            List<FlexChunkLease> revokedLeases = new ArrayList<>();
-            for(var lease : chunkLeases){
-                if(!lease.isPlayer() || lease.getHolderId() != playerSessionId){
-                    continue;
-                }
-                if(!lease.isPermanent()){
-                    continue;
-                }
-                revokedLeases.add(lease);
-                lease.setPermanent(false);
-                lease.renew(world.getTemplate().getMaxPlayerChunkLeaseAction());
+            //查询一个最高等级的租约
+            var lease = getLeaseInternal(chunkLeasesMap.get(chunkPos), playerSessionId, FlexChunkLease.Level.HIGH);
+            if(lease == null){
+                return set;
             }
 
-            //如果需要吊销的租约集合为空，直接返回该区块剩余的其他租约
-            if(revokedLeases.isEmpty()){
-                return chunkLeases;
-            }
+            //降级为有限期租约
+            lease.downgradeToFinite(getNextExpireTime());
 
-            //标记该区块发生变化
-            markChanged(chunkPos);
-            log.debug("吊销玩家级别永久租约 区块:{} 玩家SessionID:{} 数量:{}", chunkPos, playerSessionId, revokedLeases.size());
-            return chunkLeases;
+            //添加到过期租约队列(过期时间越早的租约越靠前)
+            expiredLeases.add(lease);
+            return set;
         });
 
     }
@@ -185,16 +191,25 @@ public class FlexChunkLeaseService extends WorldService{
      * @return 租约等级 如果这个ChunkPos不存在任何租约则返回null，否则返回最高等级的租约等级
      */
     public FlexChunkLease.Level getLeaseLevel(ChunkPos chunkPos){
-        var leases = chunkLeasesMap.get(chunkPos);
-        if(leases == null || leases.isEmpty()){
+
+        var set = chunkLeasesMap.get(chunkPos);
+        if(set == null){
             return null;
         }
-        
-        return leases.stream()
-            .filter(lease -> !lease.isExpired())
-            .map(FlexChunkLease::getLevel)
-            .max(Comparator.comparingInt(FlexChunkLease.Level::getValue))
-            .orElse(null);
+
+        var level = -1;
+
+        for(var lease : set){
+            if(lease.getLevel().getValue() > level){
+                level = lease.getLevel().getValue();
+            }
+        }
+
+        if(level == -1){
+            return null;
+        }
+
+        return Level.values()[level];
     }
 
     /**
@@ -203,16 +218,55 @@ public class FlexChunkLeaseService extends WorldService{
      * @return 租约 如果这个ChunkPos不存在任何租约则返回null，返回最高等级的租约
      */
     public FlexChunkLease getLease(ChunkPos chunkPos){
-        var leases = chunkLeasesMap.get(chunkPos);
-        if(leases == null || leases.isEmpty()){
+
+        var set = chunkLeasesMap.get(chunkPos);
+        if(set == null){
             return null;
         }
-        
-        return leases.stream()
-            .filter(lease -> !lease.isExpired())
-            .max((l1, l2) -> Integer.compare(l1.getLevel().getValue(), l2.getLevel().getValue()))
-            .orElse(null);
+
+        var level = -1;
+        FlexChunkLease result = null;
+
+        for (FlexChunkLease lease : set) {
+            if (lease.getLevel().getValue() > level) {
+                level = lease.getLevel().getValue();
+                result = lease;
+            }
+        }
+
+        if(level == -1){
+            return null;
+        }
+
+        return result;
     }
+
+    /**
+     * 获取租约
+     * @param cp 区块坐标
+     * @param ht 持有人类型
+     * @param l 租约等级
+     * @return 租约 不存在则返回null
+     */
+    public FlexChunkLease getLease(ChunkPos cp, FlexChunkLease.HolderType ht, FlexChunkLease.Level l){
+
+        var set = chunkLeasesMap.get(cp);
+
+        if(set == null){
+            return null;
+        }
+
+        for(var it = set.iterator(); it.hasNext();){
+            var lease = it.next();
+            if(lease.getHolderType() == ht && lease.getLevel() == l){
+                return lease;
+            }
+        }
+
+        return null;
+    }
+
+
 
     /**
      * 统计该位置有效的剩余租约数量
@@ -220,34 +274,16 @@ public class FlexChunkLeaseService extends WorldService{
      * @return 剩余租约数量
      */
     public long getRemainingLeaseCount(ChunkPos chunkPos){
-        var leases = chunkLeasesMap.get(chunkPos);
-        if(leases == null){
+        var set = chunkLeasesMap.get(chunkPos);
+        if(set == null){
             return 0;
         }
-        return leases.stream().filter(lease -> !lease.isExpired()).count();
+        return set.size();
     }
 
 
     /**
-     * 执行更新
-     * 
-     * 运作原理：
-     * 1. 玩家租约管理阶段：
-     *    - 遍历所有实体，筛选出ServerPlayer
-     *    - 对于未初始化租约的玩家：根据当前区块坐标和视距计算视口范围，为视口内所有区块签发永久租约
-     *    - 对于已初始化租约的玩家：检测玩家是否移动到了新区块
-     *      * 如果移动了，计算新的视口范围
-     *      * 遍历玩家当前持有的所有租约区块，如果区块不在新视口内，则吊销该区块的永久租约
-     *      * 遍历新视口内的所有区块，如果该区块不存在该玩家的永久租约，则签发新的永久租约
-     * 
-     * 2. 租约TTL更新与过期清理阶段：
-     *    - 遍历所有区块的所有租约，调用每个租约的action方法扣减TTL（永久租约不会扣减）
-     *    - 收集所有过期的租约到临时列表（避免在遍历时修改集合）
-     *    - 遍历过期租约列表，执行清理操作：
-     *      * 从chunkLeasesMap中移除过期租约，如果该区块的租约集合为空则移除整个集合
-     *      * 如果是玩家租约，检查该区块是否还有其他该玩家的租约，如果没有则从playerLeaseMap中移除该区块引用
-     *      * 发布ServerChunkLeaseExpiredEvent事件，通知其他系统租约已过期
-     * 
+     * 执行更新(这不是一个线程安全的方法 不可在多线程中调用)
      * @param delta 距离上一Action经过的时间（秒）由SWEU传入
      * @param world 世界
      */
@@ -279,13 +315,13 @@ public class FlexChunkLeaseService extends WorldService{
                 var newViewport = ChunkViewPort.of(p.getCurrentChunkPos(), p.getViewDistance());
                 var newViewportChunks = newViewport.getChunkPosSet();
 
-                //吊销不在新视口内的区块租约
+                //降级不在新视口内的区块租约
                 var playerLeases = playerLeaseMap.get(p.getSessionId());
 
                 if(playerLeases != null){
                     for(var leaseChunkPos : playerLeases){
                         if(!newViewport.contains(leaseChunkPos)){
-                            revokePermanentLease(leaseChunkPos, p.getSessionId());
+                            downgradePermanentLease(leaseChunkPos, p.getSessionId());
                         }
                     }
                 }
@@ -298,69 +334,40 @@ public class FlexChunkLeaseService extends WorldService{
 
         }
 
+        //过期队列处理
+        while(!expiredLeases.isEmpty()){
 
-        //扣减租约TTL并移除过期租约
-        var expiredLeases = new ArrayList<FlexChunkLease>();
+            var firstExpiredLease = expiredLeases.peek();
 
-        //遍历所有租约，扣减TTL并收集过期租约
-        for(var leases : chunkLeasesMap.values()){
-            for(var lease : leases){
-                lease.action(delta, world);
-                if(lease.isExpired()){
-                    expiredLeases.add(lease);
-                }
+            if(firstExpiredLease == null){
+                break;
             }
-        }
-        
-        //遍历清理过期租约
-        for(var expireLease : expiredLeases){
+            
+            //当过期租约队列中有永久租约时，则直接移除它们并继续处理下一个过期租约
+            if(firstExpiredLease.isPermanent()){
+                expiredLeases.poll();
+                continue;
+            }
 
-            ChunkPos chunkPos = expireLease.getChunkPos();
+            //查看第一个过期租约是否已过期
+            if(firstExpiredLease.isExpired(swts.getTotalActions())){
 
-            chunkLeasesMap.computeIfPresent(chunkPos, (cp, leasesSet) -> {
+                //处理过期租约移除
+                removeLeaseInternal(expiredLeases.poll());
 
-                if (leasesSet.remove(expireLease)) {
+                //继续处理下一个过期租约
+                continue;
+            }
 
-                    //如果是玩家租约 需要处理玩家租约索引
-                    if(expireLease.isPlayer()){
+            //如果第一个过期租约未过期，则跳出循环
+            if(!firstExpiredLease.isExpired(swts.getTotalActions())){
+                break;
+            }
 
-                        playerLeaseMap.computeIfPresent(expireLease.getHolderId(),(k,v)->{
-
-                            boolean hasOther = leasesSet.stream()
-                                    .anyMatch(l -> l.isPlayer() && l.getHolderId() == expireLease.getHolderId());
-
-                            if (!hasOther) {
-                                v.remove(chunkPos); // 安全移除
-                            }
-
-                            return v.isEmpty() ? null : v;
-                        });
-
-                    }
-
-                    markChanged(expireLease.getChunkPos());
-                    sweb.publish(new ServerChunkLeaseExpiredEvent(expireLease.getChunkPos(), expireLease, this));
-                    log.debug("移除过期租约 位于:{} 该区块剩余租约数量:{}", expireLease.getChunkPos(), getRemainingLeaseCount(expireLease.getChunkPos()));
-                }
-
-                return leasesSet.isEmpty() ? null : leasesSet;
-            });
-
+            break;
         }
 
     }
-
-    private void markChanged(ChunkPos chunkPos) {
-        //防止被恶意攻击撑爆内存
-        if (changes.size() >= MAX_CHANGES_QUEUE_SIZE) {
-            //只有在极度异常（如受到攻击或主线程死锁）时才会触发
-            //打印日志并拒绝写入
-            log.error("发生变化的区块集合产生溢出!！ 当前容量: {} 最大容量: {}", changes.size(), MAX_CHANGES_QUEUE_SIZE);
-            return;
-        }
-        changes.add(chunkPos);
-    }
-
 
     /**
      * 获取并清空发生变化的区块集合
@@ -376,6 +383,107 @@ public class FlexChunkLeaseService extends WorldService{
             it.remove(); // 使用迭代器移除
         }
         return snapshot;
+    }
+
+    /**
+     * 获取租约
+     * @param leases 租约集合
+     * @param holderId 持有人ID
+     * @param l 租约等级
+     * @return 租约 不存在则返回null
+     */
+    private FlexChunkLease getLeaseInternal(Set<FlexChunkLease> leases, long holderId, FlexChunkLease.Level l){
+        for (FlexChunkLease lease : leases) {
+            if (lease.getHolderType() == HolderType.PLAYER && lease.getHolderId() == holderId && lease.getLevel() == l) {
+                return lease;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 获取租约
+     * @param leases 租约集合
+     * @param ht 持有人类型
+     * @param l 租约等级
+     * @return 租约 不存在则返回null
+     */
+    private FlexChunkLease getLeaseInternal(Set<FlexChunkLease> leases, FlexChunkLease.HolderType ht, FlexChunkLease.Level l){
+
+        for (FlexChunkLease lease : leases) {
+            if (lease.getHolderType() == ht && lease.getLevel() == l) {
+                return lease;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 获取租约下次过期时间
+     * @return 租约下次过期时间(以Action为单位)
+     */
+    private long getNextExpireTime(){
+        return swts.getTotalActions() + maxPlayerChunkLeaseAction;
+    }
+
+    /**
+     * 完全移除租约(无论是否永久租约)
+     * @param lease 租约
+     */
+    private void removeLeaseInternal(FlexChunkLease lease){
+
+        if(lease == null){
+            return;
+        }
+
+        var chunk = lease.getChunkPos();
+
+        //先清除区块租约集合
+        chunkLeasesMap.computeIfPresent(chunk, (cp, set) -> {
+
+            set.remove(lease);
+
+            //如果租约是Player租约 则清除Player租约集合
+            if(lease.isPlayerHolder()){
+
+                playerLeaseMap.computeIfPresent(lease.getHolderId(), (_, pSet) -> {
+
+                    pSet.remove(lease.getChunkPos());
+
+                    //如果Player租约集合中的SET已经没有租约了 则清除KEY
+                    if(pSet.isEmpty()){
+                        return null;
+                    }
+
+                    return pSet;
+                });
+
+            }
+
+            //如果区块租约集合中的SET已经没有租约了 则清除KEY
+            if(set.isEmpty()){
+                return null;
+            }
+
+            return set;
+        });
+
+    }
+
+    /**
+     * 标记发生变化的区块
+     * @param chunkPos 区块坐标
+     */
+    private void markChangedInternal(ChunkPos chunkPos) {
+        //防止被恶意攻击撑爆内存
+        if (changes.size() >= MAX_CHANGES_QUEUE_SIZE) {
+            //只有在极度异常（如受到攻击或主线程死锁）时才会触发
+            //打印日志并拒绝写入
+            log.error("发生变化的区块集合产生溢出!！ 当前容量: {} 最大容量: {}", changes.size(), MAX_CHANGES_QUEUE_SIZE);
+            return;
+        }
+        changes.add(chunkPos);
     }
 
 

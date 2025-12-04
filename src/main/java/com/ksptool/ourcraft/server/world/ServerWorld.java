@@ -87,8 +87,8 @@ public class ServerWorld implements SharedWorld {
 
 
     public ServerWorld(OurCraftServer server,WorldTemplate template) {
-        this.fcls = new FlexChunkLeaseService(this);
         this.template = template;
+        this.fcls = new FlexChunkLeaseService(this);
         this.scm = new SimpleChunkManager(this);
         this.ses = new SimpleEntityService(this);
         this.swps = new ServerWorldPhysicsService(this);
@@ -135,8 +135,8 @@ public class ServerWorld implements SharedWorld {
             throw new IllegalArgumentException("无法初始化世界: " + worldIndexVo.getName() + " 因为世界模板未注册: " + worldIndexVo.getTemplateStdRegName());
         }
 
-        this.fcls = new FlexChunkLeaseService(this);
         this.template = template;
+        this.fcls = new FlexChunkLeaseService(this);
         this.scm = new SimpleChunkManager(this);
         this.ses = new SimpleEntityService(this);
         this.swps = new ServerWorldPhysicsService(this);

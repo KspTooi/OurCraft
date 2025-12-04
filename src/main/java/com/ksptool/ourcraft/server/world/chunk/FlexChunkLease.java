@@ -1,20 +1,15 @@
 package com.ksptool.ourcraft.server.world.chunk;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import lombok.Getter;
-import com.ksptool.ourcraft.sharedcore.world.SequenceUpdate;
-import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 
 /**
  * 区块租约，负责管理区块的租约
  * 该类实现安全的相等性判断和哈希码计算 可以用作Map的Key
  */
 @Getter
-public class FlexChunkLease implements SequenceUpdate{
+public class FlexChunkLease{
 
     //租约持有人类型
     public enum HolderType {
@@ -34,7 +29,7 @@ public class FlexChunkLease implements SequenceUpdate{
         }
     }
 
-    //持有人ID
+    //持有人ID 如果持有人类型为Server则必须为-1
     @Getter
     private final long holderId;
 
@@ -44,22 +39,32 @@ public class FlexChunkLease implements SequenceUpdate{
     //租约等级
     private final Level level;
 
-    //租约剩余时间
-    private final AtomicInteger ttl;
-
-    //租约是否永久
-    private final AtomicBoolean permanent;
+    //租约过期时间(大于指定Action后过期) 如果为-1则表示永久租约
+    private volatile long expireAt;
 
     //区块坐标
     private final ChunkPos chunkPos;
 
-    public FlexChunkLease(ChunkPos chunkPos, HolderType holderType, long holderId, Level level, int ttl) {
+    public FlexChunkLease(ChunkPos chunkPos, HolderType holderType, long holderId, Level level, long expireAt) {
+
+        if(chunkPos == null || holderType == null || level == null){
+            throw new IllegalArgumentException("ChunkPos、HolderType、Level不能为空或null");
+        }
+        if(holderType == HolderType.SERVER && holderId != -1){
+            throw new IllegalArgumentException("Server租约的持有人ID必须为-1");
+        }
+
         this.chunkPos = chunkPos;
         this.holderType = holderType;
         this.holderId = holderId;
-        this.ttl = new AtomicInteger(ttl);
-        this.permanent = new AtomicBoolean(true);
+        this.expireAt = expireAt;
         this.level = level;
+
+        //如果过期时间小于0 则设置为永久租约
+        if(this.expireAt < 0){
+            this.expireAt = -1;
+        }
+
     }
 
     /**
@@ -96,14 +101,44 @@ public class FlexChunkLease implements SequenceUpdate{
     }
 
     /**
-     * 续租(如果租约是永久租约则不续租)
-     * @param newTTL 新的TTL
+     * 设置租约过期时间(该函数线程安全)
+     * @param expireAt 过期时间
      */
-    public void renew(int newTTL) {
-        if(permanent.get()){
-            return;
+    public synchronized void setExpireAt(long expireAt) {
+        if(expireAt < 0){
+            throw new IllegalArgumentException("过期时间不能小于0");
         }
-        ttl.set(newTTL);
+        this.expireAt = expireAt;
+    }
+
+
+    /**
+     * 升级为永久租约(该函数线程安全)
+     */
+    public synchronized void upgradeToPermanent() {
+        this.expireAt = -1;
+    }
+
+    /**
+     * 降级为有限期租约(该函数线程安全)
+     * @param expireAt 过期时间
+     */
+    public synchronized void downgradeToFinite(long expireAt) {
+        this.expireAt = expireAt;
+    }
+
+    /**
+     * 是否已过期
+     * @return 是否已过期
+     */
+    public boolean isExpired(long currentAction) {
+
+        //永久租约不会过期
+        if(expireAt == -1){
+            return false;
+        }
+
+        return currentAction > expireAt;
     }
 
     /**
@@ -111,46 +146,28 @@ public class FlexChunkLease implements SequenceUpdate{
      * @return 是否是永久租约
      */
     public boolean isPermanent() {
-        return permanent.get();
+        return expireAt == -1;
     }
 
     /**
-     * 设置是否是永久租约
-     * @param permanent 是否是永久租约
+     * 是否是Player租约
+     * @return 是否是Player租约
      */
-    public void setPermanent(boolean permanent) {
-        this.permanent.set(permanent);
-    }
-
-    /**
-     * 是否已过期
-     * @return 是否已过期
-     */
-    public boolean isExpired() {
-
-        //永久租约不会过期 无论TTL是否为0
-        if(isPermanent()){
-            return false;
-        }
-
-        return ttl.get() <= 0;
-    }
-
-    /**
-     * 是否是玩家租约
-     * @return 是否是玩家租约
-     */
-    public boolean isPlayer() {
+    public boolean isPlayerHolder() {
         return holderType == HolderType.PLAYER;
     }
 
     /**
-     * 是否是服务器租约
-     * @return 是否是服务器租约
+     * 是否是Server租约
+     * @return 是否是Server租约
      */
-    public boolean isServer() {
+    public boolean isServerHolder() {
         return holderType == HolderType.SERVER;
     }
+
+
+
+
 
     @Override
     public boolean equals(Object obj) {
@@ -162,27 +179,13 @@ public class FlexChunkLease implements SequenceUpdate{
         }
         FlexChunkLease other = (FlexChunkLease) obj;
 
-        //相同坐标+相同持有人类型 + 相同持有人ID + 相同租约等级 则认为相同
+        //相同坐标 + 相同持有人类型 + 相同持有人ID + 相同租约等级 则认为相同
         return chunkPos.equals(other.chunkPos) && holderType == other.holderType && holderId == other.holderId && level == other.level;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(chunkPos, holderType, holderId, level);
-    }
-
-    /**
-     * 执行租约更新
-     * @param delta 距离上一帧经过的时间（秒）由SWEU传入
-     * @param world 世界
-     * 通常会在这个方法中扣减租约TTL 如果租约是永久租约则不扣减
-     */
-    @Override
-    public void action(double delta, SharedWorld world) {
-        if(isPermanent()){
-            return;
-        }
-        ttl.decrementAndGet();
     }
 
 }

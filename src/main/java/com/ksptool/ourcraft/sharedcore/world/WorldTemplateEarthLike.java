@@ -1,6 +1,9 @@
 package com.ksptool.ourcraft.sharedcore.world;
 
 import com.ksptool.ourcraft.sharedcore.StdRegName;
+
+import java.time.LocalDateTime;
+
 import org.joml.Vector4f;
 
 /**
@@ -32,10 +35,13 @@ public class WorldTemplateEarthLike extends WorldTemplate {
         setFogDensity(0.0001);                                          //雾密度
         setSkyLightLevel(15.0);                                         //天空光照等级
         setAmbientLightLevel(0.0);                                      //环境光照等级
-        setActionPerSecond(20);                                                     //该世界的TPS
+        setActionPerSecond(20);                                         //该世界的APS
         setChunkSizeX(16);                                              //区块大小X轴
         setChunkSizeY(320);                                             //区块大小Y轴
         setChunkSizeZ(16);                                              //区块大小Z轴
+        setChunkMaxTTL(6000);                                           //区块最大租约时间
+        setWorldSecondsPerAction(3.6);                                  //世界秒数每Action(每经过一个Action世界内的时间流逝3.6秒)
+        setStartDateTime(LocalDateTime.of(1, 3, 1, 6, 0, 0)); //世界开始时间(默认为0001年3月1日 通常从早晨6点开始)
 
         // 指定使用类地生成器
         setTerrainGenerator(StdRegName.of("ourcraft:terrain_generator:earth_like"));
