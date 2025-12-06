@@ -5,9 +5,10 @@ import com.ksptool.ourcraft.server.ServerConfigService;
 import com.ksptool.ourcraft.server.archive.ArchivePlayerService;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerDto;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
+import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.ServerWorldService;
-import com.ksptool.ourcraft.server.world.chunk.FlexChunkSerializer;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.GlobalService;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.network.ndto.AuthNDto;
@@ -16,7 +17,7 @@ import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.nvo.AuthNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
-import com.ksptool.ourcraft.sharedcore.network.nvo.PlayerJoinWorldNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsPlayerNVo;
@@ -43,7 +44,7 @@ public class ServerNetworkService implements GlobalService {
     //用于生成会话ID的雪花算法
     private final Snowflake snowflake = new Snowflake(1, 1);
 
-    private AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     //所有连接的客户端的会话ID到客户端的映射
     @Getter
@@ -67,6 +68,7 @@ public class ServerNetworkService implements GlobalService {
     private ServerSocket serverSocket;
 
     //网络监听线程
+    @Getter
     private Future<?> listenerThread;
 
     public ServerNetworkService(OurCraftServer server) {
@@ -182,26 +184,21 @@ public class ServerNetworkService implements GlobalService {
             return;
         }
 
+        if (packet instanceof PlayerInputStateNDto dto) {
 
+            //路由到对应世界
+            var world = session.getWorld();
 
-        //客户端加载完成后，通知服务端已准备好接收世界数据
-        if (packet instanceof ClientReadyNDto) {
+            if(world == null){
+                log.error("会话:{} 无法处理玩家输入事件,玩家所在世界不存在", session.getId());
+                return;
+            }
 
+            world.getSweb().publish(new ServerPlayerInputEvent(session.getId(), dto.w(), dto.s(), dto.a(), dto.d(), dto.space(), dto.shift(), dto.yaw(), dto.pitch()));
             return;
         }
 
-        if (packet instanceof PlayerInputStateNDto) {
-            return;
-        }
-
-        if (packet instanceof PlayerDcparNDto) {
-            return;
-        }
-
-        if (packet instanceof PlayerDshsNdto) {
-            return;
-        }
-
+        //暂时不处理玩家动作 未完成协议
         if (packet instanceof PlayerDActionNDto) {
             return;
         }
@@ -292,9 +289,6 @@ public class ServerNetworkService implements GlobalService {
         //认证成功 发送认证结果
         session.sendPacket(AuthNVo.accept(session.getId()));
         session.setStage(NetworkSession.Stage.AUTHORIZED);
-        session.setPlayerName(playerName);
-        session.setPlayerUuid(playerVo.getUuid());
-        session.setPlayerId(playerVo.getId());
         session.setArchive(playerVo);
         log.info("会话:{} 认证成功 玩家名称: {} 客户端版本: {}", session.getId(), playerName, clientVersion);
         return true;
@@ -495,7 +489,7 @@ public class ServerNetworkService implements GlobalService {
         session.joinWorld(world, archive);
         session.setStage(NetworkSession.Stage.IN_WORLD);
         //通知客户端
-        session.sendPacket(new PlayerJoinWorldNVo());
+        session.sendPacket(new PsJoinWorldNVo());
         log.info("会话:{} 玩家:{} 完成进程切换 已加入世界:{}", session.getId(), archive.getName(), world.getName());
         return true;
     }

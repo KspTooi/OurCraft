@@ -39,7 +39,7 @@ import java.util.List;
 @Slf4j
 public class ServerWorld implements SharedWorld {
 
-    //该世界的默认玩家出生点
+    // 该世界的默认玩家出生点
     @Setter
     private Pos defaultSpawnPos;
 
@@ -51,10 +51,10 @@ public class ServerWorld implements SharedWorld {
 
     private SimpleRegionManager srm;
 
-    //服务端世界事件总线
+    // 服务端世界事件总线
     private final ServerWorldEventService sweb;
 
-    //区块令牌服务
+    // 区块令牌服务
     private final FlexChunkLeaseService fcls;
 
     private final FlexServerChunkService fscs;
@@ -79,14 +79,15 @@ public class ServerWorld implements SharedWorld {
     @Getter
     private final GenerationContext generationContext;
 
-    //地形生成器
+    // 地形生成器
     @Getter
     private final TerrainGenerator terrainGenerator;
+    
+    private final ServerWorldNetworkService swns;
 
     private final SimpleEventQueue seq;
 
-
-    public ServerWorld(OurCraftServer server,WorldTemplate template) {
+    public ServerWorld(OurCraftServer server, WorldTemplate template) {
         this.template = template;
         this.fcls = new FlexChunkLeaseService(this);
         this.scm = new SimpleChunkManager(this);
@@ -95,14 +96,16 @@ public class ServerWorld implements SharedWorld {
         this.swts = new ServerWorldTimeService(this, 0L);
         this.seed = String.valueOf(System.currentTimeMillis());
         this.seq = SimpleEventQueue.getInstance();
-        this.fscs = new FlexServerChunkService(server,this);
+        this.fscs = new FlexServerChunkService(server, this);
+        this.swns = new ServerWorldNetworkService(this);
         this.server = server;
 
-        //从注册表获取地形生成器
+        // 从注册表获取地形生成器
         TerrainGenerator terrainGenerator = Registry.getInstance().getTerrainGenerator(template.getTerrainGenerator());
 
-        if(terrainGenerator == null){
-            throw new IllegalArgumentException("无法初始化世界: " + template.getStdRegName() + " 因为地形生成器未注册: " + template.getTerrainGenerator());
+        if (terrainGenerator == null) {
+            throw new IllegalArgumentException(
+                    "无法初始化世界: " + template.getStdRegName() + " 因为地形生成器未注册: " + template.getTerrainGenerator());
         }
 
         this.terrainGenerator = terrainGenerator;
@@ -110,14 +113,15 @@ public class ServerWorld implements SharedWorld {
         this.generationContext = new GenerationContext(noiseGenerator, this, seed);
         this.sweb = new ServerWorldEventService();
 
-        //注册事件处理器
+        // 注册事件处理器
         sweb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
         sweb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
     }
 
     /**
      * 从世界索引Vo中导入数据创建世界（用于恢复已有世界）
-     * @param server 服务器实例
+     * 
+     * @param server       服务器实例
      * @param worldIndexVo 世界索引Vo
      */
     public ServerWorld(OurCraftServer server, ArchiveWorldIndexVo worldIndexVo) {
@@ -129,10 +133,11 @@ public class ServerWorld implements SharedWorld {
             throw new IllegalArgumentException("世界模板标准注册名不能为空");
         }
 
-        //从注册表获取世界模板
+        // 从注册表获取世界模板
         WorldTemplate template = Registry.getInstance().getWorldTemplate(worldIndexVo.getTemplateStdRegName());
         if (template == null) {
-            throw new IllegalArgumentException("无法初始化世界: " + worldIndexVo.getName() + " 因为世界模板未注册: " + worldIndexVo.getTemplateStdRegName());
+            throw new IllegalArgumentException(
+                    "无法初始化世界: " + worldIndexVo.getName() + " 因为世界模板未注册: " + worldIndexVo.getTemplateStdRegName());
         }
 
         this.template = template;
@@ -147,11 +152,13 @@ public class ServerWorld implements SharedWorld {
         this.swts = new ServerWorldTimeService(this, totalActions);
         this.seq = SimpleEventQueue.getInstance();
         this.fscs = new FlexServerChunkService(server, this);
+        this.swns = new ServerWorldNetworkService(this);
 
-        //从注册表获取地形生成器
+        // 从注册表获取地形生成器
         TerrainGenerator terrainGenerator = Registry.getInstance().getTerrainGenerator(template.getTerrainGenerator());
         if (terrainGenerator == null) {
-            throw new IllegalArgumentException("无法初始化世界: " + template.getStdRegName() + " 因为地形生成器未注册: " + template.getTerrainGenerator());
+            throw new IllegalArgumentException(
+                    "无法初始化世界: " + template.getStdRegName() + " 因为地形生成器未注册: " + template.getTerrainGenerator());
         }
 
         this.terrainGenerator = terrainGenerator;
@@ -159,28 +166,28 @@ public class ServerWorld implements SharedWorld {
         this.generationContext = new GenerationContext(noiseGenerator, this, seed);
         this.sweb = new ServerWorldEventService();
 
-        //注册事件处理器
+        // 注册事件处理器
         sweb.subscribe(ServerPlayerInputEvent.class, this::processPlayerInput);
         sweb.subscribe(ServerPlayerCameraInputEvent.class, this::processPlayerCameraInput);
 
-        //设置出生点（如果已创建）
+        // 设置出生点（如果已创建）
         if (worldIndexVo.getDefaultSpawnCreated() != null && worldIndexVo.getDefaultSpawnCreated() == 1) {
-            if (worldIndexVo.getDefaultSpawnX() != null && worldIndexVo.getDefaultSpawnY() != null && worldIndexVo.getDefaultSpawnZ() != null) {
-                this.defaultSpawnPos = Pos.of(worldIndexVo.getDefaultSpawnX(), worldIndexVo.getDefaultSpawnY(), worldIndexVo.getDefaultSpawnZ());
+            if (worldIndexVo.getDefaultSpawnX() != null && worldIndexVo.getDefaultSpawnY() != null
+                    && worldIndexVo.getDefaultSpawnZ() != null) {
+                this.defaultSpawnPos = Pos.of(worldIndexVo.getDefaultSpawnX(), worldIndexVo.getDefaultSpawnY(),
+                        worldIndexVo.getDefaultSpawnZ());
             }
         }
     }
 
-
     public void init() {
         scm.init();
-        //创建默认出生点
+        // 创建默认出生点
         createDefaultSpawn();
     }
 
-
     public void setSaveName(String saveName) {
-        //this.saveName = saveName;
+        // this.saveName = saveName;
         this.scm.setSaveName(saveName);
         this.ses.setSaveName(saveName);
     }
@@ -190,7 +197,6 @@ public class ServerWorld implements SharedWorld {
         this.ses.setEntityRegionManager(srm);
     }
 
-
     /**
      * 新的update方法，由GameServer的主循环调用
      * 如果传入的deltaTime等于tickTime，则直接执行一次tick（固定时间步长模式）
@@ -198,13 +204,13 @@ public class ServerWorld implements SharedWorld {
      */
     public void update(float deltaTime, Vector3f playerPosition, Runnable playerTickCallback) {
         double tickTime = 1.0 / template.getActionPerSecond();
-        
+
         // 如果传入的时间增量等于tickTime（固定时间步长），直接执行一次tick
         if (Math.abs(deltaTime - tickTime) < 0.001) {
             tick(playerPosition, playerTickCallback);
             return;
         }
-        
+
         // 否则使用累加器模式（处理可变时间增量，向后兼容）
         timeAccumulator += deltaTime;
         while (timeAccumulator >= tickTime) {
@@ -212,22 +218,22 @@ public class ServerWorld implements SharedWorld {
             timeAccumulator -= tickTime;
         }
     }
-    
+
     /**
      * 单次逻辑更新（tick）
      */
     private void tick(Vector3f playerPosition, Runnable playerTickCallback) {
 
         scm.update(playerPosition);
-        
-        //eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
-        
+
+        // eventQueue.offerS2C(new TimeUpdateEvent(getTimeOfDay()));
+
         float tickDelta = 1.0f / template.getActionPerSecond();
-        
+
         if (playerTickCallback != null) {
             playerTickCallback.run();
         }
-        
+
         for (ServerEntity entity : getEntities()) {
             if (entity instanceof ServerPlayer) {
                 continue;
@@ -235,55 +241,57 @@ public class ServerWorld implements SharedWorld {
             entity.update(tickDelta);
         }
     }
-    
 
     /**
      * 执行世界逻辑
+     * 
      * @param delta 距离上一帧经过的时间（秒）由SWEU传入
      */
     @Override
     public void action(double delta) {
 
-        //时间服务动作(时间推进)
+        // 时间服务动作(时间推进)
         swts.action(delta, this);
 
-        //处理全部事件(通常包括输入,(网络线程会异步将玩家输入投入到队列中)这会应用Player的输入为他们的速度)
+        // 处理全部事件(通常包括输入,(网络线程会异步将玩家输入投入到队列中)这会应用Player的输入为他们的速度)
         sweb.action(delta, this);
 
-        //物理服务动作(实体物理模拟,这会根据Player的速度模拟并更新他们的位置)
+        // 物理服务动作(实体物理模拟,这会根据Player的速度模拟并更新他们的位置)
         swps.action(delta, this);
 
-        //处理租约更新
+        // 处理租约更新
         fcls.action(delta, this);
 
-        //处理区块加载/卸载
+        // 处理区块加载/卸载
         fscs.action(delta, this);
 
-        //TODO:处理网络事件同步
+        //处理网络事件同步
+        swns.action(delta, this);
 
     }
 
     /**
      * 创建玩家在这个世界的默认出生点
      */
-    public void createDefaultSpawn(){
+    public void createDefaultSpawn() {
 
-        //查询归档中的世界索引
+        // 查询归档中的世界索引
         var worldIndex = server.getArchiveService().getWorldService().loadWorldIndex(name);
 
         if (worldIndex == null) {
             throw new IllegalArgumentException("无法创建玩家在这个世界的默认出生点: " + name + " 因为世界索引未找到");
         }
 
-        //0:未创建, 1:已创建
+        // 0:未创建, 1:已创建
         if (worldIndex.getDefaultSpawnCreated() == 1) {
-            var defaultSpawnPos = Pos.of(worldIndex.getDefaultSpawnX(), worldIndex.getDefaultSpawnY(), worldIndex.getDefaultSpawnZ());
+            var defaultSpawnPos = Pos.of(worldIndex.getDefaultSpawnX(), worldIndex.getDefaultSpawnY(),
+                    worldIndex.getDefaultSpawnZ());
             this.defaultSpawnPos = defaultSpawnPos;
             log.info("世界:{} 的默认出生点为:{}", name, defaultSpawnPos);
             return;
         }
 
-        //创建默认出生点
+        // 创建默认出生点
         int searchRadius = 2;
         int bestSpawnY = -1;
         int bestSpawnX = 0;
@@ -307,7 +315,8 @@ public class ServerWorld implements SharedWorld {
                             if (state.getSharedBlock() == null) {
                                 continue;
                             }
-                            if (!state.getSharedBlock().getStdRegName().equals(BlockEnums.GRASS_BLOCK.getStdRegName())) {
+                            if (!state.getSharedBlock().getStdRegName()
+                                    .equals(BlockEnums.GRASS_BLOCK.getStdRegName())) {
                                 continue;
                             }
                             if (y <= bestSpawnY) {
@@ -347,9 +356,10 @@ public class ServerWorld implements SharedWorld {
 
     /**
      * 处理Player输入事件(这些事件通常由网络线程投入到EventQueue)
+     * 
      * @param e Player输入事件
      */
-    private void processPlayerInput(ServerPlayerInputEvent e){
+    private void processPlayerInput(ServerPlayerInputEvent e) {
 
         var player = ses.getPlayerBySessionId(e.getSessionId());
 
@@ -357,26 +367,25 @@ public class ServerWorld implements SharedWorld {
             log.warn("世界:{} 无法找到Player会话ID:{} 对应的PlayerEntity", name, e.getSessionId());
             return;
         }
-        //应用玩家键盘输入事件(为Player增加速度以便在物理更新时生效)
+        // 应用玩家键盘输入事件(为Player增加速度以便在物理更新时生效)
         player.applyInput(e);
     }
 
     /**
      * 处理Player相机视角输入事件(这些事件通常由网络线程投入到EventQueue)
+     * 
      * @param e Player相机视角输入事件
      */
-    private void processPlayerCameraInput(ServerPlayerCameraInputEvent e){
+    private void processPlayerCameraInput(ServerPlayerCameraInputEvent e) {
         var player = ses.getPlayerBySessionId(e.getSessionId());
 
         if (player == null) {
             log.warn("世界:{} 无法找到Player会话ID:{} 对应的PlayerEntity", name, e.getSessionId());
             return;
         }
-        //应用相机视角输入事件(为Player更新相机视角)
+        // 应用相机视角输入事件(为Player更新相机视角)
         player.updateCameraOrientation(e.getDeltaYaw(), e.getDeltaPitch());
     }
-
-
 
     public void generateChunkData(SimpleServerChunk chunk) {
         if (terrainGenerator == null || generationContext == null) {
@@ -384,11 +393,10 @@ public class ServerWorld implements SharedWorld {
         }
         terrainGenerator.execute(chunk, generationContext);
     }
-    
+
     public void generateChunkSynchronously(int chunkX, int chunkZ) {
         scm.generateChunkSynchronously(chunkX, chunkZ);
     }
-
 
     public int getChunkCount() {
         return scm.getChunkCount();
@@ -429,7 +437,6 @@ public class ServerWorld implements SharedWorld {
     public void cleanup() {
         scm.cleanup();
     }
-    
 
     @Override
     public boolean isServerSide() {
@@ -442,4 +449,3 @@ public class ServerWorld implements SharedWorld {
     }
 
 }
-

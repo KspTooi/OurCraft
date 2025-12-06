@@ -1,6 +1,7 @@
 package com.ksptool.ourcraft.debug;
 
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -95,8 +96,8 @@ public class DebugNetworkConnection {
             handleChunkData((ServerSyncChunkDataNVo) packet);
             return;
         }
-        if (packet instanceof ServerSyncUnloadChunkNVo) {
-            handleChunkUnload((ServerSyncUnloadChunkNVo) packet);
+        if (packet instanceof HuChunkUnloadNVo) {
+            handleChunkUnload((HuChunkUnloadNVo) packet);
             return;
         }
         if (packet instanceof ServerSyncBlockUpdateNVo) {
@@ -166,7 +167,7 @@ public class DebugNetworkConnection {
         return blockStates;
     }
     
-    private void handleChunkUnload(ServerSyncUnloadChunkNVo packet) {
+    private void handleChunkUnload(HuChunkUnloadNVo packet) {
         if (debugClient != null) {
             debugClient.handleChunkUnload(packet.chunkX(), packet.chunkZ());
         }

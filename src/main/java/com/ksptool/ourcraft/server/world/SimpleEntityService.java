@@ -52,7 +52,7 @@ public class SimpleEntityService {
         
         //如果实体是玩家，则添加到玩家会话ID到玩家实体的映射
         if (entity instanceof ServerPlayer pl) {
-            playerSessions.put(pl.getSessionId(), pl);
+            playerSessions.put(pl.getSession().getId(), pl);
         }
         entity.markDirty(true);
     }
@@ -62,7 +62,7 @@ public class SimpleEntityService {
 
         //如果实体是玩家，则从玩家会话ID到玩家实体的映射中移除
         if (entity instanceof ServerPlayer pl) {
-            playerSessions.remove(pl.getSessionId());
+            playerSessions.remove(pl.getSession().getId());
         }
     }
 

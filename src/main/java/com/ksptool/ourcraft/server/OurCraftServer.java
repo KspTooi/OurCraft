@@ -4,6 +4,7 @@ import com.ksptool.ourcraft.server.archive.ArchiveService;
 import com.ksptool.ourcraft.server.archive.ArchivePlayerService;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerDto;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
+import com.ksptool.ourcraft.server.network.ServerNetworkService;
 import com.ksptool.ourcraft.server.world.ServerWorldService;
 import com.ksptool.ourcraft.server.player.PlayerSession;
 import com.ksptool.ourcraft.server.player.ServerPlayerService;
@@ -22,13 +23,11 @@ import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
 import com.ksptool.ourcraft.sharedcore.world.gen.SpawnPlatformGenerator;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3f;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -65,10 +64,13 @@ public class OurCraftServer {
     private final ArchiveService archiveService;
 
     //玩家服务
-    private final ServerPlayerService playerService;
+    private final ServerPlayerService playerService = null;
 
     //服务器配置服务
     private final ServerConfigService configService;
+
+    //网络服务
+    private final ServerNetworkService networkService;
 
     public OurCraftServer(String archiveName) {
 
@@ -100,8 +102,11 @@ public class OurCraftServer {
         //创建世界服务
         this.worldService = new ServerWorldService(this);
 
-        //创建玩家服务
-        this.playerService = new ServerPlayerService(this, NETWORK_PORT);
+        //创建玩家服务(旧实现,现在由网络服务代替)
+        //this.playerService = new ServerPlayerService(this, NETWORK_PORT);
+
+        //创建网络服务
+        this.networkService = new ServerNetworkService(this);
     }
 
     public void start() {

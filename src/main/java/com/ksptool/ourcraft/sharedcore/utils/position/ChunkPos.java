@@ -32,7 +32,6 @@ public class ChunkPos {
     /**
      * 创建一个区块位置
      * @param x 区块X坐标
-     * @param y 区块Y坐标
      * @param z 区块Z坐标
      * @return 区块位置
      */

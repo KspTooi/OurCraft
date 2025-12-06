@@ -21,25 +21,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TextureManager {
 
-    //纹理大小
+    // 纹理大小
     private static final int TEXTURE_SIZE = 16;
-    
-    //纹理图集大小
+
+    // 纹理图集大小
     private static final int ATLAS_SIZE = 2048;
 
-    //纹理图集管理器实例
+    // 纹理图集管理器实例
     private static TextureManager instance;
 
-    //纹理UV坐标映射表
+    // 纹理UV坐标映射表
     private final Map<String, UVCoords> textureUVMap;
 
-    //纹理像素
+    // 纹理像素
     private int[] atlasPixels;
 
-    //纹理图集宽度
+    // 纹理图集宽度
     private int atlasWidth;
 
-    //纹理图集高度
+    // 纹理图集高度
     private int atlasHeight;
 
     public static class UVCoords {
@@ -123,10 +123,10 @@ public class TextureManager {
         }
 
         java.util.Collections.sort(textureFiles);
-        
-        //log.info("Found " + textureFiles.size() + " texture files to load");
+
+        // log.info("Found " + textureFiles.size() + " texture files to load");
         for (String name : textureFiles) {
-            //log.info("  - " + name);
+            // log.info(" - " + name);
         }
 
         atlasPixels = new int[ATLAS_SIZE * ATLAS_SIZE];
@@ -138,7 +138,7 @@ public class TextureManager {
         int rowHeight = 0;
 
         for (String textureName : textureFiles) {
-            //log.info("Attempting to load texture: " + textureName);
+            // log.info("Attempting to load texture: " + textureName);
             TextureLoadResult loadResult = loadTexture(texturePath + textureName);
             if (loadResult == null || loadResult.pixels == null) {
                 log.warn("Failed to load texture: " + textureName);
@@ -180,8 +180,9 @@ public class TextureManager {
             int heightForUV = loadResult.isAnimated ? TEXTURE_SIZE : texHeight;
             float v1 = (float) (atlasY + heightForUV) / ATLAS_SIZE - epsilon;
 
-            //log.info("Loaded texture: " + textureName);
-            textureUVMap.put(textureName, new UVCoords(u0, v0, u1, v1, loadResult.isAnimated, loadResult.frameCount, loadResult.frameTime));
+            // log.info("Loaded texture: " + textureName);
+            textureUVMap.put(textureName,
+                    new UVCoords(u0, v0, u1, v1, loadResult.isAnimated, loadResult.frameCount, loadResult.frameTime));
 
             currentX += texWidth;
             rowHeight = Math.max(rowHeight, texHeight);
@@ -196,7 +197,8 @@ public class TextureManager {
         int imgWidth;
         int imgHeight;
 
-        TextureLoadResult(int[] pixels, boolean isAnimated, int frameCount, float frameTime, int imgWidth, int imgHeight) {
+        TextureLoadResult(int[] pixels, boolean isAnimated, int frameCount, float frameTime, int imgWidth,
+                int imgHeight) {
             this.pixels = pixels;
             this.isAnimated = isAnimated;
             this.frameCount = frameCount;
@@ -222,7 +224,8 @@ public class TextureManager {
             InputStream inputStream = getClass().getResourceAsStream(path);
             if (inputStream == null) {
                 java.io.File file = new java.io.File("src/main/resources" + path);
-                log.debug("Resource stream is null, trying file: " + file.getAbsolutePath() + " (exists: " + file.exists() + ")");
+                log.debug("Resource stream is null, trying file: " + file.getAbsolutePath() + " (exists: "
+                        + file.exists() + ")");
                 if (file.exists()) {
                     inputStream = new java.io.FileInputStream(file);
                 } else {
@@ -258,21 +261,23 @@ public class TextureManager {
 
             String mcmetaPath = path + ".mcmeta";
             AnimationMetadata animMeta = loadAnimationMetadata(mcmetaPath);
-            
+
             if (animMeta != null && animMeta.animation != null) {
                 isAnimatedTexture = true;
                 if (animMeta.animation.frames != null && animMeta.animation.frames.length > 0) {
                     frameCount = animMeta.animation.frames.length;
                 } else {
-                    frameCount = imgHeight > TEXTURE_SIZE && imgWidth == TEXTURE_SIZE && imgHeight % TEXTURE_SIZE == 0 
-                        ? (imgHeight / TEXTURE_SIZE) : 1;
+                    frameCount = imgHeight > TEXTURE_SIZE && imgWidth == TEXTURE_SIZE && imgHeight % TEXTURE_SIZE == 0
+                            ? (imgHeight / TEXTURE_SIZE)
+                            : 1;
                 }
                 if (animMeta.animation.frametime != null) {
                     frameTime = animMeta.animation.frametime / 20.0f;
                 } else {
                     frameTime = 1.0f / 20.0f;
                 }
-                log.debug("Found animation metadata for " + path + ": frames=" + frameCount + ", frametime=" + frameTime);
+                log.debug(
+                        "Found animation metadata for " + path + ": frames=" + frameCount + ", frametime=" + frameTime);
             }
 
             int totalPixels = imgWidth * imgHeight;
@@ -343,4 +348,3 @@ public class TextureManager {
         return atlasHeight;
     }
 }
-

@@ -1,7 +1,5 @@
-package com.ksptool.ourcraft.server.world.chunk;
+package com.ksptool.ourcraft.sharedcore.utils;
 
-import com.ksptool.ourcraft.sharedcore.utils.BitStorage;
-import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.ByteArrayInputStream;

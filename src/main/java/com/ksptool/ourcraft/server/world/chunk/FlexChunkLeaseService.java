@@ -306,7 +306,7 @@ public class FlexChunkLeaseService extends WorldService{
             if(!p.isLeaseInited()){
                 var vp = ChunkViewPort.of(p.getCurrentChunkPos(), p.getViewDistance());
                 for(var vPos : vp.getChunkPosSet()){
-                    issuePermanentLease(vPos, p.getSessionId());
+                    issuePermanentLease(vPos, p.getSession().getId());
                 }
                 p.markLeaseInited();
                 continue;
@@ -319,19 +319,19 @@ public class FlexChunkLeaseService extends WorldService{
                 var newViewportChunks = newViewport.getChunkPosSet();
 
                 //降级不在新视口内的区块租约
-                var playerLeases = playerLeaseMap.get(p.getSessionId());
+                var playerLeases = playerLeaseMap.get(p.getSession().getId());
 
                 if(playerLeases != null){
                     for(var leaseChunkPos : playerLeases){
                         if(!newViewport.contains(leaseChunkPos)){
-                            downgradePermanentLease(leaseChunkPos, p.getSessionId());
+                            downgradePermanentLease(leaseChunkPos, p.getSession().getId());
                         }
                     }
                 }
 
                 //为新视口内的区块签发租约（如果不存在）
                 for(var chunkPos : newViewportChunks){
-                    issuePermanentLease(chunkPos, p.getSessionId());
+                    issuePermanentLease(chunkPos, p.getSession().getId());
                 }
             }
 

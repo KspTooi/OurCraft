@@ -5,6 +5,7 @@ package com.ksptool.ourcraft.sharedcore.network.packets;
  * accepted: 0=拒绝, 1=接受
  * 当accepted==1时，会携带sessionId和初始位置信息
  */
+@Deprecated
 public record RequestJoinServerNVo(
         int accepted,  // 0=拒绝, 1=接受
         String reason, // 拒绝原因

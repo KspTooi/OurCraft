@@ -10,8 +10,9 @@ import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncBlockUpdateNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncChunkDataNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncEntityPositionAndRotationNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncPlayerStateNVo;
-import com.ksptool.ourcraft.sharedcore.network.packets.ServerSyncUnloadChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
 import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
+import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector3f;
@@ -327,7 +328,7 @@ public class ServerWorldExecutionUnit implements Runnable {
         // Unload old
         for (AbstractMap.SimpleEntry<Integer, Integer> chunkPos : oldViewport) {
             if (!newViewport.contains(chunkPos)) {
-                handler.sendPacket(new ServerSyncUnloadChunkNVo(chunkPos.getKey(), 0, chunkPos.getValue()));
+                handler.sendPacket(new HuChunkUnloadNVo(ChunkPos.of(chunkPos.getKey(), chunkPos.getValue())));
             }
         }
         handler.setLastChunkX(playerChunkX);

@@ -4,6 +4,7 @@ import com.ksptool.ourcraft.client.OurCraftClient;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector3d;
@@ -104,8 +105,8 @@ public class ServerConnection {
         
         if (packet instanceof ServerSyncChunkDataNVo) {
             handleChunkData((ServerSyncChunkDataNVo) packet);
-        } else if (packet instanceof ServerSyncUnloadChunkNVo) {
-            handleChunkUnload((ServerSyncUnloadChunkNVo) packet);
+        } else if (packet instanceof HuChunkUnloadNVo) {
+            handleChunkUnload((HuChunkUnloadNVo) packet);
         } else if (packet instanceof ServerSyncBlockUpdateNVo) {
             handleBlockUpdate((ServerSyncBlockUpdateNVo) packet);
         } else if (packet instanceof ServerSyncEntityPositionAndRotationNVo) {
@@ -191,13 +192,14 @@ public class ServerConnection {
         return blockStates;
     }
     
-    private void handleChunkUnload(ServerSyncUnloadChunkNVo packet) {
+    private void handleChunkUnload(HuChunkUnloadNVo packet) {
         if (clientWorld == null) {
             return;
         }
-        
-        clientWorld.removeChunk(packet.chunkX(), packet.chunkZ());
-        log.debug("卸载区块: ({}, {})", packet.chunkX(), packet.chunkZ());
+
+        var pos = packet.pos();
+        clientWorld.removeChunk(pos.getX(), pos.getZ());
+        log.debug("卸载区块: ({}, {})", pos.getX(), pos.getZ());
     }
     
     private void handleBlockUpdate(ServerSyncBlockUpdateNVo packet) {

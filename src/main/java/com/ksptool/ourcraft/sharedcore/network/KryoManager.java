@@ -5,6 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.ksptool.ourcraft.server.archive.model.GlobalPaletteProperty;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -75,7 +76,7 @@ public class KryoManager {
         kryo.register(PlayerDActionNDto.class, id++);
         kryo.register(PlayerInputStateNDto.class, id++);
         kryo.register(ServerSyncChunkDataNVo.class, id++);
-        kryo.register(ServerSyncUnloadChunkNVo.class, id++);
+        kryo.register(HuChunkUnloadNVo.class, id++);
         kryo.register(ServerSyncBlockUpdateNVo.class, id++);
         kryo.register(ServerSyncEntityPositionAndRotationNVo.class, id++);
         kryo.register(ServerSyncPlayerStateNVo.class, id++);

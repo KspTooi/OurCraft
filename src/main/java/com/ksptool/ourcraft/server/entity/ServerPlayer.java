@@ -2,6 +2,7 @@ package com.ksptool.ourcraft.server.entity;
 
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.item.ServerInventory;
+import com.ksptool.ourcraft.server.network.NetworkSession;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
@@ -28,8 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Getter
 public class ServerPlayer extends ServerLivingEntity {
 
-    //玩家会话ID
-    private final long sessionId;
+    //玩家网络会话
+    private final NetworkSession session;
 
     //玩家名称
     private final String name;
@@ -71,9 +72,10 @@ public class ServerPlayer extends ServerLivingEntity {
     /**
      * 服务端构造函数：创建一个与服务端世界关联的Player对象（带UUID）
      */
-    public ServerPlayer(ServerWorld world, ArchivePlayerVo vo, long sessionId) {
+    public ServerPlayer(ServerWorld world, ArchivePlayerVo vo, NetworkSession session) {
+
         super(world, vo != null && vo.getUuid() != null ? UUID.fromString(vo.getUuid()) : UUID.randomUUID());
-        this.sessionId = sessionId;
+        this.session = session;
 
         if(vo == null){
             throw new IllegalArgumentException("玩家数据不能为空");
@@ -104,6 +106,11 @@ public class ServerPlayer extends ServerLivingEntity {
         if(vo.getHungry() != null){
             setHunger(vo.getHungry().floatValue());
         }
+        //初始化当前区块位置(使用落地位置)
+        var groundPos = vo.getGroundPos();
+        var chunkPos = groundPos.toChunkPos(world.getTemplate().getChunkSizeX(), world.getTemplate().getChunkSizeZ());
+        currentChunkPos = chunkPos;
+        previousChunkPos = chunkPos;
     }
 
     @Override
