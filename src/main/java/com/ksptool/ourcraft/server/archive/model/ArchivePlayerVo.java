@@ -3,6 +3,8 @@ package com.ksptool.ourcraft.server.archive.model;
 import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
+import com.ksptool.ourcraft.sharedcore.utils.position.PrecisionPos;
+import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 
 
 @Getter@Setter
@@ -52,5 +54,10 @@ public class ArchivePlayerVo {
 
     //创建时间
     private LocalDateTime createTime;
+
+    //获取落地位置
+    public PrecisionPos getGroundPos(){
+        return PrecisionPos.of(posX, posY, posZ);
+    }
 
 }

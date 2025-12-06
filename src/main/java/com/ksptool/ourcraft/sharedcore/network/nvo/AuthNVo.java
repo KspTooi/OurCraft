@@ -10,6 +10,7 @@ public record AuthNVo(int accepted, long sessionId, String reason) {
 
     /**
      * 接受认证
+     * @param sessionId 会话ID
      * @return 认证结果数据包
      */
     public static AuthNVo accept(long sessionId) {

@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
  * 4 [C] 准备本地资源 完成后发送(PsAllowNDto)
  * 4 [S] 发送进程切换数据 1.世界数据(区块数据) 2.玩家数据(位置|背包|血量|经验)  3.周围其他实体数据
  * 4 [C] 接收进程切换数据 准备本地资源 完成后发送(PsFinishNDto) 状态变更PROCESS_SWITCHED 等待被投入世界中
- * 4 [S] 投入玩家到世界,并广播给视口在范围内的其他玩家
+ * 4 [S] 投入玩家到世界,并广播给视口在范围内的其他玩家 完成后发送(PsInWorldNDto) 状态变更IN_WORLD
  */
 @Slf4j
 @Getter
@@ -42,6 +42,7 @@ public class NetworkSession implements Runnable {
         NEW,                 // 刚连接，未验证
         AUTHORIZED,          // 身份验证通过
         PROCESSED,           // 已完成配置
+        PROCESS_SWITCHING,   // 正在进行进程切换(等待客户端确认)
         PROCESS_SWITCHED,    // 已完成进程切换
         IN_WORLD,            // 已被投入世界中
         INVALID              // 会话无效
@@ -58,6 +59,9 @@ public class NetworkSession implements Runnable {
     //客户端版本
     @Setter
     private String clientVersion;
+
+    //玩家归档数据
+    private ArchivePlayerVo archive;
 
     //连接时间
     private final LocalDateTime connectTime;
@@ -113,14 +117,22 @@ public class NetworkSession implements Runnable {
 
     /**
      * 关闭会话
+     * @param reason 关闭原因
      */
     public void close() {
+        close("会话被服务端关闭");
+    }
+
+    /**
+     * 关闭会话
+     */
+    public void close(String reason) {
         stage = Stage.INVALID;
         try {
 
             //如果Socket还未关闭 发送一个断开连接数据包
             if(!socket.isClosed()){
-                sendPacket(new ServerDisconnectNVo("会话被服务端关闭"));
+                sendPacket(new ServerDisconnectNVo(reason));
             }
 
             //如果实体还未移除 移除实体
@@ -191,5 +203,47 @@ public class NetworkSession implements Runnable {
         lastHeartbeatTime = LocalDateTime.now();
     }
 
+    /**
+     * 设置玩家名称
+     * @param playerName 玩家名称
+     */
+    public void setPlayerName(String playerName) {
+        if(this.playerName != null){
+            return;
+        }
+        this.playerName = playerName;
+    }
 
+    /**
+     * 设置玩家UUID
+     * @param playerUuid 玩家UUID
+     */
+    public void setPlayerUuid(String playerUuid) {
+        if(this.playerUuid != null){
+            return;
+        }
+        this.playerUuid = playerUuid;
+    }
+
+    /**
+     * 设置玩家ID
+     * @param playerId 玩家ID
+     */
+    public void setPlayerId(Long playerId) {
+        if(this.playerId != null){
+            return;
+        }
+        this.playerId = playerId;
+    }
+
+    /**
+     * 设置玩家归档数据
+     * @param archive 玩家归档数据
+     */
+    public void setArchive(ArchivePlayerVo archive) {
+        if(this.archive != null){
+            return;
+        }
+        this.archive = archive;
+    }
 }
