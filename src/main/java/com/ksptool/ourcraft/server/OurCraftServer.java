@@ -18,7 +18,6 @@ import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
-import com.ksptool.ourcraft.sharedcore.utils.Services;
 import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.world.gen.DefaultTerrainGenerator;
@@ -35,8 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static com.ksptool.ourcraft.sharedcore.utils.Services.require;
 
 /**
  * 服务端运行实例，负责逻辑更新（Tick-based loop）

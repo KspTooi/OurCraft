@@ -9,6 +9,8 @@ import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.ServerWorldService;
 import com.ksptool.ourcraft.sharedcore.GlobalService;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
+import com.ksptool.ourcraft.sharedcore.network.ndto.AuthNDto;
+import com.ksptool.ourcraft.sharedcore.network.nvo.AuthNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
@@ -129,16 +131,15 @@ public class ServerNetworkService implements GlobalService {
      */
     public void doRoute(NetworkSession session,Object packet) {
 
-        //玩家加入请求
-        if(packet instanceof RequestJoinServerNDto){
+        //处理玩家认证
+        if(packet instanceof AuthNDto dto){
 
-            if(session.getStage() != NetworkSession.Stage.NEW){
-                log.warn("玩家加入请求时会话阶段不为NEW: {}", session.getStage());
-                session.close();
+            //必须为NEW阶段才能处理认证
+            if(!isStage(session,NetworkSession.Stage.NEW)){
                 return;
             }
 
-            handlePlayerJoin(session, (RequestJoinServerNDto) packet);
+            handleAuth(session, dto);
             return;
         }
 
@@ -170,6 +171,80 @@ public class ServerNetworkService implements GlobalService {
             return;
         }
 
+    }
+
+    /**
+     * 处理玩家认证
+     * @param session 会话
+     * @param dto 玩家认证数据包
+     */
+    private void handleAuth(NetworkSession session,AuthNDto dto) {
+        var playerName = dto.playerName();
+        var clientVersion = dto.clientVersion();
+
+        log.info("会话:{} 正在请求认证 玩家名称: {} 客户端版本: {}", session.getId(), playerName, clientVersion);
+
+        //查询数据库 获取玩家信息
+        ArchivePlayerVo playerVo = playerArchiveService.loadPlayer(playerName);
+        var playerDto = new ArchivePlayerDto();
+
+        //玩家不存在，创建新玩家
+        if (playerVo == null) {
+
+            //获取服务器默认的世界信息
+            ServerWorld defaultWorld = server.getWorldService().getWorld(server.getDefaultWorldName());
+
+            //默认世界未加载或不存在 踢出玩家
+            if (defaultWorld == null) {
+                log.error("服务器默认世界[{}]未加载或不存在 踢出玩家: {}", server.getDefaultWorldName(), playerName);
+                session.sendPacket(AuthNVo.reject("服务器默认世界[" + server.getDefaultWorldName() + "]未加载或不存在"));
+                return;
+            }
+
+            //获取世界默认出生点
+            var spawnPos = defaultWorld.getDefaultSpawnPos();
+            playerDto.setUuid(UUID.randomUUID().toString());
+            playerDto.setName(playerName);
+            playerDto.setLoginCount(1);
+            playerDto.setLastLoginTime(LocalDateTime.now());
+            playerDto.setWorldName(defaultWorld.getName());
+            playerDto.setPosX((double)spawnPos.getX());
+            playerDto.setPosY((double)spawnPos.getY());
+            playerDto.setPosZ((double)spawnPos.getZ());
+            playerDto.setYaw(0.0);
+            playerDto.setPitch(0.0);
+            playerDto.setHealth(40);
+            playerDto.setHungry(40);
+            playerDto.setExp(0L);
+            playerArchiveService.savePlayer(playerDto);
+            log.info("会话:{} 创建新玩家 玩家名称: {}", session.getId(), playerName);
+        }
+
+        //玩家存在 更新必要字段
+        if (playerVo != null) {
+            playerDto.setUuid(playerVo.getUuid());
+            playerDto.setName(playerVo.getName());
+            playerDto.setLoginCount(playerVo.getLoginCount() + 1);
+            playerDto.setLastLoginTime(LocalDateTime.now());
+            playerDto.setWorldName(playerVo.getWorldName());
+            playerDto.setPosX(playerVo.getPosX());
+            playerDto.setPosY(playerVo.getPosY());
+            playerDto.setPosZ(playerVo.getPosZ());
+            playerDto.setYaw(playerVo.getYaw());
+            playerDto.setPitch(playerVo.getPitch());
+            playerDto.setHealth(playerVo.getHealth());
+            playerDto.setHungry(playerVo.getHungry());
+            playerDto.setExp(playerVo.getExp());
+            playerArchiveService.savePlayer(playerDto);
+        }
+
+        //查询最新的玩家信息
+        playerVo = playerArchiveService.loadPlayer(playerName);
+
+        //认证成功 发送认证结果
+        session.sendPacket(AuthNVo.accept(session.getId()));
+        session.setStage(NetworkSession.Stage.AUTHORIZED);
+        log.info("会话:{} 认证成功 玩家名称: {} 客户端版本: {}", session.getId(), playerName, clientVersion);
     }
 
 
@@ -281,7 +356,7 @@ public class ServerNetworkService implements GlobalService {
      * @param packet 客户端加载完成后，通知服务端已准备好接收世界数据数据包
      */
     public void handleClientReady(NetworkSession session) {
-        session.setStage(NetworkSession.Stage.CLIENT_READY);
+        session.setStage(NetworkSession.Stage.INVALID);
         return;
     }
 
@@ -307,5 +382,20 @@ public class ServerNetworkService implements GlobalService {
         log.info("网络服务已停止");
     }
 
+
+    /**
+     * 检查会话阶段是否为期望的阶段
+     * @param session 会话
+     * @param stage 期望阶段
+     * @return 是否为期望阶段
+     */
+    private boolean isStage(NetworkSession session,NetworkSession.Stage stage) {
+        if(session.getStage() != stage){
+            log.warn("出现异常,会话阶段不为期望的阶段,会话ID:{} 期望阶段:{} 当前阶段:{}", session.getId(), stage, session.getStage());
+            session.close();
+            return false;
+        }
+        return true;
+    }
 
 }

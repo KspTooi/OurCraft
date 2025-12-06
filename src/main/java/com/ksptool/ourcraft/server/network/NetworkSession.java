@@ -4,30 +4,47 @@ import java.io.IOException;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicReference;
-
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerDisconnectNVo;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 网络会话，每个网络会话对应一个客户端连接
+ * 在虚拟线程中运行，负责处理单个客户端的所有网络交互
+ * <p>
+ * 玩家加入与进程切换流程
+ * 1 [C] 发起TCP
+ * 1 [S] 接受TCP,创建NetworkSession 分配SessionID 状态为NEW
+ * 2 [C] 发送认证包(AuthNDto) 携带玩家名称 客户端版本
+ * 2 [S] 处理认证包 验证玩家名称,客户端版本 验证通过后 状态为AUTHORIZED
+ * 2 [C] 期望认证结果包(AuthNVo)
+ * <p>
+ * 3 [S] 服务端发送配置批数据(BatchDataNVo 例如调色板、世界模板等数据 !现在暂时不做)
+ * 3 [C] 发送批数据确认(BatchDataFinishNDto) 状态变更为 PROCESSED
+ * <p>
+ * 4 [S] 通知客户端需要进程切换(PsNVo 携带目标世界的参数(世界|APS))
+ * 4 [C] 准备本地资源 完成后发送(PsAllowNDto)
+ * 4 [S] 发送进程切换数据 1.世界数据(区块数据) 2.玩家数据(位置|背包|血量|经验)  3.周围其他实体数据
+ * 4 [C] 接收进程切换数据 准备本地资源 完成后发送(PsFinishNDto) 状态变更PROCESS_SWITCHED 等待被投入世界中
+ * 4 [S] 投入玩家到世界,并广播给视口在范围内的其他玩家
+ */
 @Slf4j
 @Getter
 public class NetworkSession implements Runnable {
 
     //会话阶段
     public enum Stage{
-        NEW,               //NEW(新建): 表示会话刚刚新建
-        AUTHORIZED,        //AUTHORIZED(已授权): 表示会话已授权
-        CLIENT_READY,      //CLIENT_READY(客户端已准备好): 表示客户端已准备好接收世界数据
-        PROCESSING_DATA,   //PROCESSING_DATA(数据处理): 正在同步初始世界数据 (区块等)
-        PROCESSING_SWITCH, //PROCESSING_SWITCH(正在进行进程切换): 表示会话正在进行进程切换
-        READY,             //READY(就绪): 表示会话已准备好,已加入世界
-        INVALID,           //INVALID(无效): 表示会话已无效
+        NEW,                 // 刚连接，未验证
+        AUTHORIZED,          // 身份验证通过
+        PROCESSED,           // 已完成配置
+        PROCESS_SWITCHED,    // 已完成进程切换
+        IN_WORLD,            // 已被投入世界中
+        INVALID              // 会话无效
     }
 
     //会话ID
