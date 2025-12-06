@@ -13,5 +13,18 @@ public record RequestJoinServerNVo(
         Double y, // 玩家出生点Y
         Double z, // 玩家出生点Z
         Float yaw, // 玩家朝向Yaw
-        Float pitch) {} // 玩家朝向Pitch
+        Float pitch)  // 玩家朝向Pitch
+{
+
+        public static RequestJoinServerNVo accept(Long sessionId, Double x, Double y, Double z, Float yaw, Float pitch) {
+            return new RequestJoinServerNVo(1, null, sessionId, x, y, z, yaw, pitch);
+        }
+
+        public static RequestJoinServerNVo reject(String reason) {
+            return new RequestJoinServerNVo(0, reason, null, null, null, null, null, null);
+        }
+
+}
+
+
 

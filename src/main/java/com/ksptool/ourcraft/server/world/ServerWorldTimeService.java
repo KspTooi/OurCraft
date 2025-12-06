@@ -3,6 +3,7 @@ package com.ksptool.ourcraft.server.world;
 import com.ksptool.ourcraft.sharedcore.world.SequenceUpdate;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 
+import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -11,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
-public class ServerWorldTimeService implements SequenceUpdate{
+public class ServerWorldTimeService extends WorldService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 

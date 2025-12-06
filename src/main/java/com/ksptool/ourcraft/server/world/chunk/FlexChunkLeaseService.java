@@ -3,7 +3,6 @@ package com.ksptool.ourcraft.server.world.chunk;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
-
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.event.ServerChunkLeaseExpiredEvent;
 import com.ksptool.ourcraft.server.event.ServerChunkLeaseIssuedEvent;
@@ -51,12 +50,16 @@ public class FlexChunkLeaseService extends WorldService{
     //租约过期时间
     private final int maxPlayerChunkLeaseAction;
 
-
     public FlexChunkLeaseService(ServerWorld world) {
         this.world = world;
         this.ses = world.getSes();
         this.swts = world.getSwts();
         this.maxPlayerChunkLeaseAction = world.getTemplate().getMaxPlayerChunkLeaseAction();
+    }
+
+    @Override
+    public void initOrReload() {
+        super.initOrReload();
     }
 
     /**

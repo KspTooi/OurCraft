@@ -26,6 +26,11 @@ public class EngineDefault {
     //最大区块处理队列大小(-1表示不限制)
     public static int MAX_CHUNK_PROCESS_QUEUE_SIZE = 5000;
 
+    //最大网络 backlog 大小(用于操作系统接收连接队列)
+    public static int MAX_NETWORK_BACKLOG_SIZE = 50;
+
+    //最大网络并发会话数(-1表示不限制)
+    public static int MAX_CONCURRENT_SESSIONS = -1;
 
 
     public static int getMaxSWEUThreadCount() {

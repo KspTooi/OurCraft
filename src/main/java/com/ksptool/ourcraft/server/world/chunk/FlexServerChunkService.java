@@ -167,7 +167,7 @@ public class FlexServerChunkService extends WorldService{
 
         // 使用 computeIfAbsent 实现原子性的"检查并初始化"
         // existsChunk 要么是刚生成的，要么是原本就有的，一定是同一个对象
-        var chunk = chunks.computeIfAbsent(pos, key -> {
+        var chunk = chunks.computeIfAbsent(pos, _ -> {
 
             final var newChunk = new FlexServerChunk(pos, world);
 
@@ -176,7 +176,7 @@ public class FlexServerChunkService extends WorldService{
             //提交异步任务
             tp.submit(() -> {
                 try {
-                    // 优先从归档加载
+                    // 优先从归档SCA文件加载
                     if (ascs.hasChunk(world.getName(), pos)) {
                         var data = ascs.readChunk(world.getName(), pos);
                         var fcd = FlexChunkSerializer.deserialize(data);
@@ -186,7 +186,7 @@ public class FlexServerChunkService extends WorldService{
                     }
                     // 归档不存在则生成
                     if(!ascs.hasChunk(world.getName(), pos)){
-                        //这里建议直接用外层的 world 变量，避免变量名遮蔽
+                        //直接用外层的 world 变量，避免变量名遮蔽
                         var tg = world.getTerrainGenerator();
                         tg.execute(newChunk, world.getGenerationContext());
                         newChunk.setStage(FlexServerChunk.Stage.READY);

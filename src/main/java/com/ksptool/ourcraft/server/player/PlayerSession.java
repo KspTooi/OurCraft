@@ -17,11 +17,9 @@ import com.ksptool.ourcraft.sharedcore.network.packets.PlayerInputStateNDto;
 import com.ksptool.ourcraft.sharedcore.network.packets.RequestJoinServerNDto;
 import com.ksptool.ourcraft.sharedcore.network.packets.RequestJoinServerNVo;
 import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -162,7 +160,6 @@ public class PlayerSession implements Runnable {
 
                 //获取世界默认出生点
                 var spawnPos = defaultWorld.getDefaultSpawnPos();
-
                 playerDto.setUuid(UUID.randomUUID().toString());
                 playerDto.setName(playerName);
                 playerDto.setLoginCount(1);

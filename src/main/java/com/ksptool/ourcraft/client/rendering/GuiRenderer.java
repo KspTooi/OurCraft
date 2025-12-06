@@ -2,16 +2,14 @@ package com.ksptool.ourcraft.client.rendering;
 
 import org.joml.Vector2f;
 import org.joml.Vector4f;
-import org.lwjgl.opengl.GL11; // 颜色 都在这里
-import org.lwjgl.opengl.GL13; // 纹理 都在这里
-import org.lwjgl.opengl.GL15; // VBO 都在这里
-import org.lwjgl.opengl.GL20; // Shader 都在这里
-import org.lwjgl.opengl.GL30; // VAO 都在这里
+import org.lwjgl.opengl.*;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.FloatBuffer;
+
+import static org.lwjgl.opengl.GL11.glBegin;
 
 /**
  * GUI渲染器类，负责渲染用户界面元素（按钮、文本框等）
