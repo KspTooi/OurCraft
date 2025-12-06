@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.client.network;
 
-import com.ksptool.ourcraft.client.GameClient;
+import com.ksptool.ourcraft.client.OurCraftClient;
 import com.ksptool.ourcraft.client.entity.ClientPlayer;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
@@ -26,12 +26,12 @@ public class ServerConnection {
     private OutputStream outputStream;
     private volatile boolean connected = false;
     private Thread receiveThread;
-    private GameClient gameClient;
+    private OurCraftClient ourCraftClient;
     private ClientWorld clientWorld;
     private final BlockingQueue<Object> packetQueue = new LinkedBlockingQueue<>();
     
-    public ServerConnection(GameClient gameClient) {
-        this.gameClient = gameClient;
+    public ServerConnection(OurCraftClient ourCraftClient) {
+        this.ourCraftClient = ourCraftClient;
     }
     
     /**
@@ -217,7 +217,7 @@ public class ServerConnection {
     }
     
     private void handleEntityPositionAndRotation(ServerSyncEntityPositionAndRotationNVo packet) {
-        if (gameClient == null) {
+        if (ourCraftClient == null) {
             return;
         }
         
@@ -225,13 +225,13 @@ public class ServerConnection {
 
             //log.info("ServerSyncEntityPositionAndRotationNVo X:{} Y:{} Z:{} P:{} R:{}",packet.x(),packet.y(),packet.z(),packet.pitch(),packet.yaw());
 
-            ClientPlayer player = gameClient.getPlayer();
+            ClientPlayer player = ourCraftClient.getPlayer();
             if (player != null) {
                 Vector3d serverPos = new Vector3d((float) packet.x(), (float) packet.y(), (float) packet.z());
                 double distance = player.getPosition().distance(serverPos);
                 
                 // 如果玩家尚未初始化完成，直接同步到服务端位置（避免初始位置不同步）
-                if (!gameClient.isPlayerInitialized()) {
+                if (!ourCraftClient.isPlayerInitialized()) {
                     player.setPosition(serverPos); // 使用setPosition确保previousPosition也被正确初始化
                     player.setYaw(packet.yaw());
                     player.setPitch(packet.pitch());
@@ -239,7 +239,7 @@ public class ServerConnection {
                 }
 
                 //如果玩家已初始化 校准位置
-                if(gameClient.isPlayerInitialized()){
+                if(ourCraftClient.isPlayerInitialized()){
                     // 服务端协调：平滑地校正客户端预测位置
                     // 保存当前位置用于插值
                     player.getPreviousPosition().set(player.getPosition());
@@ -269,11 +269,11 @@ public class ServerConnection {
     }
     
     private void handlePlayerState(ServerSyncPlayerStateNVo packet) {
-        if (gameClient == null) {
+        if (ourCraftClient == null) {
             return;
         }
         
-        com.ksptool.ourcraft.client.entity.ClientPlayer player = gameClient.getPlayer();
+        com.ksptool.ourcraft.client.entity.ClientPlayer player = ourCraftClient.getPlayer();
         if (player != null) {
             player.setHealth(packet.health());
             // foodLevel 对应饥饿值，暂时直接设置（后续可能需要转换）
@@ -281,8 +281,8 @@ public class ServerConnection {
             
             // 收到玩家状态同步包后，标记玩家已初始化完成
             // 这表示服务端已经完成了初始同步，客户端可以开始发送位置更新
-            if (!gameClient.isPlayerInitialized()) {
-                gameClient.setPlayerInitialized(true);
+            if (!ourCraftClient.isPlayerInitialized()) {
+                ourCraftClient.setPlayerInitialized(true);
                 log.info("玩家初始化完成，可以开始发送位置更新");
             }
         }
@@ -308,7 +308,7 @@ public class ServerConnection {
             log.info("成功加入服务器，sessionId: {}", packet.sessionId());
             
             // 请求初始化多人游戏世界（将在主线程执行，避免OpenGL上下文问题）
-            if (gameClient != null) {
+            if (ourCraftClient != null) {
                 Double x = packet.x();
                 Double y = packet.y();
                 Double z = packet.z();
@@ -320,7 +320,7 @@ public class ServerConnection {
                     return;
                 }
                 
-                gameClient.requestInitializeMultiplayerWorld(x, y, z, yaw, pitch);
+                ourCraftClient.requestInitializeMultiplayerWorld(x, y, z, yaw, pitch);
             } else {
                 log.error("GameClient为null，无法初始化多人游戏世界");
             }

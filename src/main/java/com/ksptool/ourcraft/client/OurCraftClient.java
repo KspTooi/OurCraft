@@ -34,7 +34,7 @@ import org.joml.Vector3d;
  * 游戏客户端，负责渲染、输入处理和事件消费
  */
 @Slf4j
-public class GameClient {
+public class OurCraftClient {
 
     private Window window;
     private Input input;
@@ -103,7 +103,6 @@ public class GameClient {
         createWorldMenu = new CreateWorldMenu();
         
         serverConnection = new ServerConnection(this);
-
         running = true;
     }
 

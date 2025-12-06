@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft;
 
-import com.ksptool.ourcraft.client.GameClient;
+import com.ksptool.ourcraft.client.OurCraftClient;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -11,8 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ClientLauncher {
 
     void main() {
-        GameClient gameClient = new GameClient();
-        gameClient.run();
+        OurCraftClient ourCraftClient = new OurCraftClient();
+        ourCraftClient.run();
     }
 
 }

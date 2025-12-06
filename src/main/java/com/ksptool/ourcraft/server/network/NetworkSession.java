@@ -25,8 +25,8 @@ public class NetworkSession implements Runnable {
         AUTHORIZED,        //AUTHORIZED(已授权): 表示会话已授权
         CLIENT_READY,      //CLIENT_READY(客户端已准备好): 表示客户端已准备好接收世界数据
         PROCESSING_DATA,   //PROCESSING_DATA(数据处理): 正在同步初始世界数据 (区块等)
-        READY,             //READY(就绪): 表示会话已准备好,已加入世界
         PROCESSING_SWITCH, //PROCESSING_SWITCH(正在进行进程切换): 表示会话正在进行进程切换
+        READY,             //READY(就绪): 表示会话已准备好,已加入世界
         INVALID,           //INVALID(无效): 表示会话已无效
     }
 
