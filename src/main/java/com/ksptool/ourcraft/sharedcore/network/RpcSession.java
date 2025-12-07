@@ -31,10 +31,10 @@ public class RpcSession {
     private final OutputStream os;
     
     //发送队列
-    private BlockingQueue<Object> sndQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Object> sndQueue = new LinkedBlockingQueue<>();
 
     //接收队列
-    private BlockingQueue<Object> rcvQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Object> rcvQueue = new LinkedBlockingQueue<>();
 
     //是否正在运行
     private final AtomicBoolean running = new AtomicBoolean(false);
