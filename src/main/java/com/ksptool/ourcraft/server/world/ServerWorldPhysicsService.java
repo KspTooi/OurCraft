@@ -51,6 +51,9 @@ public class ServerWorldPhysicsService extends WorldService {
             //处理Player实体物理模拟
             if (item instanceof ServerPlayer pl) {
 
+                //应用玩家输入（移动速度）
+                pl.applyInputVelocity();
+
                 //先备份计算前的位置
                 var oldPosition = pl.getCurrentChunkPos();
 

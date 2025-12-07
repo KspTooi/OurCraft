@@ -188,13 +188,6 @@ public class ServerWorld implements SharedWorld {
     @Override
     public void action(double delta) {
 
-        //重置所有Player的输入应用状态
-        ses.getEntities().forEach(entity -> {
-            if(entity instanceof ServerPlayer pl){
-                pl.resetInputApplied();
-            }
-        });
-
         // 时间服务动作(时间推进)
         swts.action(delta, this);
 
@@ -325,15 +318,8 @@ public class ServerWorld implements SharedWorld {
             return;
         }
 
-        //如果本Action已应用过输入，则不重复应用
-        if(player.isInputApplied()){
-            log.warn("世界:{} Player会话ID:{} 本Action已应用过输入，无效的输入事件被丢弃", name, e.getSessionId());
-            return;
-        }
-
         // 应用玩家键盘输入事件(为Player增加速度以便在物理更新时生效)
         player.applyInput(e);
-        player.markInputApplied();
     }
 
     /**

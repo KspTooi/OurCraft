@@ -71,6 +71,12 @@ public class ServerPlayer extends ServerLivingEntity {
     //本Action是否应用过输入
     private AtomicBoolean isInputApplied = new AtomicBoolean(false);
 
+    private boolean iW;
+    private boolean iS;
+    private boolean iA;
+    private boolean iD;
+    private boolean iSpace;
+    private boolean iShift;
     /**
      * 服务端构造函数：创建一个与服务端世界关联的Player对象（带UUID）
      */
@@ -149,7 +155,7 @@ public class ServerPlayer extends ServerLivingEntity {
      * 应用玩家输入（移动方向）
      * 注意：这个方法现在接收的是已经处理过的移动方向，而不是原始输入事件
      */
-    public void applyInput(PlayerInputEvent event) {
+    /*public void applyInput(PlayerInputEvent event) {
         Vector3f moveDirection = new Vector3f();
         float yawRad = (float) Math.toRadians(yaw);
         
@@ -190,23 +196,77 @@ public class ServerPlayer extends ServerLivingEntity {
             velocity.y = JUMP_VELOCITY;
             onGround = false;
         }
-    }
+    }*/
 
     /**
-     * 应用玩家输入（适配ServerPlayerInputEvent）
+     * 应用玩家输入（移动方向）
      */
     public void applyInput(ServerPlayerInputEvent event) {
         if (event == null) {
             return;
         }
-        PlayerInputEvent inputEvent = new PlayerInputEvent(
-            event.isW(),
-            event.isS(),
-            event.isA(),
-            event.isD(),
-            event.isSpace()
-        );
-        applyInput(inputEvent);
+
+        iW = event.isW();
+        iS = event.isS();
+        iA = event.isA();
+        iD = event.isD();
+        iSpace = event.isSpace();
+        iShift = event.isShift();
+        
+        //PlayerInputEvent inputEvent = new PlayerInputEvent(
+        //    event.isW(),
+        //    event.isS(),
+        //    event.isA(),
+        //    event.isD(),
+        //    event.isSpace()
+        //);
+        //applyInput(inputEvent);
+    }
+
+    /**
+     * 应用玩家输入（移动速度）
+     */
+    public void applyInputVelocity() {
+        Vector3f moveDirection = new Vector3f();
+        float yawRad = (float) Math.toRadians(yaw);
+        
+        if (iW) {
+            moveDirection.x += Math.sin(yawRad);
+            moveDirection.z -= Math.cos(yawRad);
+        }
+        if (iS) {
+            moveDirection.x -= Math.sin(yawRad);
+            moveDirection.z += Math.cos(yawRad);
+        }
+        if (iA) {
+            moveDirection.x -= Math.cos(yawRad);
+            moveDirection.z -= Math.sin(yawRad);
+        }
+        if (iD) {
+            moveDirection.x += Math.cos(yawRad);
+            moveDirection.z += Math.sin(yawRad);
+        }
+        
+        if (moveDirection.length() > 0) {
+            moveDirection.normalize();
+            
+            float acceleration = onGround ? GROUND_ACCELERATION : AIR_ACCELERATION;
+            float tickDelta = 1.0f / world.getTemplate().getActionPerSecond();
+            velocity.x += moveDirection.x * acceleration * tickDelta;
+            velocity.z += moveDirection.z * acceleration * tickDelta;
+            
+            Vector2d horizontalVelocity = new Vector2d(velocity.x, velocity.z);
+            if (horizontalVelocity.lengthSquared() > MAX_SPEED * MAX_SPEED) {
+                horizontalVelocity.normalize().mul(MAX_SPEED);
+                velocity.x = horizontalVelocity.x;
+                velocity.z = horizontalVelocity.y;
+            }
+        }
+        
+        if (iSpace && onGround) {
+            velocity.y = JUMP_VELOCITY;
+            onGround = false;
+        }
     }
 
     /**

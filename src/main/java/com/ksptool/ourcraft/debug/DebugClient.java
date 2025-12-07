@@ -441,6 +441,12 @@ public class DebugClient extends SimpleApplication {
             newPosition.y = playerY;
         }
         
+        // 再次检查当前位置是否可以移动（用于检测离开地面）
+        // 注意：必须在更新 boundingBox 之前使用 testBox 进行检查
+        if (clientWorld.canMoveTo(testBox)) {
+            onGround = false;
+        }
+        
         playerX = newPosition.x;
         playerY = newPosition.y;
         playerZ = newPosition.z;
@@ -451,10 +457,7 @@ public class DebugClient extends SimpleApplication {
             boundingBox.update(newPosition);
         }
         
-        if (clientWorld.canMoveTo(boundingBox)) {
-            onGround = false;
-        }
-        
+        // 摩擦力/阻力应用（与服务端完全一致）
         if (onGround) {
             velocity.x *= GROUND_FRICTION;
             velocity.z *= GROUND_FRICTION;
