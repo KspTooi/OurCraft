@@ -1,12 +1,12 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
-import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
 import com.ksptool.ourcraft.sharedcore.world.gen.TerrainLayer;
+import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.gen.TreeGenerator;
 
 import java.util.Random;
@@ -31,8 +31,12 @@ public class FeatureLayer implements TerrainLayer {
 
         Random random = new Random(context.getNumericSeed() + chunkX * 31L + chunkZ * 17L);
 
-        for (int x = SAFE_MARGIN; x < SimpleServerChunk.CHUNK_SIZE - SAFE_MARGIN; x++) {
-            for (int z = SAFE_MARGIN; z < SimpleServerChunk.CHUNK_SIZE - SAFE_MARGIN; z++) {
+        var t = ((ServerWorld)context.getWorld()).getTemplate();
+        var chunkSizeX = t.getChunkSizeX();
+        var chunkSizeZ = t.getChunkSizeZ();
+
+        for (int x = SAFE_MARGIN; x < chunkSizeX - SAFE_MARGIN; x++) {
+            for (int z = SAFE_MARGIN; z < chunkSizeZ - SAFE_MARGIN; z++) {
                 int surfaceY = findSurfaceY(chunkData, x, z, context);
                 if (surfaceY < 0) {
                     continue;
@@ -52,7 +56,9 @@ public class FeatureLayer implements TerrainLayer {
 
     private int findSurfaceY(int[][][] chunkData, int x, int z, GenerationContext context) {
         GlobalPalette palette = context.getGlobalPalette();
-        for (int y = SimpleServerChunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+        var t = ((ServerWorld)context.getWorld()).getTemplate();
+        var chunkSizeY = t.getChunkSizeY();
+        for (int y = chunkSizeY - 1; y >= 0; y--) {
             int stateId = chunkData[x][y][z];
             if (stateId == AIR_STATE_ID) {
                 continue;

@@ -8,6 +8,7 @@ import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
+import com.ksptool.ourcraft.sharedcore.network.RpcSession;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerDisconnectNVo;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Getter
-public class NetworkSession implements Runnable {
+public class NetworkSession extends RpcSession {
 
     // 会话阶段
     public enum Stage {
@@ -83,6 +84,7 @@ public class NetworkSession implements Runnable {
     private final AtomicReference<ServerPlayer> entity;
 
     public NetworkSession(ServerNetworkService sns, Socket socket, long id) {
+        super(socket, sns.getServer().getNETWORK_THREAD_POOL());
         this.sns = sns;
         this.id = id;
         this.stage = Stage.NEW;

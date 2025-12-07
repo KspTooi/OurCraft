@@ -3,7 +3,6 @@ package com.ksptool.ourcraft.server.world;
 import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.archive.ArchiveService;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
-import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.server.world.chunk.FlexChunkLeaseService;
 import com.ksptool.ourcraft.server.world.chunk.FlexServerChunk;
 import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
@@ -179,12 +178,6 @@ public class ServerWorld implements SharedWorld {
         createDefaultSpawn();
     }
 
-    public void setSaveName(String saveName) {
-        // this.saveName = saveName;
-        this.ses.setSaveName(saveName);
-    }
-
-
 
     /**
      * 执行世界逻辑
@@ -253,13 +246,17 @@ public class ServerWorld implements SharedWorld {
                         continue;
                     }
                 } catch (Exception e) {
-                    log.error("世界:{} 创建默认出生点时加载区块失败:{}", name, e);
+                    log.error("世界:{} 创建默认出生点时加载区块失败", name, e);
                     continue;
                 }
 
-                for (int localX = 0; localX < SimpleServerChunk.CHUNK_SIZE; localX++) {
-                    for (int localZ = 0; localZ < SimpleServerChunk.CHUNK_SIZE; localZ++) {
-                        for (int y = SimpleServerChunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+                var chunkSizeX = template.getChunkSizeX();
+                var chunkSizeY = template.getChunkSizeY();
+                var chunkSizeZ = template.getChunkSizeZ();
+
+                for (int localX = 0; localX < chunkSizeX; localX++) {
+                    for (int localZ = 0; localZ < chunkSizeZ; localZ++) {
+                        for (int y = chunkSizeY - 1; y >= 0; y--) {
                             BlockState state = chunk.getBlockState(localX, y, localZ);
                             if (state == null) {
                                 continue;
@@ -275,8 +272,8 @@ public class ServerWorld implements SharedWorld {
                                 continue;
                             }
                             bestSpawnY = y;
-                            bestSpawnX = chunkX * SimpleServerChunk.CHUNK_SIZE + localX;
-                            bestSpawnZ = chunkZ * SimpleServerChunk.CHUNK_SIZE + localZ;
+                            bestSpawnX = chunkX * chunkSizeX + localX;
+                            bestSpawnZ = chunkZ * chunkSizeZ + localZ;
                         }
                     }
                 }

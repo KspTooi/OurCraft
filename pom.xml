@@ -16,12 +16,13 @@
         <commons-lang3.version>3.19.0</commons-lang3.version>
         <gson.version>2.13.2</gson.version>
         <lwjgl.version>3.3.6</lwjgl.version>
+        <jme3_v>3.8.1-stable</jme3_v>
     </properties>
 
 
     <dependencies>
         <!-- LWJGL 3 Core -->
-        <dependency>
+        <!--<dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
             <version>${lwjgl.version}</version>
@@ -35,7 +36,7 @@
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-opengl</artifactId>
             <version>${lwjgl.version}</version>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-stb</artifactId>
@@ -48,7 +49,7 @@
         </dependency>
 
         <!-- LWJGL Natives -->
-        <dependency>
+        <!--<dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
             <version>${lwjgl.version}</version>
@@ -65,7 +66,7 @@
             <artifactId>lwjgl-opengl</artifactId>
             <version>${lwjgl.version}</version>
             <classifier>natives-windows</classifier>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-stb</artifactId>
@@ -77,6 +78,42 @@
             <artifactId>lwjgl-freetype</artifactId>
             <version>${lwjgl.version}</version>
             <classifier>natives-windows</classifier>
+        </dependency>
+
+
+        <!-- JME 核心模块 -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-core</artifactId>
+            <version>${jme3_v}</version>
+        </dependency>
+
+        <!-- 桌面环境支持 -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-desktop</artifactId>
+            <version>${jme3_v}</version>
+        </dependency>
+
+        <!-- LWJGL3 后端 (渲染器) -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-lwjgl3</artifactId>
+            <version>${jme3_v}</version>
+        </dependency>
+
+        <!-- 资源加载器 (加载材质、模型等) -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-plugins</artifactId>
+            <version>${jme3_v}</version>
+        </dependency>
+
+        <!-- (可选) 特效库 (后期处理、粒子、水面) -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-effects</artifactId>
+            <version>${jme3_v}</version>
         </dependency>
 
         <!-- Logback Classic (包含slf4j-api) -->

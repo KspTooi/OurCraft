@@ -1,8 +1,21 @@
 package com.ksptool.ourcraft.debug;
 
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
-import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
+import com.ksptool.ourcraft.sharedcore.network.RpcRequest;
+import com.ksptool.ourcraft.sharedcore.network.RpcResponse;
+import com.ksptool.ourcraft.sharedcore.network.ndto.AuthNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
+import com.ksptool.ourcraft.sharedcore.network.nvo.AuthNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsPlayerNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -11,40 +24,60 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 调试客户端网络连接管理器
  */
 @Slf4j
 public class DebugNetworkConnection {
-    
+
+    private enum ProtocolStage {
+        NEW,
+        AUTHORIZED,
+        PROCESSED,
+        PROCESS_SWITCHING,
+        PROCESS_SWITCHED,
+        IN_WORLD
+    }
+
     private Socket socket;
     private InputStream inputStream;
     private OutputStream outputStream;
     private volatile boolean connected = false;
+    private volatile ProtocolStage stage = ProtocolStage.NEW;
     private final BlockingQueue<Object> packetQueue = new LinkedBlockingQueue<>();
     private DebugClient debugClient;
-    
+    private long sessionId = -1;
+    private final AtomicLong requestIdCounter = new AtomicLong(1);
+
     public DebugNetworkConnection(DebugClient debugClient) {
         this.debugClient = debugClient;
     }
-    
-    public boolean connect(String host, int port) {
+
+    public boolean connect(String host, int port, String playerName, String clientVersion) {
         if (connected) {
             log.warn("已经连接到服务器");
             return false;
         }
-        
+
         try {
             socket = new Socket(host, port);
             inputStream = socket.getInputStream();
             outputStream = socket.getOutputStream();
             connected = true;
-            
+            stage = ProtocolStage.NEW;
+
             log.info("已连接到服务器: {}:{}", host, port);
-            
+
             Thread.ofVirtual().start(this::receiveLoop);
-            
+
+            long requestId = requestIdCounter.getAndIncrement();
+            AuthNDto authDto = AuthNDto.of(playerName, clientVersion);
+            RpcRequest<AuthNDto> authRequest = RpcRequest.of(requestId, authDto);
+            sendPacket(authRequest);
+            log.info("已发送认证请求: 玩家名称={}, 客户端版本={}", playerName, clientVersion);
+
             return true;
         } catch (IOException e) {
             log.error("连接服务器失败: {}", e.getMessage());
@@ -52,7 +85,7 @@ public class DebugNetworkConnection {
             return false;
         }
     }
-    
+
     private void receiveLoop() {
         while (connected && !socket.isClosed()) {
             try {
@@ -73,11 +106,11 @@ public class DebugNetworkConnection {
                 break;
             }
         }
-        
+
         connected = false;
         log.info("与服务器的连接已断开");
     }
-    
+
     public void processPackets() {
         while (!packetQueue.isEmpty()) {
             Object packet = packetQueue.poll();
@@ -86,140 +119,247 @@ public class DebugNetworkConnection {
             }
         }
     }
-    
+
     private void handlePacket(Object packet) {
         if (packet == null) {
             return;
         }
-        
-        if (packet instanceof ServerSyncChunkDataNVo) {
-            handleChunkData((ServerSyncChunkDataNVo) packet);
+
+        if (packet instanceof RpcResponse(long requestId, Object data)) {
+            handleRpcResponse(requestId, data);
             return;
         }
-        if (packet instanceof HuChunkUnloadNVo) {
-            handleChunkUnload((HuChunkUnloadNVo) packet);
+
+        if (packet instanceof BatchDataNVo batchData) {
+            handleBatchData(batchData);
             return;
         }
+
+        if (packet instanceof PsNVo psNVo) {
+            handleProcessSwitch(psNVo);
+            return;
+        }
+
+        if (packet instanceof PsChunkNVo psChunk) {
+            handleProcessSwitchChunk(psChunk);
+            return;
+        }
+
+        if (packet instanceof PsPlayerNVo psPlayer) {
+            handleProcessSwitchPlayer(psPlayer);
+            return;
+        }
+
+        if (packet instanceof PsJoinWorldNVo) {
+            handleJoinWorld();
+            return;
+        }
+
         if (packet instanceof ServerSyncBlockUpdateNVo) {
             handleBlockUpdate((ServerSyncBlockUpdateNVo) packet);
             return;
         }
+
         if (packet instanceof ServerSyncEntityPositionAndRotationNVo) {
             handleEntityPositionAndRotation((ServerSyncEntityPositionAndRotationNVo) packet);
             return;
         }
-        if (packet instanceof RequestJoinServerNVo) {
-            handleJoinServerResponse((RequestJoinServerNVo) packet);
-            return;
-        }
+
         if (packet instanceof ServerDisconnectNVo) {
             handleDisconnect((ServerDisconnectNVo) packet);
             return;
         }
-        
+
         log.debug("收到未处理的数据包: {}", packet.getClass().getName());
     }
-    
-    private void handleChunkData(ServerSyncChunkDataNVo packet) {
-        int chunkX = packet.chunkX();
-        int chunkZ = packet.chunkZ();
-        byte[] blockData = packet.blockData();
-        
-        log.info("处理区块数据: ({}, {}), 数据长度: {}", chunkX, chunkZ, blockData != null ? blockData.length : 0);
-        
-        int[][][] blockStates = deserializeChunkData(blockData);
-        if (blockStates == null) {
-            log.warn("区块数据反序列化失败: ({}, {})", chunkX, chunkZ);
+
+    private void handleRpcResponse(long requestId, Object data) {
+        if (data instanceof AuthNVo authNVo) {
+            handleAuthResponse(authNVo);
             return;
         }
+        log.warn("收到未知的RPC响应类型: requestId={}, dataType={}", requestId, data != null ? data.getClass().getName() : "null");
+    }
+
+    private void handleAuthResponse(AuthNVo authNVo) {
+        if (stage != ProtocolStage.NEW) {
+            log.warn("收到认证响应，但当前阶段不是NEW: {}", stage);
+            return;
+        }
+
+        if (authNVo.accepted() != 0) {
+            log.error("认证失败: {}", authNVo.reason());
+            disconnect();
+            return;
+        }
+
+        sessionId = authNVo.sessionId();
+        stage = ProtocolStage.AUTHORIZED;
+        log.info("认证成功，会话ID: {}", sessionId);
+    }
+
+    private void handleBatchData(BatchDataNVo batchData) {
+        if (stage != ProtocolStage.AUTHORIZED) {
+            log.warn("收到批数据，但当前阶段不是AUTHORIZED: {}", stage);
+            return;
+        }
+
+        log.info("收到批数据: kind={}, dataLength={}", batchData.kind(), batchData.data() != null ? batchData.data().length : 0);
         
-        if (debugClient != null) {
-            debugClient.handleChunkData(chunkX, chunkZ, blockStates);
+        sendPacket(BatchDataFinishNDto.of());
+        stage = ProtocolStage.PROCESSED;
+        log.info("已确认批数据");
+    }
+
+    private void handleProcessSwitch(PsNVo psNVo) {
+        if (stage != ProtocolStage.PROCESSED) {
+            log.warn("收到进程切换通知，但当前阶段不是PROCESSED: {}", stage);
+            return;
+        }
+
+        log.info("收到进程切换通知: 世界={}, APS={}, 总Action数={}, 开始时间={}", 
+                psNVo.worldName(), psNVo.aps(), psNVo.totalActions(), psNVo.startDateTime());
+
+        sendPacket(new PsAllowNDto());
+        stage = ProtocolStage.PROCESS_SWITCHING;
+        log.info("已确认进程切换");
+    }
+
+    private void handleProcessSwitchChunk(PsChunkNVo psChunk) {
+        if (stage != ProtocolStage.PROCESS_SWITCHING) {
+            log.warn("收到进程切换区块数据，但当前阶段不是PROCESS_SWITCHING: {}", stage);
+            return;
+        }
+
+        int chunkX = psChunk.chunkX();
+        int chunkZ = psChunk.chunkZ();
+        byte[] blockData = psChunk.blockData();
+
+        log.info("处理进程切换区块数据: ({}, {}), 数据长度: {}", chunkX, chunkZ, blockData != null ? blockData.length : 0);
+
+        if (blockData == null || blockData.length == 0) {
+            log.warn("区块数据为空: ({}, {})", chunkX, chunkZ);
+            return;
+        }
+
+        try {
+            FlexChunkData flexChunkData = FlexChunkSerializer.deserialize(blockData);
+            int width = flexChunkData.getWidth();
+            int height = flexChunkData.getHeight();
+            int depth = flexChunkData.getDepth();
+
+            int[][][] blockStates = deserializeChunkData(blockData);
+            if (blockStates == null) {
+                log.warn("区块数据反序列化失败: ({}, {})", chunkX, chunkZ);
+                return;
+            }
+
+            if (debugClient != null) {
+                debugClient.handleChunkData(chunkX, chunkZ, width, height, depth, blockStates);
+            }
+        } catch (Exception e) {
+            log.error("处理进程切换区块数据时发生错误: ({}, {})", chunkX, chunkZ, e);
         }
     }
-    
+
+    private void handleProcessSwitchPlayer(PsPlayerNVo psPlayer) {
+        if (stage != ProtocolStage.PROCESS_SWITCHING) {
+            log.warn("收到进程切换玩家数据，但当前阶段不是PROCESS_SWITCHING: {}", stage);
+            return;
+        }
+
+        log.info("收到进程切换玩家数据: UUID={}, 名称={}, 位置=({}, {}, {}), 朝向=({}, {})", 
+                psPlayer.uuid(), psPlayer.name(), psPlayer.posX(), psPlayer.posY(), psPlayer.posZ(), 
+                psPlayer.yaw(), psPlayer.pitch());
+
+        if (debugClient != null) {
+            debugClient.setPlayerPosition(psPlayer.posX(), psPlayer.posY(), psPlayer.posZ(), 
+                    (float) psPlayer.yaw(), (float) psPlayer.pitch());
+        }
+
+        sendPacket(new PsFinishNDto());
+        stage = ProtocolStage.PROCESS_SWITCHED;
+        log.info("已确认进程切换完成");
+    }
+
+    private void handleJoinWorld() {
+        if (stage != ProtocolStage.PROCESS_SWITCHED) {
+            log.warn("收到加入世界通知，但当前阶段不是PROCESS_SWITCHED: {}", stage);
+            return;
+        }
+
+        stage = ProtocolStage.IN_WORLD;
+        log.info("已加入世界，可以开始游戏");
+    }
+
     private int[][][] deserializeChunkData(byte[] data) {
-        int size = DebugChunk.CHUNK_SIZE;
-        int height = DebugChunk.CHUNK_HEIGHT;
-        int expectedSize = size * height * size * 4;
-        
-        if (data == null || data.length != expectedSize) {
-            log.warn("区块数据大小不匹配: 期望 {}, 实际 {}", expectedSize, data != null ? data.length : 0);
+        if (data == null || data.length == 0) {
+            log.warn("区块数据为空");
             return null;
         }
-        
-        int[][][] blockStates = new int[size][height][size];
-        int index = 0;
-        
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < height; y++) {
-                for (int z = 0; z < size; z++) {
-                    int stateId = (data[index] & 0xFF) |
-                                  ((data[index + 1] & 0xFF) << 8) |
-                                  ((data[index + 2] & 0xFF) << 16) |
-                                  ((data[index + 3] & 0xFF) << 24);
-                    blockStates[x][y][z] = stateId;
-                    index += 4;
+
+        try {
+            // 使用FlexChunkSerializer反序列化
+            FlexChunkData flexChunkData = FlexChunkSerializer.deserialize(data);
+
+            int width = flexChunkData.getWidth();
+            int height = flexChunkData.getHeight();
+            int depth = flexChunkData.getDepth();
+
+            log.debug("反序列化区块尺寸: {}x{}x{}", width, height, depth);
+
+            // 创建快照以安全读取数据
+            FlexChunkData.Snapshot snapshot = flexChunkData.createSnapshot();
+
+            // 转换为调试客户端使用的int[][][]格式
+            int[][][] blockStates = new int[width][height][depth];
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    for (int z = 0; z < depth; z++) {
+                        // 从快照中获取方块状态ID
+                        var blockState = snapshot.getBlock(x, y, z);
+                        if (blockState != null) {
+                            // 使用全局调色板获取状态ID
+                            blockStates[x][y][z] = com.ksptool.ourcraft.sharedcore.GlobalPalette.getInstance()
+                                    .getStateId(blockState);
+                        } else {
+                            blockStates[x][y][z] = 0; // 空气
+                        }
+                    }
                 }
             }
-        }
-        
-        return blockStates;
-    }
-    
-    private void handleChunkUnload(HuChunkUnloadNVo packet) {
-        if (debugClient != null) {
-            debugClient.handleChunkUnload(packet.pos().getX(), packet.pos().getZ());
+
+            return blockStates;
+
+        } catch (Exception e) {
+            log.error("反序列化区块数据时发生错误", e);
+            return null;
         }
     }
-    
+
     private void handleBlockUpdate(ServerSyncBlockUpdateNVo packet) {
         if (debugClient != null) {
             debugClient.handleBlockUpdate(packet.x(), packet.y(), packet.z(), packet.blockId());
         }
     }
-    
+
     private void handleEntityPositionAndRotation(ServerSyncEntityPositionAndRotationNVo packet) {
         if (packet.entityId() == 0 && debugClient != null) {
             debugClient.updatePlayerPosition(packet.x(), packet.y(), packet.z(), packet.yaw(), packet.pitch());
         }
     }
-    
-    private void handleJoinServerResponse(RequestJoinServerNVo packet) {
-        log.info("收到服务器加入响应: accepted={}, sessionId={}, pos=({}, {}, {})", 
-            packet.accepted(), packet.sessionId(), packet.x(), packet.y(), packet.z());
-        
-        if (packet.accepted() == 1) {
-            log.info("成功加入服务器，sessionId: {}", packet.sessionId());
-            
-            if (debugClient != null) {
-                Double x = packet.x();
-                Double y = packet.y();
-                Double z = packet.z();
-                Float yaw = packet.yaw();
-                Float pitch = packet.pitch();
-                
-                if (x != null && y != null && z != null && yaw != null && pitch != null) {
-                    debugClient.setPlayerPosition(x, y, z, yaw, pitch);
-                    sendPacket(new ClientReadyNDto());
-                }
-            }
-        } else {
-            log.warn("加入服务器被拒绝: {}", packet.reason());
-            disconnect();
-        }
-    }
-    
+
     private void handleDisconnect(ServerDisconnectNVo packet) {
         log.warn("服务器断开连接: {}", packet.reason());
         disconnect();
     }
-    
+
     public void sendPacket(Object packet) {
         if (!connected || outputStream == null) {
             return;
         }
-        
+
         try {
             KryoManager.writeObject(packet, outputStream);
         } catch (IOException e) {
@@ -227,7 +367,7 @@ public class DebugNetworkConnection {
             disconnect();
         }
     }
-    
+
     public void disconnect() {
         connected = false;
         try {
@@ -238,9 +378,16 @@ public class DebugNetworkConnection {
             log.error("关闭连接失败: {}", e.getMessage());
         }
     }
-    
+
     public boolean isConnected() {
         return connected;
     }
-}
 
+    public boolean isInWorld() {
+        return stage == ProtocolStage.IN_WORLD;
+    }
+
+    public long getSessionId() {
+        return sessionId;
+    }
+}

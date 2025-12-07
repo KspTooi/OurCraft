@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.world.gen.layers;
 
-import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
+import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.world.gen.GenerationContext;
@@ -26,11 +26,16 @@ public class SurfaceLayer implements TerrainLayer {
         int dirtStateId = context.getGlobalPalette().getStateId(dirtSharedBlock.getDefaultState());
         int stoneStateId = context.getGlobalPalette().getStateId(stoneSharedBlock.getDefaultState());
 
-        for (int x = 0; x < SimpleServerChunk.CHUNK_SIZE; x++) {
-            for (int z = 0; z < SimpleServerChunk.CHUNK_SIZE; z++) {
-                for (int y = SimpleServerChunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+        var t = ((ServerWorld)context.getWorld()).getTemplate();
+        var chunkSizeX = t.getChunkSizeX();
+        var chunkSizeZ = t.getChunkSizeZ();
+        var chunkSizeY = t.getChunkSizeY();
+
+        for (int x = 0; x < chunkSizeX; x++) {
+            for (int z = 0; z < chunkSizeZ; z++) {
+                for (int y = chunkSizeY - 1; y >= 0; y--) {
                     if (chunkData[x][y][z] == stoneStateId) {
-                        if (y + 1 < SimpleServerChunk.CHUNK_HEIGHT && chunkData[x][y + 1][z] == AIR_STATE_ID) {
+                        if (y + 1 < chunkSizeY && chunkData[x][y + 1][z] == AIR_STATE_ID) {
                             chunkData[x][y][z] = grassStateId;
                             
                             for (int depth = 1; depth <= 3 && y - depth >= 0; depth++) {

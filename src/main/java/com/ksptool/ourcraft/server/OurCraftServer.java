@@ -42,7 +42,6 @@ public class OurCraftServer {
     //网络线程池(用于处理网络连接、心跳、数据包接收发送等任务(虚拟线程))
     private ExecutorService NETWORK_THREAD_POOL;
 
-
     private final String defaultWorldName = "earth_like";
 
     //世界服务
@@ -107,60 +106,7 @@ public class OurCraftServer {
 
         //启动网络服务
         networkService.start();
-        //playerService.start();
     }
-
-
-
-    /*private void handlePlayerInputState(PlayerInputStateNDto packet, PlayerSession handler) {
-        if (!handler.isPlayerInitialized()) {
-            log.debug("玩家尚未初始化完成，忽略输入");
-            return;
-        }
-
-        ServerPlayer player = handler.getPlayer();
-        if (player == null) {
-            log.warn("客户端连接没有关联的玩家实体");
-            return;
-        }
-
-        // 创建 PlayerInputEvent 并放入事件队列，由 WorldExecutionUnit 在 tick 中处理
-        PlayerInputEvent inputEvent = new PlayerInputEvent(
-                packet.w(),
-                packet.s(),
-                packet.a(),
-                packet.d(),
-                packet.space());
-
-        // 将事件放入 C2S (Client to Server) 队列
-        // 注意：这里假设 EventQueue 是线程安全的
-        SimpleEventQueue.getInstance().offerC2S(inputEvent);
-
-        // 相机更新也可以放入队列，或者暂时保持直接更新（视 EventQueue 支持的事件类型而定）
-        // 为了保持一致性，建议也封装为事件，但目前先保留直接更新以最小化改动，
-        // 只要 Player 对象是线程安全的（或 volatile 字段）。
-        // 不过，ServerWorldExecutionUnit.processEvents 中有处理 PlayerCameraInputEvent 的逻辑，
-        // 所以最好也转为事件。
-
-        float currentYaw = (float)player.getYaw();
-        float currentPitch = (float)player.getPitch();
-        float deltaYaw = packet.yaw() - currentYaw;
-        float deltaPitch = packet.pitch() - currentPitch;
-
-        // 处理角度环绕（-180到180度）
-        if (deltaYaw > 180.0f) {
-            deltaYaw -= 360.0f;
-        } else if (deltaYaw < -180.0f) {
-            deltaYaw += 360.0f;
-        }
-
-        // 发送相机输入事件
-        com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent cameraEvent = new com.ksptool.ourcraft.sharedcore.events.PlayerCameraInputEvent(
-                deltaYaw, deltaPitch);
-        SimpleEventQueue.getInstance().offerC2S(cameraEvent);
-    }
-*/
-
 
 
     /**
@@ -186,23 +132,6 @@ public class OurCraftServer {
         archiveService.disconnectArchiveIndex();
     }
 
-    /**
-     * 关闭所有线程池
-     */
-    private void shutdownThreadPools() {
-        if (SWEU_THREAD_POOL != null) {
-            SWEU_THREAD_POOL.shutdown();
-            log.info("SWEU线程池已关闭");
-        }
-        if (CHUNK_PROCESS_THREAD_POOL != null) {
-            CHUNK_PROCESS_THREAD_POOL.shutdown();
-            log.info("区块处理线程池已关闭");
-        }
-        if (NETWORK_THREAD_POOL != null) {
-            NETWORK_THREAD_POOL.shutdown();
-            log.info("网络线程池已关闭");
-        }
-    }
 
     /**
      * 注册所有引擎原版的内容(服务端) 这包括方块、物品、世界模板、实体
@@ -262,4 +191,21 @@ public class OurCraftServer {
     }
 
 
+    /**
+     * 关闭所有线程池
+     */
+    private void shutdownThreadPools() {
+        if (SWEU_THREAD_POOL != null) {
+            SWEU_THREAD_POOL.shutdown();
+            log.info("SWEU线程池已关闭");
+        }
+        if (CHUNK_PROCESS_THREAD_POOL != null) {
+            CHUNK_PROCESS_THREAD_POOL.shutdown();
+            log.info("区块处理线程池已关闭");
+        }
+        if (NETWORK_THREAD_POOL != null) {
+            NETWORK_THREAD_POOL.shutdown();
+            log.info("网络线程池已关闭");
+        }
+    }
 }

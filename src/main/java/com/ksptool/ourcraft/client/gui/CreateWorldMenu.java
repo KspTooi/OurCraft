@@ -3,7 +3,6 @@ package com.ksptool.ourcraft.client.gui;
 import com.ksptool.ourcraft.client.Input;
 import com.ksptool.ourcraft.client.rendering.GuiRenderer;
 import com.ksptool.ourcraft.client.rendering.TextRenderer;
-import com.ksptool.ourcraft.server.world.save.SaveManager;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector2d;
 import org.joml.Vector4f;
@@ -77,8 +76,8 @@ public class CreateWorldMenu {
             textRenderer.renderText(guiRenderer, textX, textY, saveDisplayText, 1.0f, textColor, windowWidth, windowHeight);
         }
 
-        List<String> saves = SaveManager.getInstance().getSaveList();
-        renderSaveList(guiRenderer, saves, windowWidth, windowHeight);
+        //List<String> saves = SaveManager.getInstance().getSaveList();
+        //renderSaveList(guiRenderer, saves, windowWidth, windowHeight);
 
         if (textRenderer != null) {
             textRenderer.renderText(guiRenderer, inputX, worldInputY - 25.0f, "世界名称:", 1.0f, new Vector4f(1.0f, 1.0f, 1.0f,1F), windowWidth, windowHeight);
@@ -168,22 +167,22 @@ public class CreateWorldMenu {
                 isTypingWorldName = false;
             }
 
-            List<String> saves = SaveManager.getInstance().getSaveList();
+            //List<String> saves = SaveManager.getInstance().getSaveList();
             float listX = windowWidth / 2.0f - 300.0f;
             float currentY = SAVE_LIST_Y;
 
             int startIndex = Math.max(0, saveScrollOffset);
-            int endIndex = Math.min(saves.size(), startIndex + (int)(SAVE_LIST_HEIGHT / SAVE_ITEM_HEIGHT));
+            //int endIndex = Math.min(saves.size(), startIndex + (int)(SAVE_LIST_HEIGHT / SAVE_ITEM_HEIGHT));
 
-            for (int i = startIndex; i < endIndex; i++) {
+            /*for (int i = startIndex; i < endIndex; i++) {
                 if (isMouseOverButton(mousePos.x, mousePos.y, listX, currentY, 600.0f, SAVE_ITEM_HEIGHT)) {
-                    selectedSave = saves.get(i);
+                    //selectedSave = saves.get(i);
                     saveNameInput.setLength(0);
                     saveNameInput.append(selectedSave);
                     return 0;
                 }
                 currentY += SAVE_ITEM_HEIGHT;
-            }
+            }*/
 
             if (isMouseOverButton(mousePos.x, mousePos.y, buttonX, createY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
                 String worldName = worldNameInput.toString().trim();
@@ -214,8 +213,9 @@ public class CreateWorldMenu {
         if (scrollY != 0) {
             Vector2d mousePosition = input.getMousePosition();
             if (mousePosition.y >= SAVE_LIST_Y && mousePosition.y <= SAVE_LIST_Y + SAVE_LIST_HEIGHT) {
-                List<String> saves = SaveManager.getInstance().getSaveList();
-                int maxScroll = Math.max(0, saves.size() - (int)(SAVE_LIST_HEIGHT / SAVE_ITEM_HEIGHT));
+                //List<String> saves = SaveManager.getInstance().getSaveList();
+                //int maxScroll = Math.max(0, saves.size() - (int)(SAVE_LIST_HEIGHT / SAVE_ITEM_HEIGHT));
+                int maxScroll = 0;
                 saveScrollOffset += (int)scrollY;
                 if (saveScrollOffset < 0) {
                     saveScrollOffset = 0;

@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.server.world.gen;
 
-import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
+import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
@@ -24,10 +24,17 @@ public class TreeGenerator {
     private static final int LEAF_RADIUS = 2;
 
     public static void place(int[][][] chunkData, int x, int y, int z, GenerationContext context) {
-        if (x < 0 || x >= SimpleServerChunk.CHUNK_SIZE || z < 0 || z >= SimpleServerChunk.CHUNK_SIZE) {
+
+        var t = ((ServerWorld)context.getWorld()).getTemplate();
+        var chunkSizeX = t.getChunkSizeX();
+        var chunkSizeZ = t.getChunkSizeZ();
+        var chunkSizeY = t.getChunkSizeY();
+
+
+        if (x < 0 || x >= chunkSizeX || z < 0 || z >= chunkSizeZ) {
             return;
         }
-        if (y < 0 || y >= SimpleServerChunk.CHUNK_HEIGHT) {
+        if (y < 0 || y >= chunkSizeY) {
             return;
         }
 
@@ -52,13 +59,13 @@ public class TreeGenerator {
 
         int treeHeight = TREE_HEIGHT_MIN + (int) (Math.random() * (TREE_HEIGHT_MAX - TREE_HEIGHT_MIN + 1));
 
-        if (y + treeHeight >= SimpleServerChunk.CHUNK_HEIGHT) {
+        if (y + treeHeight >= chunkSizeY) {
             return;
         }
 
         for (int dy = 0; dy < treeHeight; dy++) {
             int currentY = y + dy;
-            if (currentY >= 0 && currentY < SimpleServerChunk.CHUNK_HEIGHT) {
+            if (currentY >= 0 && currentY < chunkSizeY) {
                 chunkData[x][currentY][z] = woodStateId;
             }
         }
@@ -67,7 +74,7 @@ public class TreeGenerator {
         int leafEndY = y + treeHeight;
 
         for (int leafY = leafStartY; leafY <= leafEndY; leafY++) {
-            if (leafY < 0 || leafY >= SimpleServerChunk.CHUNK_HEIGHT) {
+            if (leafY < 0 || leafY >= chunkSizeY) {
                 continue;
             }
 
@@ -82,7 +89,7 @@ public class TreeGenerator {
                     int leafX = x + dx;
                     int leafZ = z + dz;
 
-                    if (leafX < 0 || leafX >= SimpleServerChunk.CHUNK_SIZE || leafZ < 0 || leafZ >= SimpleServerChunk.CHUNK_SIZE) {
+                    if (leafX < 0 || leafX >= chunkSizeX || leafZ < 0 || leafZ >= chunkSizeZ) {
                         continue;
                     }
 

@@ -1,6 +1,5 @@
 package com.ksptool.ourcraft.server.archive;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,8 +11,6 @@ import java.util.List;
 
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
 import com.ksptool.ourcraft.server.world.chunk.FlexServerChunk;
-import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
-import com.ksptool.ourcraft.server.world.chunk.SimpleChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import org.apache.commons.lang3.StringUtils;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
@@ -87,7 +84,7 @@ public class ArchiveWorldService {
         }
 
         //保存实体数据
-        world.getSes().saveAllDirtyEntities();
+
 
         log.info("世界 {} 保存完成，保存区块数: {}", world.getName(), chunkCount);
     }

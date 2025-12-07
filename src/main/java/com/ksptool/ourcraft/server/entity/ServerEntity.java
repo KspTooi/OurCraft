@@ -1,6 +1,5 @@
 package com.ksptool.ourcraft.server.entity;
 
-import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;

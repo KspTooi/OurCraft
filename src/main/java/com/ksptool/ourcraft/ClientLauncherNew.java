@@ -1,6 +1,10 @@
-package com.ksptool.ourcraft;
+import com.ksptool.ourcraft.clientjme.OurCraftClientJme;
 
-public class ClientLauncherNew {
+void main() {
 
+
+    OurCraftClientJme app = new OurCraftClientJme();
+    app.start();
+    
 
 }

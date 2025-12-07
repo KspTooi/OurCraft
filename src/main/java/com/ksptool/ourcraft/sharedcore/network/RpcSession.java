@@ -24,10 +24,13 @@ public class RpcSession {
     //远程过程调用ID
     private final AtomicLong rpcId = new AtomicLong(0);
 
+    //Socket
     private final Socket socket;
 
+    //输入流
     private final InputStream is;
 
+    //输出流
     private final OutputStream os;
     
     //发送队列
@@ -139,6 +142,7 @@ public class RpcSession {
                 KryoManager.writeObject(packet, os);
             } catch (Exception e) {
                 log.error("发送数据包失败: {}", e.getMessage());
+                close();
                 break;
             }
         }
@@ -169,9 +173,18 @@ public class RpcSession {
                 rcvQueue.offer(packet);
             } catch (IOException e) {
                 log.error("接收数据包失败: {}", e.getMessage());
+                close();
                 break;
             }
         }
+    }
+
+    /**
+     * 检查会话是否活跃
+     * @return 是否活跃
+     */
+    public boolean isActive(){
+        return running.get();
     }
 
     /**
@@ -179,7 +192,14 @@ public class RpcSession {
      */
     public void close(){
         running.set(false);
+
+        //清空所有队列
+        sndQueue.clear();
+        rcvQueue.clear();
+        rpcFutures.clear();
+
         try {
+            //关闭IO流与Socket
             is.close();
             os.close();
             socket.close();

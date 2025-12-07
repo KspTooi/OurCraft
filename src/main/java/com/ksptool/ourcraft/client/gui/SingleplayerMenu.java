@@ -3,14 +3,12 @@ package com.ksptool.ourcraft.client.gui;
 import com.ksptool.ourcraft.client.Input;
 import com.ksptool.ourcraft.client.rendering.GuiRenderer;
 import com.ksptool.ourcraft.client.rendering.TextRenderer;
-import com.ksptool.ourcraft.server.world.save.SaveManager;
-import com.ksptool.ourcraft.server.world.save.WorldIndex;
-import com.ksptool.ourcraft.server.world.save.WorldMetadata;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector2d;
 import org.joml.Vector4f;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,8 +54,8 @@ public class SingleplayerMenu {
         guiRenderer.renderButton(buttonX, createWorldY, BUTTON_WIDTH, BUTTON_HEIGHT, "创建新世界", createWorldHovered, windowWidth, windowHeight);
         guiRenderer.renderButton(buttonX, backY, BUTTON_WIDTH, BUTTON_HEIGHT, "返回", backHovered, windowWidth, windowHeight);
 
-        List<String> saves = SaveManager.getInstance().getSaveList();
-        renderSaveList(guiRenderer, saves, windowWidth, windowHeight);
+        //List<String> saves = SaveManager.getInstance().getSaveList();
+        //renderSaveList(guiRenderer, saves, windowWidth, windowHeight);
 
         if (StringUtils.isNotBlank(selectedSave)) {
             List<String> worlds = getWorldList(selectedSave);
@@ -161,7 +159,8 @@ public class SingleplayerMenu {
                 return 2;
             }
 
-            List<String> saves = SaveManager.getInstance().getSaveList();
+            //List<String> saves = SaveManager.getInstance().getSaveList();
+            List<String> saves = new ArrayList<>();
             float listX = windowWidth / 2.0f - 300.0f;
             float currentY = SAVE_LIST_Y;
 
@@ -201,7 +200,8 @@ public class SingleplayerMenu {
             float listX = windowWidth / 2.0f - 300.0f;
             
             if (mousePosition.y >= SAVE_LIST_Y && mousePosition.y <= SAVE_LIST_Y + SAVE_LIST_HEIGHT) {
-                List<String> saves = SaveManager.getInstance().getSaveList();
+                //List<String> saves = SaveManager.getInstance().getSaveList();
+                List<String> saves = new ArrayList<>();
                 int maxScroll = Math.max(0, saves.size() - (int)(SAVE_LIST_HEIGHT / WORLD_ITEM_HEIGHT));
                 saveScrollOffset += (int)scrollY;
                 if (saveScrollOffset < 0) {
@@ -236,18 +236,19 @@ public class SingleplayerMenu {
             return new java.util.ArrayList<>();
         }
 
-        WorldIndex index = SaveManager.getInstance().loadWorldIndex(saveName);
-        if (index == null || index.worlds == null) {
-            return new java.util.ArrayList<>();
-        }
+        //WorldIndex index = SaveManager.getInstance().loadWorldIndex(saveName);
+        //if (index == null || index.worlds == null) {
+        //    return new java.util.ArrayList<>();
+        //}
 
-        List<String> worldNames = new java.util.ArrayList<>();
-        for (WorldMetadata metadata : index.worlds) {
-            if (metadata != null && StringUtils.isNotBlank(metadata.name)) {
-                worldNames.add(metadata.name);
-            }
-        }
-        return worldNames;
+        //List<String> worldNames = new java.util.ArrayList<>();
+        //for (WorldMetadata metadata : index.worlds) {
+        //    if (metadata != null && StringUtils.isNotBlank(metadata.name)) {
+        //        worldNames.add(metadata.name);
+        //    }
+        //}
+        return null;
+        //return worldNames;
     }
 }
 

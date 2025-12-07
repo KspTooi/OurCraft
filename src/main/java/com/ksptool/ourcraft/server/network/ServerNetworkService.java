@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 public class ServerNetworkService implements GlobalService {
+    
 
     //用于生成会话ID的雪花算法
     private final Snowflake snowflake = new Snowflake(1, 1);
@@ -55,6 +56,7 @@ public class ServerNetworkService implements GlobalService {
     @Getter
     private final ConcurrentHashMap<Long, NetworkSession> sessions = new ConcurrentHashMap<>();
 
+    @Getter
     private final OurCraftServer server;
 
     private final ServerWorldService worldService;
@@ -104,7 +106,7 @@ public class ServerNetworkService implements GlobalService {
                  running.set(true);
                  log.info("网络服务已就绪，当前端口: {}", bindPort);
  
-                 while (true) {
+                 while (running.get()) {
                      
                      if(serverSocket.isClosed()){
                          break;

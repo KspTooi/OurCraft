@@ -1,7 +1,6 @@
 package com.ksptool.ourcraft.debug;
 
 import com.ksptool.ourcraft.sharedcore.network.packets.PlayerInputStateNDto;
-import com.ksptool.ourcraft.sharedcore.network.packets.RequestJoinServerNDto;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,12 +56,10 @@ public class DebugClient {
     public void start() {
         running = true;
         
-        if (!networkConnection.connect("127.0.0.1", 25564)) {
+        if (!networkConnection.connect("127.0.0.1", 25564, "DebugClient", "1.1W")) {
             log.error("无法连接到服务器");
             return;
         }
-        
-        networkConnection.sendPacket(new RequestJoinServerNDto("1.1W", "DebugClient"));
         
         Thread gameThread = new Thread(this::gameLoop);
         gameThread.setDaemon(true);
@@ -110,42 +107,47 @@ public class DebugClient {
         if (networkConnection != null && networkConnection.isConnected()) {
             networkConnection.processPackets();
             
-            clientTick++;
-            networkConnection.sendPacket(new PlayerInputStateNDto(
-                clientTick,
-                wPressed,
-                sPressed,
-                aPressed,
-                dPressed,
-                spacePressed,
-                false,
-                playerYaw,
-                playerPitch
-            ));
+            if (networkConnection.isInWorld()) {
+                clientTick++;
+                networkConnection.sendPacket(new PlayerInputStateNDto(
+                    clientTick,
+                    wPressed,
+                    sPressed,
+                    aPressed,
+                    dPressed,
+                    spacePressed,
+                    false,
+                    playerYaw,
+                    playerPitch
+                ));
+            }
         }
     }
     
-    public void handleChunkData(int chunkX, int chunkZ, int[][][] blockStates) {
+    public void handleChunkData(int chunkX, int chunkZ, int sizeX, int sizeY, int sizeZ, int[][][] blockStates) {
         DebugChunk chunk = world.getChunk(chunkX, chunkZ);
         if (chunk == null) {
-            chunk = new DebugChunk(chunkX, chunkZ);
+            chunk = new DebugChunk(chunkX, chunkZ, sizeX, sizeY, sizeZ);
             world.putChunk(chunkX, chunkZ, chunk);
         }
         chunk.setBlockStates(blockStates);
     }
-    
+
     public void handleChunkUnload(int chunkX, int chunkZ) {
         world.removeChunk(chunkX, chunkZ);
     }
-    
+
     public void handleBlockUpdate(int x, int y, int z, int blockId) {
-        int chunkX = (int) Math.floor((float) x / DebugChunk.CHUNK_SIZE);
-        int chunkZ = (int) Math.floor((float) z / DebugChunk.CHUNK_SIZE);
-        
-        DebugChunk chunk = world.getChunk(chunkX, chunkZ);
+        DebugChunk chunk = world.findChunkForWorldPos(x, z);
         if (chunk != null) {
-            int localX = x - chunkX * DebugChunk.CHUNK_SIZE;
-            int localZ = z - chunkZ * DebugChunk.CHUNK_SIZE;
+            int localX = x - chunk.getChunkX() * chunk.getSizeX();
+            int localZ = z - chunk.getChunkZ() * chunk.getSizeZ();
+            if (localX < 0) {
+                localX += chunk.getSizeX();
+            }
+            if (localZ < 0) {
+                localZ += chunk.getSizeZ();
+            }
             chunk.setBlockState(localX, y, localZ, blockId);
         }
     }
