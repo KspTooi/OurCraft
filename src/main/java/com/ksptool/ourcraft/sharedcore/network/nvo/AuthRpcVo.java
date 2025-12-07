@@ -5,16 +5,18 @@ package com.ksptool.ourcraft.sharedcore.network.nvo;
  * 认证成功时，会携带sessionId
  * 认证失败时，会携带拒绝原因
  * accepted: 0:接受, 1:拒绝
+ * 
+ * 这是一个RPC响应数据包,必须通过Rpc方式进行传输
  */
-public record AuthNVo(int accepted, long sessionId, String reason) {
+public record AuthRpcVo(int accepted, long sessionId, String reason) {
 
     /**
      * 接受认证
      * @param sessionId 会话ID
      * @return 认证结果数据包
      */
-    public static AuthNVo accept(long sessionId) {
-        return new AuthNVo(0, sessionId, null);
+    public static AuthRpcVo accept(long sessionId) {
+        return new AuthRpcVo(0, sessionId, null);
     }
 
     /**
@@ -22,8 +24,8 @@ public record AuthNVo(int accepted, long sessionId, String reason) {
      * @param reason 拒绝原因
      * @return 认证结果数据包
      */
-    public static AuthNVo reject(String reason) {
-        return new AuthNVo(1, -1, reason);
+    public static AuthRpcVo reject(String reason) {
+        return new AuthRpcVo(1, -1, reason);
     }
 
 }

@@ -1,9 +1,9 @@
 package com.ksptool.ourcraft.clientjme.network;
 
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
-import com.ksptool.ourcraft.sharedcore.network.ndto.AuthNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
-import com.ksptool.ourcraft.sharedcore.network.nvo.AuthNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.AuthRpcVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -146,9 +146,9 @@ public class JmeClientNetworkService {
             try {
 
                 log.info("正在请求认证 玩家名称: {} 客户端版本: {}", playerName, clientVersion);
-                var authRet = session.rpcRequest(AuthNDto.of(playerName, clientVersion)).get();
+                var authRet = session.rpcRequest(AuthRpcDto.of(playerName, clientVersion)).get();
 
-                if(authRet instanceof AuthNVo r){
+                if(authRet instanceof AuthRpcVo r){
 
                     //服务端接受认证 已分配会话ID
                     if(r.accepted() == 0){

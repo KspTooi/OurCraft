@@ -1,7 +1,4 @@
 package com.ksptool.ourcraft.sharedcore;
 
-public interface GlobalService {
-
-
-
+public interface ServerEvent {
 }

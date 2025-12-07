@@ -48,6 +48,9 @@ public class RpcSession {
     //当前正在等待响应的RPC
     private final ConcurrentHashMap<Long, CompletableFuture<Object>> rpcFutures = new ConcurrentHashMap<>();
 
+    //当前正在等待指定类型数据包的Future
+    private final ConcurrentHashMap<Class<?>, CompletableFuture<Object>> receiveFutures = new ConcurrentHashMap<>();
+
     public RpcSession(Socket socket,ExecutorService executorService) {
         this.socket = socket;
         this.executorService = executorService;
@@ -72,7 +75,7 @@ public class RpcSession {
 
     /**
      * 发送远程过程调用请求
-     * @param packet 请求数据包
+     * @param data 请求数据包
      */
     public CompletableFuture<Object> rpcRequest(Object data){
         RpcRequest<Object> request = RpcRequest.of(rpcId.incrementAndGet(), data);
@@ -89,15 +92,15 @@ public class RpcSession {
         return future;
     }
 
+
     /**
      * 发送远程过程调用响应
-     * @param response 响应数据包
+     * @param data 响应数据包
      */
     public void rpcResponse(long requestId,Object data){
         RpcResponse<Object> response = RpcResponse.of(requestId, data);
         sendNext(response);
     }
-
 
     /**
      * 发送下一个数据包
@@ -131,6 +134,61 @@ public class RpcSession {
     }
 
     /**
+     * 接收下一个数据包(等待指定类型数据包)
+     * @param clazz 数据包类型
+     * @return 数据包,如果队列为空,则返回null
+     */
+    @SuppressWarnings("unchecked")
+    public <T> CompletableFuture<T> receiveNext(Class<T> clazz,long timeout, TimeUnit unit){
+
+        // 如果队列里已经有包了，并且正好是我们想要的，直接返回
+        Object head = rcvQueue.peek();
+
+        if(head != null){
+            if (clazz.isInstance(head)) {
+                // 从队列取出
+                Object packet = rcvQueue.poll();
+                return CompletableFuture.completedFuture((T) packet);
+            }
+        }
+
+        //已经有正在等待指定类型数据包的Future
+        var future = receiveFutures.get(clazz);
+
+        if(future != null){
+            return (CompletableFuture<T>) future;
+        }
+
+        future = new CompletableFuture<>();
+        receiveFutures.put(clazz, future);
+
+        future.orTimeout(timeout, unit).exceptionally(e -> {
+            log.error("接收数据包超时: {}", e.getMessage());
+            receiveFutures.remove(clazz);
+            return null;
+        });
+
+        return (CompletableFuture<T>) future;
+    }
+
+    public <T> T waitFor(Class<T> clazz, long timeout, TimeUnit unit) {
+        try {
+            return receiveNext(clazz, timeout, unit).get();
+        } catch (java.util.concurrent.ExecutionException e) {
+            // 抛出底层的超时异常或运行时异常，方便业务层 try-catch
+            if (e.getCause() instanceof RuntimeException re) {
+                throw re;
+            }
+            throw new RuntimeException("Wait for packet failed", e.getCause());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for packet", e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
      * 发送数据包循环
      */
     private void sendLoop(){
@@ -158,14 +216,22 @@ public class RpcSession {
                 Object packet = KryoManager.readObject(is);
 
                 //如果接收到的是RPC响应 需要查询未完成RPC请求并完成响应
-                if(packet instanceof RpcResponse<?> response){
-                    CompletableFuture<Object> future = rpcFutures.get(response.requestId());
+                if(packet instanceof RpcResponse<?>(long requestId, Object data)){
+                    CompletableFuture<Object> future = rpcFutures.get(requestId);
                     if(future != null){
-                        future.complete(response.data());
-                        rpcFutures.remove(response.requestId());
+                        future.complete(data);
+                        rpcFutures.remove(requestId);
                         continue;
                     }
-                    log.warn("未找到对应的RPC请求: {}", response.requestId());
+                    log.warn("未找到对应的RPC请求: {}", requestId);
+                    continue;
+                }
+
+                //查询是否有指定类型的数据包正在等待
+                var future = receiveFutures.get(packet.getClass());
+                if(future != null){
+                    future.complete(packet);
+                    receiveFutures.remove(packet.getClass());
                     continue;
                 }
 

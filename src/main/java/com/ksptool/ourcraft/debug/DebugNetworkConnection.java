@@ -3,11 +3,11 @@ package com.ksptool.ourcraft.debug;
 import com.ksptool.ourcraft.sharedcore.network.KryoManager;
 import com.ksptool.ourcraft.sharedcore.network.RpcRequest;
 import com.ksptool.ourcraft.sharedcore.network.RpcResponse;
-import com.ksptool.ourcraft.sharedcore.network.ndto.AuthNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
-import com.ksptool.ourcraft.sharedcore.network.nvo.AuthNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.AuthRpcVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
@@ -73,8 +73,8 @@ public class DebugNetworkConnection {
             Thread.ofVirtual().start(this::receiveLoop);
 
             long requestId = requestIdCounter.getAndIncrement();
-            AuthNDto authDto = AuthNDto.of(playerName, clientVersion);
-            RpcRequest<AuthNDto> authRequest = RpcRequest.of(requestId, authDto);
+            AuthRpcDto authDto = AuthRpcDto.of(playerName, clientVersion);
+            RpcRequest<AuthRpcDto> authRequest = RpcRequest.of(requestId, authDto);
             sendPacket(authRequest);
             log.info("已发送认证请求: 玩家名称={}, 客户端版本={}", playerName, clientVersion);
 
@@ -174,26 +174,26 @@ public class DebugNetworkConnection {
     }
 
     private void handleRpcResponse(long requestId, Object data) {
-        if (data instanceof AuthNVo authNVo) {
-            handleAuthResponse(authNVo);
+        if (data instanceof AuthRpcVo authRpcVo) {
+            handleAuthResponse(authRpcVo);
             return;
         }
         log.warn("收到未知的RPC响应类型: requestId={}, dataType={}", requestId, data != null ? data.getClass().getName() : "null");
     }
 
-    private void handleAuthResponse(AuthNVo authNVo) {
+    private void handleAuthResponse(AuthRpcVo authRpcVo) {
         if (stage != ProtocolStage.NEW) {
             log.warn("收到认证响应，但当前阶段不是NEW: {}", stage);
             return;
         }
 
-        if (authNVo.accepted() != 0) {
-            log.error("认证失败: {}", authNVo.reason());
+        if (authRpcVo.accepted() != 0) {
+            log.error("认证失败: {}", authRpcVo.reason());
             disconnect();
             return;
         }
 
-        sessionId = authNVo.sessionId();
+        sessionId = authRpcVo.sessionId();
         stage = ProtocolStage.AUTHORIZED;
         log.info("认证成功，会话ID: {}", sessionId);
     }

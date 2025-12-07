@@ -126,7 +126,7 @@ public class ServerWorldNetworkService extends WorldService {
                                 targetChunkPos.getZ(),
                                 serializedData);
 
-                        session.sendPacket(chunkPacket);
+                        session.sendNext(chunkPacket);
 
                         log.debug("发送区块 [{}, {}] 给玩家 SessionId: {}",
                                 targetChunkPos.getX(), targetChunkPos.getZ(), sessionId);

@@ -64,8 +64,8 @@ public class KryoManager {
         kryo.register(RpcResponse.class, id++);
         
         // 阶段I: 认证数据包
-        kryo.register(AuthNDto.class, id++);
-        kryo.register(AuthNVo.class, id++);
+        kryo.register(AuthRpcDto.class, id++);
+        kryo.register(AuthRpcVo.class, id++);
         kryo.register(GetServerStatusNDto.class, id++);
         kryo.register(RequestJoinServerNDto.class, id++);
         kryo.register(ClientReadyNDto.class, id++);
@@ -84,7 +84,7 @@ public class KryoManager {
         kryo.register(PsFinishNDto.class, id++);
         
         // 阶段III: 连接维护数据包
-        kryo.register(ClientKeepAliveNPkg.class, id++);
+        kryo.register(ClientKeepAliveNDto.class, id++);
         kryo.register(ServerKeepAliveNPkg.class, id++);
         
         // 阶段IV: 世界同步数据包

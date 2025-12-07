@@ -3,11 +3,13 @@ package com.ksptool.ourcraft.server.network;
 import java.io.IOException;
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
-import com.ksptool.ourcraft.sharedcore.network.KryoManager;
+import com.ksptool.ourcraft.sharedcore.network.RpcRequest;
+import com.ksptool.ourcraft.sharedcore.network.RpcResponse;
 import com.ksptool.ourcraft.sharedcore.network.RpcSession;
 import com.ksptool.ourcraft.sharedcore.network.packets.ServerDisconnectNVo;
 import lombok.Getter;
@@ -93,19 +95,33 @@ public class NetworkSession extends RpcSession {
         this.lastHeartbeatTime = LocalDateTime.now();
         this.world = new AtomicReference<>();
         this.entity = new AtomicReference<>();
+        sns.getServer().getNETWORK_THREAD_POOL().submit(this::readLoop);
     }
 
-    @Override
-    public void run() {
+    public void readLoop(){
+
+        var nes = sns.getNr();
+
         while (isActive()) {
-            try {
-                // 接收网络数据包
-                Object packet = KryoManager.readObject(socket.getInputStream());
-                sns.doRoute(this, packet);
-            } catch (Exception e) {
-                log.error("会话:{} 处理网络数据包时发生错误: {}", id, e.getMessage());
-                break;
+            //阻塞3分钟获取下一个数据包(这些已经是Kryo解码后的数据包)
+            Object packet = receiveNext(3, TimeUnit.MINUTES);
+            if(packet == null){
+                log.warn("会话:{} 接收数据包超时", id);
+                continue;
             }
+
+            //检查是否是RPC请求
+            if(packet instanceof RpcRequest<?>(long requestId, Object data)){
+                //解包并推送RPC数据
+                nes.postRpc(this, data,requestId);
+                continue;
+            }
+
+            //非RPC请求的普通数据包直接在NES中处理
+            nes.post(this,packet);
+
+            //处理数据包(旧式,已废弃)
+            //sns.doRoute(this, packet);
         }
     }
 
@@ -115,6 +131,9 @@ public class NetworkSession extends RpcSession {
      * @return 是否活跃
      */
     public boolean isActive() {
+        if (!super.isActive()){
+            return false;
+        }
         return stage != Stage.INVALID;
     }
 
@@ -134,7 +153,7 @@ public class NetworkSession extends RpcSession {
 
             // 如果Socket还未关闭 发送一个断开连接数据包
             if (!socket.isClosed()) {
-                sendPacket(new ServerDisconnectNVo(reason));
+                sendNext(new ServerDisconnectNVo(reason));
             }
 
             // 如果实体还未移除 移除实体
@@ -178,34 +197,11 @@ public class NetworkSession extends RpcSession {
     }
 
     /**
-     * 向客户端发送数据包
-     */
-    public void sendPacket(Object packet) {
-        if (!isActive() || socket.isClosed()) {
-            return;
-        }
-
-        if (packet == null) {
-            log.warn("尝试发送null数据包");
-            return;
-        }
-
-        try {
-            log.debug("发送数据包到客户端: {}", packet.getClass().getSimpleName());
-            KryoManager.writeObject(packet, socket.getOutputStream());
-        } catch (IOException e) {
-            log.warn("发送数据包到客户端时发生错误: {}", e.getMessage());
-            close();
-        }
-    }
-
-    /**
      * 更新最后心跳时间
      */
     public void updateHeartbeat() {
         lastHeartbeatTime = LocalDateTime.now();
     }
-
 
     /**
      * 设置玩家归档数据
@@ -218,4 +214,20 @@ public class NetworkSession extends RpcSession {
         }
         this.archive = archive;
     }
+
+
+    /**
+     * 检查会话阶段是否为期望的阶段
+     * @param stage 期望阶段
+     * @return 是否为期望阶段
+     */
+    public boolean isStage(NetworkSession.Stage stage) {
+        if(this.getStage() != stage){
+            log.warn("出现异常,会话阶段不为期望的阶段,会话ID:{} 期望阶段:{} 当前阶段:{}", this.getId(), stage, this.getStage());
+            this.close();
+            return false;
+        }
+        return true;
+    }
+
 }
