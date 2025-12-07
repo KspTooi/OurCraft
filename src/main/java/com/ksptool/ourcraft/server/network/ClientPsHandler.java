@@ -234,7 +234,7 @@ public class ClientPsHandler {
         var startDateTime = world.getTemplate().getStartDateTime();
 
         //区块加载完成 通知客户端可以开始进程切换
-        session.sendNext(PsNVo.of(world.getName(), aps, totalActions, startDateTime));
+        session.sendNext(PsNVo.of(world.getName(), world.getTemplate().getStdRegName().toString(), aps, totalActions, startDateTime));
         log.info("会话:{} 玩家:{} 开始进程切换", session.getId(), archive.getName());
         session.setStage(NetworkSession.Stage.PROCESS_SWITCHING);
 

@@ -42,6 +42,11 @@ public abstract class WorldTemplate {
 
     private double minHumidity;
 
+    //空气阻力系数(0.0-1.0 越小阻力越大 默认0.91F)
+    private float airFriction = 0.91F;
+
+    //地面阻力系数(0.0-1.0 越小摩擦越大 默认0.6F)
+    private float groundFriction = 0.6F;
 
     /**
      * World Logical Settings
