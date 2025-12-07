@@ -11,8 +11,10 @@ import java.time.ZoneId;
 import java.util.List;
 
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexDto;
+import com.ksptool.ourcraft.server.world.chunk.FlexServerChunk;
 import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.server.world.chunk.SimpleChunkSerializer;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import org.apache.commons.lang3.StringUtils;
 import com.ksptool.ourcraft.server.archive.model.ArchiveWorldIndexVo;
 import com.ksptool.ourcraft.server.world.ServerWorld;
@@ -74,18 +76,14 @@ public class ArchiveWorldService {
         paletteManager.saveGlobalPalette(GlobalPalette.getInstance());
 
         //保存当前的区块数据
-        List<SimpleServerChunk> dirtyChunks = world.getScm().getDirtyChunkSnapshot();
+        List<FlexServerChunk> dirtyChunks = world.getFscs().getDirtySnapshot();
         int chunkCount = 0;
 
-        for (SimpleServerChunk chunk : dirtyChunks) {
-            try {
-                byte[] compressedData = SimpleChunkSerializer.serialize(chunk);
-                chunkService.writeChunk(world.getName(),chunk.getChunkPos(),compressedData);
-                chunk.markDirty(false);
-                chunkCount++;
-            } catch (IOException e) {
-                log.error("保存区块失败 [{},{}]", chunk.getChunkX(), chunk.getChunkZ(), e);
-            }
+        for (FlexServerChunk chunk : dirtyChunks) {
+            byte[] compressedData = FlexChunkSerializer.serialize(chunk.getFlexChunkData());
+            chunkService.writeChunk(world.getName(),chunk.getChunkPos(),compressedData);
+            chunk.setDirty(false);
+            chunkCount++;
         }
 
         //保存实体数据

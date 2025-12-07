@@ -235,7 +235,7 @@ public class SimpleChunkManager {
         if (chunk == null) {
             long key = getChunkKey(chunkX, chunkZ);
             chunk = new SimpleServerChunk(chunkX, chunkZ);
-            world.generateChunkData(chunk);
+            //world.generateChunkData(chunk);
             chunks.put(key, chunk);
         }
 

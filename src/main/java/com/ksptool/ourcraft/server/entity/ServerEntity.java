@@ -65,15 +65,15 @@ public abstract class ServerEntity {
      * @param isDirty 是否脏
      */
     public void markDirty(boolean isDirty) {
-        this.isDirty = isDirty;
-        if (isDirty && world != null) {
-            int chunkX = (int) Math.floor(position.x / SimpleServerChunk.CHUNK_SIZE);
-            int chunkZ = (int) Math.floor(position.z / SimpleServerChunk.CHUNK_SIZE);
-            SimpleServerChunk chunk = world.getChunk(chunkX, chunkZ);
-            if (chunk != null) {
-                chunk.markEntitiesDirty(true);
-            }
-        }
+        //this.isDirty = isDirty;
+        //if (isDirty && world != null) {
+        //    int chunkX = (int) Math.floor(position.x / SimpleServerChunk.CHUNK_SIZE);
+        //    int chunkZ = (int) Math.floor(position.z / SimpleServerChunk.CHUNK_SIZE);
+        //    SimpleServerChunk chunk = world.getChunk(chunkX, chunkZ);
+        //    if (chunk != null) {
+        //        chunk.markEntitiesDirty(true);
+        //    }
+        //}
     }
     
     public ServerWorld getWorld() {

@@ -9,6 +9,7 @@ import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.utils.position.ScaLocalPos;
 import com.ksptool.ourcraft.sharedcore.utils.position.ScaPos;
+import com.ksptool.ourcraft.sharedcore.GlobalService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -17,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
  * 使用了基于LRU算法的缓存，防止打开文件句柄过多导致的操作系统报错
  */
 @Slf4j
-public class ArchiveSuperChunkService {
+public class ArchiveSuperChunkService implements GlobalService {
 
     //最大打开SCAF的句柄数量(防止内存溢出)
     public static int MAX_OPEN_SCAF = 256;

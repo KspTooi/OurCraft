@@ -156,12 +156,6 @@ public class ServerWorldService {
         ServerWorld sw = new ServerWorld(server, worldIndexVo);
         sw.setSaveName(worldIndexVo.getName());
         sw.setAs(archiveService);
-
-        SimpleRegionManager eam = new SimpleRegionManager(new File("chunksDir"), ".sce", "SCEF");
-
-        //sw.setRegionManager(aam);
-        sw.setSrm(eam);
-
         sw.init();
 
         ServerWorldExecutionUnit sweu = new ServerWorldExecutionUnit(sw,server);

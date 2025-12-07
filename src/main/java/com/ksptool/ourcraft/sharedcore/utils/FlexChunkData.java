@@ -244,7 +244,7 @@ public class FlexChunkData {
             //克隆 storage 和 palette
             BitStorage storageCopy = new BitStorage(this.storage);
             IntArrayList paletteCopy = new IntArrayList(this.localPalette);
-            return new Snapshot(storageCopy, paletteCopy, width, layerArea);
+            return new Snapshot(storageCopy, paletteCopy, width, height, layerArea);
         }
     }
 
@@ -264,12 +264,16 @@ public class FlexChunkData {
         private final int width;
 
         @Getter
+        private final int height;
+
+        @Getter
         private final int layerArea;
 
-        public Snapshot(BitStorage storage, IntArrayList localPalette, int width, int layerArea) {
+        public Snapshot(BitStorage storage, IntArrayList localPalette, int width, int height, int layerArea) {
             this.storage = storage;
             this.localPalette = localPalette;
             this.width = width;
+            this.height = height;
             this.layerArea = layerArea;
         }
 

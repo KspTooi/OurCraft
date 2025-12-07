@@ -27,6 +27,14 @@ public class FlexChunkLease{
         Level(int value) {
             this.value = value;
         }
+        public static Level of(int value){
+            for(var level : Level.values()){
+                if(level.value == value){
+                    return level;
+                }
+            }
+            return HIGH;
+        }
     }
 
     //持有人ID 如果持有人类型为Server则必须为-1

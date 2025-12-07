@@ -6,11 +6,12 @@ import com.ksptool.ourcraft.server.world.chunk.SimpleServerChunk;
 import com.ksptool.ourcraft.server.world.save.EntitySerializer;
 import com.ksptool.ourcraft.server.world.save.RegionFile;
 import com.ksptool.ourcraft.server.world.save.SimpleRegionManager;
+import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
+import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import org.apache.commons.lang3.StringUtils;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * 实体管理器，负责实体的生命周期管理
  */
-public class SimpleEntityService {
+public class SimpleEntityService extends WorldService {
     private static final Logger logger = LoggerFactory.getLogger(SimpleEntityService.class);
     
     private final ServerWorld world;
@@ -171,15 +172,15 @@ public class SimpleEntityService {
                 int entityChunkX = (int) Math.floor(pos.x / SimpleServerChunk.CHUNK_SIZE);
                 int entityChunkZ = (int) Math.floor(pos.z / SimpleServerChunk.CHUNK_SIZE);
                 
-                SimpleServerChunk chunk = world.getScm().getChunk(entityChunkX, entityChunkZ);
-                if (chunk != null && chunk.areEntitiesDirty()) {
-                    logger.debug("保存脏实体区块 [{},{}]", entityChunkX, entityChunkZ);
-                    saveEntitiesForChunk(entityChunkX, entityChunkZ);
-                    chunk.markEntitiesDirty(false);
-                    dirtyEntityChunkCount++;
-                    
-                    entity.markDirty(false);
-                }
+                //SimpleServerChunk chunk = world.getScm().getChunk(entityChunkX, entityChunkZ);
+                //if (chunk != null && chunk.areEntitiesDirty()) {
+                //    logger.debug("保存脏实体区块 [{},{}]", entityChunkX, entityChunkZ);
+                //    saveEntitiesForChunk(entityChunkX, entityChunkZ);
+                //    chunk.markEntitiesDirty(false);
+                //    dirtyEntityChunkCount++;
+                //    
+                //    entity.markDirty(false);
+                //}
             }
             
             if (dirtyEntityChunkCount == 0) {
@@ -196,6 +197,12 @@ public class SimpleEntityService {
         for (ServerEntity entity : entities) {
             entity.update(delta);
         }
+    }
+
+    @Override
+    public void action(double delta, SharedWorld world) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'action'");
     }
 }
 

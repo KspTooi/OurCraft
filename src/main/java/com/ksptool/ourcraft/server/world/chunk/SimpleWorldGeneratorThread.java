@@ -29,7 +29,7 @@ public class SimpleWorldGeneratorThread extends Thread {
                 ChunkGenerationTask task = generationQueue.take();
 
                 SimpleServerChunk chunk = new SimpleServerChunk(task.getChunkX(), task.getChunkZ());
-                world.generateChunkData(chunk);
+                //world.generateChunkData(chunk);
                 chunk.setState(SimpleServerChunk.ChunkState.DATA_LOADED);
                 task.setChunk(chunk);
                 task.setDataGenerated(true);

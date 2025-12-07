@@ -2,6 +2,8 @@ package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.network.NetworkSession;
+import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkNVo;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
@@ -9,7 +11,6 @@ import com.ksptool.ourcraft.sharedcore.utils.viewport.ChunkViewPort;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.WorldService;
 import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,18 +21,24 @@ public class ServerWorldNetworkService extends WorldService {
 
     private final ServerWorld world;
 
+    private final FlexServerChunkService fscs;
+
+    private final SimpleEntityService ses;
+
     // 维护每个玩家已发送的区块集合 SessionId -> Set<ChunkPos>
     private final Map<Long, Set<ChunkPos>> sentChunks = new ConcurrentHashMap<>();
 
     public ServerWorldNetworkService(ServerWorld world) {
         this.world = world;
+        this.fscs = world.getFscs();
+        this.ses = world.getSes();
     }
 
     @Override
     public void action(double delta, SharedWorld world) {
 
         // 遍历世界中的所有实体，筛选出ServerPlayer
-        var entities = this.world.getSes().getEntities();
+        var entities = ses.getEntities();
 
         for (var entity : entities) {
             if (!(entity instanceof ServerPlayer player)) {
@@ -79,9 +86,14 @@ public class ServerWorldNetworkService extends WorldService {
                 }
 
                 // 检查该区块是否已经READY
-                if (!this.world.getFscs().isChunkReady(targetChunkPos)) {
+                if (!fscs.isChunkReady(targetChunkPos)) {
+                    // 若区块未准备好，主动触发加载（幂等操作，确保区块进入加载流程）
+                    fscs.loadOrGenerate(targetChunkPos);
                     continue;
                 }
+
+                // 标记为已发送 (防止重复提交任务)
+                playerSentChunks.add(targetChunkPos);
 
                 // 提交到网络线程池进行异步发送
                 this.world.getServer().getNETWORK_THREAD_POOL().submit(() -> {
@@ -92,14 +104,16 @@ public class ServerWorldNetworkService extends WorldService {
                         }
 
                         // 检查区块是否依然Ready (可能在排队时被卸载)
-                        if (!this.world.getFscs().isChunkReady(targetChunkPos)) {
+                        if (!fscs.isChunkReady(targetChunkPos)) {
+                            playerSentChunks.remove(targetChunkPos);
                             return;
                         }
 
-                        var chunkFuture = this.world.getFscs().loadOrGenerate(targetChunkPos);
+                        var chunkFuture = fscs.loadOrGenerate(targetChunkPos);
                         var chunk = chunkFuture.get(1, TimeUnit.SECONDS);
 
                         if (chunk == null) {
+                            playerSentChunks.remove(targetChunkPos);
                             return;
                         }
 
@@ -107,21 +121,19 @@ public class ServerWorldNetworkService extends WorldService {
                         var serializedData = FlexChunkSerializer.serialize(chunk.getFlexChunkData());
 
                         // 发送区块数据包
-                        var chunkPacket = PsChunkNVo.of(
+                        var chunkPacket = HuChunkNVo.of(
                                 targetChunkPos.getX(),
                                 targetChunkPos.getZ(),
                                 serializedData);
 
                         session.sendPacket(chunkPacket);
 
-                        // 标记为已发送 (线程安全)
-                        playerSentChunks.add(targetChunkPos);
-
                         log.debug("发送区块 [{}, {}] 给玩家 SessionId: {}",
                                 targetChunkPos.getX(), targetChunkPos.getZ(), sessionId);
 
                     } catch (Exception e) {
-                        // 区块加载失败或超时，跳过
+                        // 区块加载失败或超时，移除已发送标记以便重试
+                        playerSentChunks.remove(targetChunkPos);
                         log.warn("加载或发送区块失败: [{}, {}], 原因: {}",
                                 targetChunkPos.getX(), targetChunkPos.getZ(), e.getMessage());
                     }

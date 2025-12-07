@@ -3,9 +3,11 @@ package com.ksptool.ourcraft.server.world.chunk;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.archive.ArchiveSuperChunkService;
 import com.ksptool.ourcraft.server.event.ServerChunkReadyEvent;
@@ -135,6 +137,24 @@ public class FlexServerChunkService extends WorldService{
     }
 
     /**
+     * 获取区块块状态ID
+     * @param x 块坐标X
+     * @param y 块坐标Y
+     * @param z 块坐标Z
+     * @return 块状态ID
+     */
+    public int getBlockStateId(int x, int y, int z){
+        var worldPos = Pos.of(x, y, z);
+        var chunkPos = worldPos.toChunkPos(chunkSizeX, chunkSizeZ);
+        var chunk = chunks.get(chunkPos);
+        if(chunk == null){
+            throw new RuntimeException("区块尚未完成初始化: X:" + x + " Y:" + y + " Z:" + z);
+        }
+        var localPos = worldPos.toLocalPos(chunkSizeX, chunkSizeZ);
+        return chunk.getBlockStateId(localPos.getX(), localPos.getY(), localPos.getZ());
+    }
+
+    /**
      * 设置区块块（使用Pos）
      * @param pos 世界坐标
      * @param blockState 块状态
@@ -156,6 +176,10 @@ public class FlexServerChunkService extends WorldService{
             throw new IllegalArgumentException("位置不能为空");
         }
         return getBlockState(pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    public FlexServerChunk getChunk(ChunkPos chunkPos){
+        return chunks.get(chunkPos);
     }
 
 
@@ -191,6 +215,7 @@ public class FlexServerChunkService extends WorldService{
                         var tg = world.getTerrainGenerator();
                         tg.execute(newChunk, world.getGenerationContext());
                         newChunk.setStage(FlexServerChunk.Stage.READY);
+                        newChunk.setDirty(true);
                         log.info("生成新区块数据: {}", pos);
                     }
 
@@ -311,7 +336,15 @@ public class FlexServerChunkService extends WorldService{
         return chunk.getStage() == FlexServerChunk.Stage.READY;
     }
 
-
-
+    /**
+     * 获取脏区块快照
+     * @return 所有脏区块的快照数据
+     */
+    public List<FlexServerChunk> getDirtySnapshot(){
+        return chunks.values().stream()
+            .filter(chunk -> chunk.getStage() == FlexServerChunk.Stage.READY)
+            .filter(FlexServerChunk::isDirty)
+            .collect(Collectors.toList());
+    }
 
 }

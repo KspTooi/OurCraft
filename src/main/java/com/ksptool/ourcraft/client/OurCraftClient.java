@@ -16,11 +16,20 @@ import com.ksptool.ourcraft.client.gui.MainMenu;
 import com.ksptool.ourcraft.client.gui.SingleplayerMenu;
 import com.ksptool.ourcraft.client.gui.CreateWorldMenu;
 import com.ksptool.ourcraft.client.gui.UiConstants;
-import com.ksptool.ourcraft.client.network.ServerConnection;
+import com.ksptool.ourcraft.client.network.ClientNetworkService;
+import com.ksptool.ourcraft.client.network.ClientNetworkSession;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.events.*;
 import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsPlayerNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
@@ -51,7 +60,7 @@ public class OurCraftClient {
     private SingleplayerMenu singleplayerMenu;
     private CreateWorldMenu createWorldMenu;
     
-    private ServerConnection serverConnection;
+    private ClientNetworkService clientNetworkService;
     
     private float timeOfDay = 0.0f;
     
@@ -102,7 +111,7 @@ public class OurCraftClient {
         singleplayerMenu = new SingleplayerMenu();
         createWorldMenu = new CreateWorldMenu();
         
-        serverConnection = new ServerConnection(this);
+        clientNetworkService = new ClientNetworkService();
         running = true;
     }
 
@@ -158,6 +167,7 @@ public class OurCraftClient {
      * 所有物理相关的逻辑都在这里执行，确保与服务端使用相同的时间步长
      */
     private void tick(float tickDelta) {
+
         if (currentState != GameState.IN_GAME) {
             return;
         }
@@ -166,8 +176,10 @@ public class OurCraftClient {
             return;
         }
         
+
         // 优先使用网络连接，如果未连接则使用EventQueue（兼容单人游戏）
-        boolean useNetwork = serverConnection != null && serverConnection.isConnected();
+        ClientNetworkSession session = clientNetworkService != null ? clientNetworkService.getSession() : null;
+        boolean useNetwork = session != null && session.getStage() == ClientNetworkSession.Stage.IN_WORLD;
         
         // 处理鼠标输入（更新本地相机朝向），这个可以随时执行，因为它不影响玩家位置
         player.handleMouseInput(input);
@@ -195,9 +207,9 @@ public class OurCraftClient {
         player.update(tickDelta);
         
         // 发送输入状态到服务器（如果已连接）
-        if (useNetwork) {
+        if (useNetwork && session != null) {
             clientTick++;
-            serverConnection.sendPacket(new PlayerInputStateNDto(
+            session.sendNext(new PlayerInputStateNDto(
                 clientTick,
                 forward,
                 backward,
@@ -227,6 +239,9 @@ public class OurCraftClient {
      * 处理非物理相关的更新（UI状态切换、数据包处理等）
      */
     private void updateNonPhysics() {
+        // 处理网络数据包（必须在主线程执行）
+        processNetworkPackets();
+        
         // 检查是否有待处理的多人游戏初始化任务（必须在主线程执行）
         PendingMultiplayerInit init = pendingMultiplayerInit;
         if (init != null) {
@@ -259,24 +274,333 @@ public class OurCraftClient {
             return;
         }
     }
-
-    private void updateMainMenu() {
-        // 处理来自服务器的数据包（必须在主菜单也处理，以便接收加入服务器的响应）
-        if (serverConnection != null && serverConnection.isConnected()) {
-            serverConnection.processPackets();
+    
+    /**
+     * 处理网络数据包（从RpcSession队列中轮询）
+     */
+    private void processNetworkPackets() {
+        if (clientNetworkService == null) {
+            return;
         }
         
+        ClientNetworkSession session = clientNetworkService.getSession();
+        if (session == null) {
+            return;
+        }
+        
+        // 轮询所有积压的数据包
+        Object packet;
+        while ((packet = session.receiveNext()) != null) {
+            handleNetworkPacket(session, packet);
+        }
+    }
+    
+    /**
+     * 处理单个网络数据包
+     */
+    private void handleNetworkPacket(ClientNetworkSession session, Object packet) {
+        if (packet == null) {
+            return;
+        }
+        
+        // 处理进程切换相关数据包
+        if (packet instanceof PsNVo psNVo) {
+            handleProcessSwitchRequest(session, psNVo);
+            return;
+        }
+        
+        if (packet instanceof PsChunkNVo psChunkNVo) {
+            handleProcessSwitchChunk(session, psChunkNVo);
+            return;
+        }
+        
+        if (packet instanceof PsPlayerNVo psPlayerNVo) {
+            handleProcessSwitchPlayer(session, psPlayerNVo);
+            return;
+        }
+        
+        if (packet instanceof PsJoinWorldNVo) {
+            handleProcessSwitchComplete(session);
+            return;
+        }
+        
+        // 处理游戏运行时数据包
+        if (packet instanceof HuChunkUnloadNVo huChunkUnloadNVo) {
+            if (clientWorld != null) {
+                clientWorld.handleChunkUnload(huChunkUnloadNVo);
+            }
+            return;
+        }
+        
+        if (packet instanceof ServerSyncBlockUpdateNVo serverSyncBlockUpdateNVo) {
+            if (clientWorld != null) {
+                clientWorld.handleBlockUpdate(serverSyncBlockUpdateNVo);
+            }
+            return;
+        }
+        
+        if (packet instanceof HuChunkNVo huChunkNVo) {
+            if (clientWorld != null) {
+                clientWorld.handleHotUpdateChunk(huChunkNVo);
+            }
+            return;
+        }
+        
+        if (packet instanceof ServerSyncEntityPositionAndRotationNVo serverSyncEntityPositionAndRotationNVo) {
+            handleEntityPositionAndRotation(serverSyncEntityPositionAndRotationNVo);
+            return;
+        }
+        
+        if (packet instanceof ServerSyncPlayerStateNVo serverSyncPlayerStateNVo) {
+            handlePlayerState(serverSyncPlayerStateNVo);
+            return;
+        }
+        
+        if (packet instanceof ServerSyncWorldTimeNVo serverSyncWorldTimeNVo) {
+            handleWorldTime(serverSyncWorldTimeNVo);
+            return;
+        }
+        
+        if (packet instanceof ServerDisconnectNVo serverDisconnectNVo) {
+            handleDisconnect(serverDisconnectNVo);
+            return;
+        }
+        
+        if (packet instanceof ServerKeepAliveNPkg) {
+            // 心跳包，可以在这里更新最后心跳时间（暂时不需要处理）
+            return;
+        }
+        
+        log.debug("收到未处理的网络数据包: {}", packet.getClass().getSimpleName());
+    }
+    
+    /**
+     * 处理进程切换请求 (PsNVo)
+     */
+    private void handleProcessSwitchRequest(ClientNetworkSession session, PsNVo psNVo) {
+        if (session.getStage() != ClientNetworkSession.Stage.PROCESSED) {
+            log.warn("收到进程切换请求，但当前阶段不正确: {}", session.getStage());
+            return;
+        }
+        
+        log.info("收到进程切换请求: 世界={}, APS={}, TotalActions={}", 
+                psNVo.worldName(), psNVo.aps(), psNVo.totalActions());
+        
+        // 准备本地资源（创建世界、玩家等）
+        // 在这里立即创建ClientWorld，确保后续收到的区块数据有地方存放
+        WorldTemplate template = Registry.getInstance().getWorldTemplate(EngineDefault.DEFAULT_WORLD_TEMPLATE);
+        if (template == null) {
+            log.error("无法初始化多人游戏世界: 默认模板未找到");
+            return;
+        }
+        
+        ClientWorld newClientWorld = new ClientWorld(template);
+        WorldRenderer newWorldRenderer = new WorldRenderer(newClientWorld);
+        newWorldRenderer.init();
+        
+        // 暂时只设置world和renderer，player等收到PsPlayerNVo再创建并设置
+        this.clientWorld = newClientWorld;
+        this.worldRenderer = newWorldRenderer;
+        
+        // 这里先发送允许信号，实际的世界创建会在收到PsChunkNVo和PsPlayerNVo后完成
+        session.setStage(ClientNetworkSession.Stage.PROCESS_SWITCHING);
+        session.sendNext(new PsAllowNDto());
+        log.info("已发送进程切换允许信号");
+    }
+    
+    /**
+     * 处理进程切换区块数据 (PsChunkNVo)
+     */
+    private void handleProcessSwitchChunk(ClientNetworkSession session, PsChunkNVo psChunkNVo) {
+        if (session.getStage() != ClientNetworkSession.Stage.PROCESS_SWITCHING) {
+            log.warn("收到进程切换区块数据，但当前阶段不正确: {}", session.getStage());
+            return;
+        }
+        
+        if (clientWorld == null) {
+            log.warn("收到区块数据但ClientWorld为null");
+            return;
+        }
+        
+        log.info("收到进程切换区块数据: ({}, {})", psChunkNVo.chunkX(), psChunkNVo.chunkZ());
+        clientWorld.handleChunkData(psChunkNVo);
+    }
+    
+    /**
+     * 处理进程切换玩家数据 (PsPlayerNVo)
+     */
+    private void handleProcessSwitchPlayer(ClientNetworkSession session, PsPlayerNVo psPlayerNVo) {
+        if (session.getStage() != ClientNetworkSession.Stage.PROCESS_SWITCHING) {
+            log.warn("收到进程切换玩家数据，但当前阶段不正确: {}", session.getStage());
+            return;
+        }
+        
+        log.info("收到进程切换玩家数据: 玩家={}, 位置=({}, {}, {})", 
+                psPlayerNVo.name(), psPlayerNVo.posX(), psPlayerNVo.posY(), psPlayerNVo.posZ());
+        
+        // 创建玩家 (ClientWorld应该已经在handleProcessSwitchRequest中创建)
+        if (clientWorld == null) {
+            log.error("ClientWorld为null，无法创建玩家。尝试补救...");
+            WorldTemplate template = Registry.getInstance().getWorldTemplate(EngineDefault.DEFAULT_WORLD_TEMPLATE);
+            if (template != null) {
+                clientWorld = new ClientWorld(template);
+                worldRenderer = new WorldRenderer(clientWorld);
+                worldRenderer.init();
+            } else {
+                return;
+            }
+        }
+        
+        if (player == null) {
+            ClientPlayer newPlayer = new ClientPlayer(clientWorld);
+            Vector3d spawnPos = new Vector3d(psPlayerNVo.posX(), psPlayerNVo.posY(), psPlayerNVo.posZ());
+            newPlayer.setPosition(spawnPos);
+            newPlayer.setYaw((float) psPlayerNVo.yaw());
+            newPlayer.setPitch((float) psPlayerNVo.pitch());
+            newPlayer.setHealth(psPlayerNVo.health());
+            newPlayer.setHunger((float) psPlayerNVo.hungry());
+            newPlayer.initializeCamera();
+            
+            setGameWorld(clientWorld, worldRenderer, newPlayer);
+        } else {
+            // 更新玩家状态
+            player.setPosition(new Vector3d(psPlayerNVo.posX(), psPlayerNVo.posY(), psPlayerNVo.posZ()));
+            player.setYaw((float) psPlayerNVo.yaw());
+            player.setPitch((float) psPlayerNVo.pitch());
+            player.setHealth(psPlayerNVo.health());
+            player.setHunger((float) psPlayerNVo.hungry());
+        }
+        
+        // 所有数据接收完毕，发送完成信号
+        session.setStage(ClientNetworkSession.Stage.PROCESS_SWITCHED);
+        session.sendNext(new PsFinishNDto());
+        log.info("已发送进程切换完成信号");
+    }
+    
+    /**
+     * 处理进程切换完成 (PsJoinWorldNVo)
+     */
+    private void handleProcessSwitchComplete(ClientNetworkSession session) {
+        if (session.getStage() != ClientNetworkSession.Stage.PROCESS_SWITCHED) {
+            log.warn("收到进入世界通知，但当前阶段不正确: {}", session.getStage());
+            return;
+        }
+        
+        session.setStage(ClientNetworkSession.Stage.IN_WORLD);
+        playerInitialized = true;
+        log.info("进程切换完成，已进入世界");
+    }
+    
+    /**
+     * 处理实体位置和旋转更新 (ServerSyncEntityPositionAndRotationNVo)
+     */
+    private void handleEntityPositionAndRotation(ServerSyncEntityPositionAndRotationNVo packet) {
+        if (packet.entityId() == 0) {
+            // entityId为0表示玩家自己
+            ClientPlayer player = getPlayer();
+            if (player != null) {
+                Vector3d serverPos = new Vector3d((float) packet.x(), (float) packet.y(), (float) packet.z());
+                double distance = player.getPosition().distance(serverPos);
+                
+                // 如果玩家尚未初始化完成，直接同步到服务端位置（避免初始位置不同步）
+                if (!playerInitialized) {
+                    player.setPosition(serverPos);
+                    player.setYaw(packet.yaw());
+                    player.setPitch(packet.pitch());
+                    return;
+                }
+
+                // 如果玩家已初始化，校准位置
+                if (playerInitialized) {
+                    // 保存当前位置用于插值
+                    player.getPreviousPosition().set(player.getPosition());
+
+                    // 本地与远程位置差异较大，直接同步人物到服务端位置
+                    if (distance > 1.0f) {
+                        player.getPosition().set(serverPos);
+                        // 同时重置速度，避免继续预测错误的方向
+                        player.getVelocity().set(0, 0, 0);
+                        return;
+                    }
+
+                    // 本地与远程位置差异较小，平滑插值到服务器位置
+                    if (distance > 0.1f) {
+                        player.getPosition().lerp(serverPos, 0.5f);
+                        return;
+                    }
+
+                    // 如果差异很小（<0.1），不进行校正，保持客户端预测
+                    // 同步相机朝向（服务端是权威的）
+                    player.setYaw(packet.yaw());
+                    player.setPitch(packet.pitch());
+                }
+            }
+        }
+        log.debug("收到实体位置更新: entityId={}, pos=({}, {}, {})", packet.entityId(), packet.x(), packet.y(), packet.z());
+    }
+    
+    /**
+     * 处理玩家状态更新 (ServerSyncPlayerStateNVo)
+     */
+    private void handlePlayerState(ServerSyncPlayerStateNVo packet) {
+        ClientPlayer player = getPlayer();
+        if (player != null) {
+            player.setHealth(packet.health());
+            // foodLevel 对应饥饿值
+            player.setHunger((float) packet.foodLevel());
+            
+            // 收到玩家状态同步包后，标记玩家已初始化完成
+            if (!playerInitialized) {
+                playerInitialized = true;
+                log.info("玩家初始化完成，可以开始发送位置更新");
+            }
+        }
+        log.debug("收到玩家状态更新: health={}, food={}", packet.health(), packet.foodLevel());
+    }
+    
+    /**
+     * 处理世界时间更新 (ServerSyncWorldTimeNVo)
+     */
+    private void handleWorldTime(ServerSyncWorldTimeNVo packet) {
+        if (clientWorld != null) {
+            // 将游戏时间（tick）转换为一天中的时间（0.0-1.0）
+            // 假设一天有24000 tick（与ServerWorld的TICKS_PER_DAY一致）
+            long ticksPerDay = 24000L;
+            float timeOfDay = (float) (packet.worldTime() % ticksPerDay) / ticksPerDay;
+            clientWorld.setTimeOfDay(timeOfDay);
+            log.debug("收到世界时间更新: {} -> {}", packet.worldTime(), timeOfDay);
+        }
+    }
+    
+    /**
+     * 处理服务器断开连接 (ServerDisconnectNVo)
+     */
+    private void handleDisconnect(ServerDisconnectNVo packet) {
+        log.warn("服务器断开连接: {}", packet.reason());
+        if (clientNetworkService != null) {
+            clientNetworkService.disconnect();
+        }
+        stopGame();
+    }
+
+    private void updateMainMenu() {
         int result = mainMenu.handleInput(input, window.getWidth(), window.getHeight());
         if (result == 1) {
             currentState = GameState.SINGLEPLAYER_MENU;
         }
         if (result == 2) {
             // 多人游戏按钮被点击
-            if (serverConnection.connect("127.0.0.1", 25564)) {
-                // 连接成功，发送加入服务器请求
-                serverConnection.sendPacket(new RequestJoinServerNDto("1.1W", "KspTooi"));
-            } else {
-                log.error("连接服务器失败");
+            try {
+                var future = clientNetworkService.connect("127.0.0.1", 25564);
+                if (future != null) {
+                    // 连接是异步的，会在后台完成
+                    // 连接成功后，服务端会主动发送进程切换数据包
+                    log.info("正在连接到服务器...");
+                } else {
+                    log.error("连接服务器失败");
+                }
+            } catch (Exception e) {
+                log.error("连接服务器失败", e);
             }
         }
         if (result == 4) {
@@ -324,21 +648,17 @@ public class OurCraftClient {
             return;
         }
         
-        // 处理来自服务器的数据包（必须在主线程中处理）
-        if (serverConnection != null && serverConnection.isConnected()) {
-            serverConnection.processPackets();
-        }
-
         if (player != null && input != null) {
             // 优先使用网络连接，如果未连接则使用EventQueue（兼容单人游戏）
-            boolean useNetwork = serverConnection != null && serverConnection.isConnected();
+            ClientNetworkSession session = clientNetworkService != null ? clientNetworkService.getSession() : null;
+            boolean useNetwork = session != null && session.getStage() == ClientNetworkSession.Stage.IN_WORLD;
             
             // 处理滚轮和快捷栏切换（这些不需要固定时间步长）
             double scrollY = input.getScrollY();
             if (scrollY != 0) {
-                if (useNetwork) {
+                if (useNetwork && session != null) {
                     int newSlot = player.getInventory().getSelectedSlot() + (int) -scrollY;
-                    serverConnection.sendPacket(new PlayerDshsNdto(newSlot));
+                    session.sendNext(new PlayerDshsNdto(newSlot));
                 } else {
                     SimpleEventQueue.getInstance().offerC2S(new PlayerHotbarSwitchEvent((int) -scrollY));
                 }
@@ -348,8 +668,8 @@ public class OurCraftClient {
             for (int key = org.lwjgl.glfw.GLFW.GLFW_KEY_1; key <= org.lwjgl.glfw.GLFW.GLFW_KEY_9; key++) {
                 if (input.isKeyPressed(key)) {
                     int slotIndex = key - org.lwjgl.glfw.GLFW.GLFW_KEY_1;
-                    if (useNetwork) {
-                        serverConnection.sendPacket(new PlayerDshsNdto(slotIndex));
+                    if (useNetwork && session != null) {
+                        session.sendNext(new PlayerDshsNdto(slotIndex));
                     } else {
                         int currentSlot = player.getInventory().getSelectedSlot();
                         int slotDelta = slotIndex - currentSlot;
@@ -362,26 +682,25 @@ public class OurCraftClient {
             
             // 处理鼠标点击（方块破坏和放置）
             if (input.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
-                if (useNetwork) {
+                if (useNetwork && session != null) {
                     // TODO: 获取目标方块位置和面
-                    serverConnection.sendPacket(new PlayerDActionNDto(ActionType.FINISH_BREAKING, 0, 0, 0, 0));
+                    session.sendNext(new PlayerDActionNDto(ActionType.FINISH_BREAKING, 0, 0, 0, 0));
                 } else {
                     SimpleEventQueue.getInstance().offerC2S(new PlayerActionEvent(PlayerAction.ATTACK));
                 }
             }
             if (input.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-                if (useNetwork) {
+                if (useNetwork && session != null) {
                     // TODO: 获取目标方块位置和面
-                    serverConnection.sendPacket(new PlayerDActionNDto(ActionType.PLACE_BLOCK, 0, 0, 0, 0));
+                    session.sendNext(new PlayerDActionNDto(ActionType.PLACE_BLOCK, 0, 0, 0, 0));
                 } else {
                     SimpleEventQueue.getInstance().offerC2S(new PlayerActionEvent(PlayerAction.USE));
                 }
             }
         }
         
-        // 处理世界事件和网格生成（这些不需要固定时间步长）
+        // 处理网格生成（这些不需要固定时间步长）
         if (clientWorld != null) {
-            clientWorld.processEvents();
             clientWorld.processMeshGeneration();
             timeOfDay = clientWorld.getTimeOfDay();
         }
@@ -508,7 +827,7 @@ public class OurCraftClient {
     }
 
     /**
-     * 请求初始化多人游戏世界（由ServerConnection从网络线程调用）
+     * 请求初始化多人游戏世界（由网络包处理从网络线程调用）
      * 实际初始化会在主线程的update循环中执行
      */
     public void requestInitializeMultiplayerWorld(double x, double y, double z, float yaw, float pitch) {
@@ -523,8 +842,6 @@ public class OurCraftClient {
             log.warn("游戏世界已存在，先清理");
             stopGame();
         }
-
-
 
         // 获取默认世界模板
         WorldTemplate template = Registry.getInstance().getWorldTemplate(EngineDefault.DEFAULT_WORLD_TEMPLATE);
@@ -565,18 +882,15 @@ public class OurCraftClient {
         this.player = player;
         clientWorld.setPlayer(player);
         
-        if (serverConnection != null) {
-            serverConnection.setClientWorld(clientWorld);
-        }
-        
         this.currentState = GameState.IN_GAME;
         if (input != null) {
             input.setMouseLocked(true);
         }
         
         // 如果已连接到服务器，发送ClientReady数据包
-        if (serverConnection != null && serverConnection.isConnected()) {
-            serverConnection.sendPacket(new ClientReadyNDto());
+        ClientNetworkSession session = clientNetworkService != null ? clientNetworkService.getSession() : null;
+        if (session != null && session.getStage() == ClientNetworkSession.Stage.IN_WORLD) {
+            session.sendNext(new ClientReadyNDto());
             // 多人游戏模式下，等待服务端同步后再设置初始化标志
             playerInitialized = false;
         } else {
@@ -613,8 +927,8 @@ public class OurCraftClient {
     public void stopGame() {
         //ClientLauncher.stopGameServer();
         
-        if (serverConnection != null) {
-            serverConnection.disconnect();
+        if (clientNetworkService != null) {
+            clientNetworkService.disconnect();
         }
         
         if (worldRenderer != null) {

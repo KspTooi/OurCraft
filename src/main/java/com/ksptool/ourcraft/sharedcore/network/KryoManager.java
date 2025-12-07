@@ -5,7 +5,8 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.ksptool.ourcraft.server.archive.model.GlobalPaletteProperty;
-import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.*;
+import com.ksptool.ourcraft.sharedcore.network.ndto.*;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 /**
@@ -45,8 +47,7 @@ public class KryoManager {
         kryo.addDefaultSerializer(short.class, new DefaultSerializers.ShortSerializer());
         kryo.addDefaultSerializer(byte.class, new DefaultSerializers.ByteSerializer());
         kryo.addDefaultSerializer(char.class, new DefaultSerializers.CharSerializer());
-        
-        
+
         registerAllPackets(kryo);
         return kryo;
     });
@@ -58,7 +59,13 @@ public class KryoManager {
     private static void registerAllPackets(Kryo kryo) {
         int id = 0;
         
+        // RPC相关数据包（必须在最前面，因为其他数据包可能使用RPC）
+        kryo.register(RpcRequest.class, id++);
+        kryo.register(RpcResponse.class, id++);
+        
         // 阶段I: 认证数据包
+        kryo.register(AuthNDto.class, id++);
+        kryo.register(AuthNVo.class, id++);
         kryo.register(GetServerStatusNDto.class, id++);
         kryo.register(RequestJoinServerNDto.class, id++);
         kryo.register(ClientReadyNDto.class, id++);
@@ -66,17 +73,28 @@ public class KryoManager {
         kryo.register(RequestJoinServerNVo.class, id++);
         kryo.register(ServerDisconnectNVo.class, id++);
         
-        // 阶段II: 连接维护数据包
+        // 阶段II: 批数据和进程切换数据包
+        kryo.register(BatchDataNVo.class, id++);
+        kryo.register(BatchDataFinishNDto.class, id++);
+        kryo.register(PsNVo.class, id++);
+        kryo.register(PsChunkNVo.class, id++);
+        kryo.register(PsPlayerNVo.class, id++);
+        kryo.register(PsJoinWorldNVo.class, id++);
+        kryo.register(PsAllowNDto.class, id++);
+        kryo.register(PsFinishNDto.class, id++);
+        
+        // 阶段III: 连接维护数据包
         kryo.register(ClientKeepAliveNPkg.class, id++);
         kryo.register(ServerKeepAliveNPkg.class, id++);
         
-        // 阶段III: 世界同步数据包
+        // 阶段IV: 世界同步数据包
         kryo.register(PlayerDcparNDto.class, id++);
         kryo.register(PlayerDshsNdto.class, id++);
         kryo.register(PlayerDActionNDto.class, id++);
         kryo.register(PlayerInputStateNDto.class, id++);
         kryo.register(ServerSyncChunkDataNVo.class, id++);
         kryo.register(HuChunkUnloadNVo.class, id++);
+        kryo.register(HuChunkNVo.class, id++);
         kryo.register(ServerSyncBlockUpdateNVo.class, id++);
         kryo.register(ServerSyncEntityPositionAndRotationNVo.class, id++);
         kryo.register(ServerSyncPlayerStateNVo.class, id++);
@@ -114,6 +132,7 @@ public class KryoManager {
         kryo.register(int.class, id++);
         kryo.register(long.class, id++);
         kryo.register(short.class, id++);
+        kryo.register(LocalDateTime.class, id++);
 
         //注册全局调色板
         kryo.register(GlobalPaletteProperty.class, id++);

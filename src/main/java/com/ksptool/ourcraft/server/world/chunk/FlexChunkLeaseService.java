@@ -212,7 +212,7 @@ public class FlexChunkLeaseService extends WorldService{
             return null;
         }
 
-        return Level.values()[level];
+        return Level.of(level);
     }
 
     /**

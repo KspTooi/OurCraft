@@ -11,6 +11,8 @@ import com.ksptool.ourcraft.server.world.ServerWorldService;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.GlobalService;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
+import com.ksptool.ourcraft.sharedcore.network.RpcRequest;
+import com.ksptool.ourcraft.sharedcore.network.RpcResponse;
 import com.ksptool.ourcraft.sharedcore.network.ndto.AuthNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
@@ -22,7 +24,9 @@ import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsPlayerNVo;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
+import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.utils.position.PrecisionPos;
+import com.ksptool.ourcraft.sharedcore.utils.viewport.ChunkViewPort;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import xyz.downgoon.snowflake.Snowflake;
@@ -31,6 +35,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -142,17 +147,19 @@ public class ServerNetworkService implements GlobalService {
     public void doRoute(NetworkSession session,Object packet) {
 
         //处理玩家认证
-        if(packet instanceof AuthNDto dto){
+        if(packet instanceof RpcRequest(long requestId, Object data)){
 
-            //处理认证
-            if(!handleAuth(session, dto)){
-                return;
-            }
+            if(data instanceof AuthNDto authDto){
+                //处理认证
+                if(!handleAuth(session, authDto, requestId)){
+                    return;
+                }
 
-            //处理批数据同步
-            if(!handleBatchData(session)){
-                return;
-            }
+                //处理批数据同步
+                if(!handleBatchData(session)){
+                    return;
+                }
+            } 
 
             return;
         }
@@ -163,7 +170,7 @@ public class ServerNetworkService implements GlobalService {
             //通知客户端需要进行进程切换
             if(!handleInitProcessSwitch(session, dto)){
                 return;
-            }
+            } 
 
             return;
         }
@@ -217,7 +224,7 @@ public class ServerNetworkService implements GlobalService {
      * @param dto 玩家认证数据包
      * @return 是否认证成功
      */
-    private boolean handleAuth(NetworkSession session,AuthNDto dto) {
+    private boolean handleAuth(NetworkSession session,AuthNDto dto, long requestId) {
 
         //必须为NEW阶段才能处理认证
         if(!isStage(session,NetworkSession.Stage.NEW)){
@@ -286,8 +293,9 @@ public class ServerNetworkService implements GlobalService {
         //查询最新的玩家信息
         playerVo = playerArchiveService.loadPlayer(playerName);
 
-        //认证成功 发送认证结果
-        session.sendPacket(AuthNVo.accept(session.getId()));
+        //认证成功 发送认证结果(需要包装为RpcResponse)
+        var rpcResponse = RpcResponse.of(requestId, AuthNVo.accept(session.getId()));
+        session.sendPacket(rpcResponse);
         session.setStage(NetworkSession.Stage.AUTHORIZED);
         session.setArchive(playerVo);
         log.info("会话:{} 认证成功 玩家名称: {} 客户端版本: {}", session.getId(), playerName, clientVersion);
@@ -358,19 +366,26 @@ public class ServerNetworkService implements GlobalService {
         var groundPos = PrecisionPos.of(archive.getPosX(), archive.getPosY(), archive.getPosZ());
         var chunkPos = groundPos.toChunkPos(world.getTemplate().getChunkSizeX(), world.getTemplate().getChunkSizeZ());
 
-        //在玩家落地位置签发永久租约
-        world.getFcls().issuePermanentLease(chunkPos, archive.getId());
+        //在玩家落地位置的3X3签发永久租约
+        ChunkViewPort vp = ChunkViewPort.of(chunkPos,1);
+        vp.setMode(0);
+        Set<ChunkPos> chunkPosSet = vp.getChunkPosSet();
+        log.info("会话:{} 玩家:{} 为玩家准备落地区块 总数:{}", session.getId(), archive.getName(),chunkPosSet.size());
 
-        //加载玩家落地位置区块(网络线程会等待区块加载完成后才能进行下一步)
-        var future = world.getFscs().loadOrGenerate(chunkPos);
+        for(var item : chunkPosSet){
+            world.getFcls().issuePermanentLease(item, archive.getId());
+            //加载玩家落地位置区块(网络线程会等待区块加载完成后才能进行下一步)
+            var future = world.getFscs().loadOrGenerate(item);
 
-        //等待区块加载完成(超时5分钟)
-        try {
-            future.get(5, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            log.error("会话:{} 玩家:{} 无法进行进程切换,落地区块加载失败", session.getId(), archive.getName());
-            session.close("无法进行进程切换,区块加载失败!");
-            return false;
+            //等待区块加载完成(超时5分钟)
+            try {
+                future.get(5, TimeUnit.MINUTES);
+            } catch (Exception e) {
+                log.error("会话:{} 玩家:{} 无法进行进程切换,落地区块加载失败", session.getId(), archive.getName());
+                session.close("无法进行进程切换,区块加载失败!");
+                return false;
+            }
+
         }
 
         var aps = world.getTemplate().getActionPerSecond();

@@ -169,7 +169,7 @@ public class DebugNetworkConnection {
     
     private void handleChunkUnload(HuChunkUnloadNVo packet) {
         if (debugClient != null) {
-            debugClient.handleChunkUnload(packet.chunkX(), packet.chunkZ());
+            debugClient.handleChunkUnload(packet.pos().getX(), packet.pos().getZ());
         }
     }
     

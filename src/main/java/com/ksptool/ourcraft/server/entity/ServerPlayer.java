@@ -63,7 +63,7 @@ public class ServerPlayer extends ServerLivingEntity {
     private static final float MAX_SPEED = 40F;
 
     //视口距离
-    private int viewDistance = 8;
+    private int viewDistance = 4;
 
     //租约是否初始化过(当Player第一次加入这个世界时,他并没有跨过区块边界,因此无法通过跨区块检测来触发初始租约签发,需要特殊处理来初始化其视口范围内的区块租约)
     private AtomicBoolean isLeaseInited = new AtomicBoolean(false);
@@ -93,6 +93,8 @@ public class ServerPlayer extends ServerLivingEntity {
         
         if(vo.getPosX() != null && vo.getPosY() != null && vo.getPosZ() != null){
             this.position.set((float)vo.getPosX().doubleValue(), (float)vo.getPosY().doubleValue(), (float)vo.getPosZ().doubleValue());
+            // [新增] 同步更新包围盒位置，修复错位 Bug
+            this.boundingBox.update(this.position);
         }
         if(vo.getYaw() != null){
             this.yaw = vo.getYaw();

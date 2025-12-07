@@ -1,6 +1,6 @@
 package com.ksptool.ourcraft.client.rendering;
 
-import com.ksptool.ourcraft.client.world.ClientChunk;
+import com.ksptool.ourcraft.client.world.FlexClientChunk;
 import com.ksptool.ourcraft.client.world.ClientWorld;
 import com.ksptool.ourcraft.client.entity.Camera;
 import org.joml.Vector3f;
@@ -74,13 +74,13 @@ public class WorldRenderer {
         shader.setUniform("textureSampler", 0);
 
         Vector3f playerPosition = camera.getPosition();
-        int playerChunkX = (int) Math.floor(playerPosition.x / ClientChunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / ClientChunk.CHUNK_SIZE);
+        int playerChunkX = (int) Math.floor(playerPosition.x / FlexClientChunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / FlexClientChunk.CHUNK_SIZE);
 
         for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
                 
-                ClientChunk clientChunk = clientWorld.getChunk(x, z);
+                FlexClientChunk clientChunk = clientWorld.getChunk(x, z);
 
                 if (clientChunk != null && clientChunk.hasMesh()) {
                     if (frustum.intersects(clientChunk.getBoundingBox())) {
@@ -103,13 +103,13 @@ public class WorldRenderer {
         shader.setUniform("textureSampler", 0);
 
         Vector3f playerPosition = camera.getPosition();
-        int playerChunkX = (int) Math.floor(playerPosition.x / ClientChunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / ClientChunk.CHUNK_SIZE);
+        int playerChunkX = (int) Math.floor(playerPosition.x / FlexClientChunk.CHUNK_SIZE);
+        int playerChunkZ = (int) Math.floor(playerPosition.z / FlexClientChunk.CHUNK_SIZE);
 
         for (int x = playerChunkX - RENDER_DISTANCE; x <= playerChunkX + RENDER_DISTANCE; x++) {
             for (int z = playerChunkZ - RENDER_DISTANCE; z <= playerChunkZ + RENDER_DISTANCE; z++) {
                 
-                ClientChunk clientChunk = clientWorld.getChunk(x, z);
+                FlexClientChunk clientChunk = clientWorld.getChunk(x, z);
 
                 if (clientChunk != null && clientChunk.hasTransparentMesh()) {
                     if (frustum.intersects(clientChunk.getBoundingBox())) {

@@ -2,6 +2,7 @@ package com.ksptool.ourcraft.server.world;
 
 import com.ksptool.ourcraft.server.entity.ServerEntity;
 import com.ksptool.ourcraft.server.entity.ServerPlayer;
+import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
 import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import com.ksptool.ourcraft.sharedcore.blocks.inner.SharedBlock;
 import com.ksptool.ourcraft.sharedcore.utils.position.PrecisionPos;
@@ -19,11 +20,17 @@ public class ServerWorldPhysicsService extends WorldService {
 
     private final ServerWorld world;
 
+    private final SimpleEntityService ses;
+
+    private final FlexServerChunkService fscs;
+
     private final int chunkSizeX;
     private final int chunkSizeZ;
 
     public ServerWorldPhysicsService(ServerWorld world) {
         this.world = world;
+        this.fscs = world.getFscs();
+        this.ses = world.getSes();
         var t = world.getTemplate();
         this.chunkSizeX = t.getChunkSizeX();
         this.chunkSizeZ = t.getChunkSizeZ();
@@ -37,7 +44,7 @@ public class ServerWorldPhysicsService extends WorldService {
     @Override
     public void action(double delta, SharedWorld world) {
         
-        var entities = this.world.getSes().getEntities();
+        var entities = ses.getEntities();
 
         for (ServerEntity item : entities) {
 
@@ -83,7 +90,7 @@ public class ServerWorldPhysicsService extends WorldService {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    int stateId = world.getScm().getBlockState(x, y, z);
+                    int stateId = fscs.getBlockStateId(x, y, z);
                     BlockState state = palette.getState(stateId);
                     SharedBlock sharedBlock = state.getSharedBlock();
                     if (sharedBlock.isSolid()) {
@@ -107,7 +114,7 @@ public class ServerWorldPhysicsService extends WorldService {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    int stateId = world.getScm().getBlockState(x, y, z);
+                    int stateId = fscs.getBlockStateId(x, y, z);
                     BlockState state = palette.getState(stateId);
                     SharedBlock sharedBlock = state.getSharedBlock();
                     if (sharedBlock.isSolid()) {
