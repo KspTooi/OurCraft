@@ -175,7 +175,8 @@ public class DebugClient extends SimpleApplication {
     
     private void updateCoordsText() {
         if (coordsText != null) {
-            coordsText.setText(String.format("XYZ: %.2f, %.2f, %.2f", playerX, playerY, playerZ));
+            String onGroundText = onGround ? "OnGround" : "OnAir";
+            coordsText.setText(String.format("XYZ: %.2f, %.2f, %.2f | 状态: %s", playerX, playerY, playerZ, onGroundText));
         }
     }
     
@@ -373,10 +374,11 @@ public class DebugClient extends SimpleApplication {
     private void applyInput(double delta) {
         Vector3d moveDirection = new Vector3d(0, 0, 0);
         
-        if (wPressed) moveDirection.z -= 1;
-        if (sPressed) moveDirection.z += 1;
-        if (aPressed) moveDirection.x -= 1;
-        if (dPressed) moveDirection.x += 1;
+        // 俯视图的移动方向（符合直觉）
+        if (wPressed) moveDirection.z += 1;  // W: 向上（正Z方向）
+        if (sPressed) moveDirection.z -= 1;  // S: 向下（负Z方向）
+        if (aPressed) moveDirection.x += 1;  // A: 向左（但是在俯视图中是正X方向）
+        if (dPressed) moveDirection.x -= 1;  // D: 向右（但是在俯视图中是负X方向）
         
         if (moveDirection.lengthSquared() > 0) {
             moveDirection.normalize();
@@ -695,16 +697,18 @@ public class DebugClient extends SimpleApplication {
             return;
         }
         
+        // 注意：为了让俯视图的方向符合直觉，我们交换W/S和A/D
+        // 因为服务端yaw=0时的移动方向与俯视图显示相反
         PlayerInputStateNDto input = new PlayerInputStateNDto(
             clientTick,
-            wPressed,
-            sPressed,
-            aPressed,
-            dPressed,
+            sPressed,  // W按下时发送S，让服务端向正Z移动（屏幕向上）
+            wPressed,  // S按下时发送W，让服务端向负Z移动（屏幕向下）
+            dPressed,  // A按下时发送D，让服务端向正X移动（屏幕向左）
+            aPressed,  // D按下时发送A，让服务端向负X移动（屏幕向右）
             spacePressed,
             false,
-            0.0f,
-            0.0f
+            0.0f,  // yaw
+            0.0f   // pitch
         );
         session.sendNext(input);
         
@@ -721,6 +725,14 @@ public class DebugClient extends SimpleApplication {
             playerDot.setMaterial(mat);
             playerDot.rotate(-(float)Math.PI / 2, 0, 0);
             rootNode3D.attachChild(playerDot);
+        }
+        
+        // 根据是否在地面改变颜色
+        Material mat = playerDot.getMaterial();
+        if (onGround) {
+            mat.setColor("Color", ColorRGBA.Green);  // 在地面上：绿色
+        } else {
+            mat.setColor("Color", ColorRGBA.Red);    // 在空中/跳跃：红色
         }
         
         playerDot.setLocalTranslation((float)playerX - 0.25f, (float)playerY + 1.1f, (float)playerZ + 0.25f);
