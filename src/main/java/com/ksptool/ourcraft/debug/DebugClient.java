@@ -29,7 +29,9 @@ import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
+import com.ksptool.ourcraft.sharedcore.BoundingBox;
 import lombok.extern.slf4j.Slf4j;
+import org.joml.Vector3d;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -54,6 +56,27 @@ public class DebugClient extends SimpleApplication {
     // 待处理的网格生成任务
     private final List<Future<DebugMeshGenerationResult>> pendingMeshFutures = new ArrayList<>();
     
+    // 物理参数（使用 Vector3d 匹配服务端精度）
+    private Vector3d velocity = new Vector3d(0, 0, 0);
+    private BoundingBox boundingBox;
+    private boolean onGround = false;
+    
+    // 固定时间步长相关
+    private double tickAccumulator = 0.0;
+    private double tickInterval = 0.05; // 默认 20 TPS，将由服务端同步覆盖
+    
+    // 从服务端同步的参数
+    private float groundAcceleration = 40.0f; 
+    private float airAcceleration = 5.0f;
+    private float maxSpeed = 40.0f;
+    private int aps = 20; 
+    
+    // 硬编码的物理常数 (与服务端 ServerLivingEntity 一致)
+    private static final float GRAVITY = -20.0f;
+    private static final float JUMP_VELOCITY = 8.0f;
+    private static final float GROUND_FRICTION = 0.6f;
+    private static final float AIR_FRICTION = 0.91f;
+
     private double playerX = 0;
     private double playerY = 64;
     private double playerZ = 0;
@@ -220,6 +243,11 @@ public class DebugClient extends SimpleApplication {
             while (!inWorld && (packet = session.receiveNext(5, TimeUnit.SECONDS)) != null) {
                 if (packet instanceof PsNVo psNVo) {
                     log.info("收到进程切换通知: 世界={}", psNVo.worldName());
+                    aps = psNVo.aps();
+                    if (aps > 0) {
+                        tickInterval = 1.0 / aps;
+                        log.info("已同步服务端物理频率: APS={} TickInterval={}s", aps, String.format("%.4f", tickInterval));
+                    }
                     session.sendNext(new PsAllowNDto());
                     session.setStage(ClientNetworkSession.Stage.PROCESS_SWITCHING);
                     continue;
@@ -276,7 +304,19 @@ public class DebugClient extends SimpleApplication {
         playerX = psPlayer.posX();
         playerY = psPlayer.posY();
         playerZ = psPlayer.posZ();
-        log.info("玩家位置: ({}, {}, {})", playerX, playerY, playerZ);
+        
+        groundAcceleration = psPlayer.ga();
+        airAcceleration = psPlayer.aa();
+        maxSpeed = psPlayer.ms();
+        
+        Vector3d newPos = new Vector3d(playerX, playerY, playerZ);
+        if (boundingBox == null) {
+            boundingBox = new BoundingBox(newPos, 0.6, 1.8);
+        } else {
+            boundingBox.update(newPos);
+        }
+        
+        log.info("玩家位置: ({}, {}, {}) GA={} AA={} MS={}", playerX, playerY, playerZ, groundAcceleration, airAcceleration, maxSpeed);
         enqueue(() -> updateCamera());
     }
     
@@ -313,63 +353,115 @@ public class DebugClient extends SimpleApplication {
         // 处理完成的网格生成任务
         processMeshGenerationResults();
         
-        // 本地模拟移动 (服务端最大速度约40，这里设置为35以接近服务端物理模拟的平均速度)
-        double speed = 35.0 * tpf;
-        double nextX = playerX;
-        double nextZ = playerZ;
-        
-        if (wPressed) nextZ -= speed;
-        if (sPressed) nextZ += speed;
-        if (aPressed) nextX -= speed;
-        if (dPressed) nextX += speed;
-        
-        // 简单的碰撞检测：只有当目标位置没有阻挡时才移动
-        if (canMoveTo(nextX, nextZ)) {
-            playerX = nextX;
-            playerZ = nextZ;
+        // 固定时间步长物理更新
+        tickAccumulator += tpf;
+        while (tickAccumulator >= tickInterval) {
+            applyInput(tickInterval);
+            updatePhysics(tickInterval);
+            clientTick++;
+            sendPlayerInput();
+            tickAccumulator -= tickInterval;
         }
         
-        clientTick++;
-        sendPlayerInput();
+        // 渲染更新（每帧执行）
         updateCamera();
         updatePlayerDot();
         updateCoordsText();
         updateHeightLabels();
     }
     
-    private boolean canMoveTo(double x, double z) {
-        // 简单的碰撞体半径检测
-        // 检查目标位置周围的四个角，防止穿墙
-        double radius = 0.3;
-        return !checkCollision(x + radius, z + radius) &&
-               !checkCollision(x - radius, z + radius) &&
-               !checkCollision(x + radius, z - radius) &&
-               !checkCollision(x - radius, z - radius);
+    private void applyInput(double delta) {
+        Vector3d moveDirection = new Vector3d(0, 0, 0);
+        
+        if (wPressed) moveDirection.z -= 1;
+        if (sPressed) moveDirection.z += 1;
+        if (aPressed) moveDirection.x -= 1;
+        if (dPressed) moveDirection.x += 1;
+        
+        if (moveDirection.lengthSquared() > 0) {
+            moveDirection.normalize();
+            
+            float acceleration = onGround ? groundAcceleration : airAcceleration;
+            velocity.x += moveDirection.x * acceleration * delta;
+            velocity.z += moveDirection.z * acceleration * delta;
+            
+            double hSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
+            if (hSpeedSq > maxSpeed * maxSpeed) {
+                double scale = maxSpeed / Math.sqrt(hSpeedSq);
+                velocity.x *= scale;
+                velocity.z *= scale;
+            }
+        }
+        
+        if (spacePressed && onGround) {
+            velocity.y = JUMP_VELOCITY;
+            onGround = false;
+        }
     }
-
-    private boolean checkCollision(double x, double z) {
-        int bx = (int) Math.floor(x);
-        int bz = (int) Math.floor(z);
+    
+    private void updatePhysics(double delta) {
+        if (delta <= 0) {
+            return;
+        }
         
-        // 检查脚部 (稍微抬高一点点，允许上很小的台阶? 不，这里只做严格阻挡)
-        // 我们允许 0.1 的公差，如果方块只是地毯那种... 但目前全是完整方块
-        int footY = (int) Math.floor(playerY); // 严格检查脚底所在方块层
-        // 如果脚下的方块是固体，说明卡住了或者要上坡
-        if (isSolid(bx, footY, bz)) return true;
+        double clampedDelta = Math.min(delta, 0.1);
         
-        // 检查头部 (假设玩家高 1.8)
-        int headY = (int) Math.floor(playerY + 1.8);
-        if (isSolid(bx, headY, bz)) return true;
+        velocity.y += GRAVITY * clampedDelta;
         
-        return false;
-    }
-
-    private boolean isSolid(int x, int y, int z) {
-        int stateId = clientWorld.getBlockState(x, y, z);
-        if (stateId == 0) return false; // 空气
-        BlockState state = GlobalPalette.getInstance().getState(stateId);
-        // 液体不算固体阻挡
-        return !state.getSharedBlock().isFluid();
+        Vector3d movement = new Vector3d(velocity);
+        movement.mul(clampedDelta);
+        
+        Vector3d newPosition = new Vector3d(playerX, playerY, playerZ);
+        
+        if (boundingBox == null) {
+            boundingBox = new BoundingBox(newPosition, 0.6, 1.8);
+        }
+        
+        newPosition.x += movement.x;
+        BoundingBox testBox = boundingBox.offset(new Vector3d(movement.x, 0, 0));
+        if (!clientWorld.canMoveTo(testBox)) {
+            newPosition.x = playerX;
+            velocity.x = 0;
+        }
+        
+        newPosition.z += movement.z;
+        testBox = boundingBox.offset(new Vector3d(0, 0, movement.z));
+        if (!clientWorld.canMoveTo(testBox)) {
+            newPosition.z = playerZ;
+            velocity.z = 0;
+        }
+        
+        newPosition.y += movement.y;
+        testBox = boundingBox.offset(new Vector3d(0, movement.y, 0));
+        if (!clientWorld.canMoveTo(testBox)) {
+            if (movement.y < 0) {
+                onGround = true;
+            }
+            velocity.y = 0;
+            newPosition.y = playerY;
+        }
+        
+        playerX = newPosition.x;
+        playerY = newPosition.y;
+        playerZ = newPosition.z;
+        
+        if (boundingBox == null) {
+            boundingBox = new BoundingBox(newPosition, 0.6, 1.8);
+        } else {
+            boundingBox.update(newPosition);
+        }
+        
+        if (clientWorld.canMoveTo(boundingBox)) {
+            onGround = false;
+        }
+        
+        if (onGround) {
+            velocity.x *= GROUND_FRICTION;
+            velocity.z *= GROUND_FRICTION;
+        } else {
+            velocity.x *= AIR_FRICTION;
+            velocity.z *= AIR_FRICTION;
+        }
     }
 
     private void updateHeightLabels() {
@@ -471,7 +563,13 @@ public class DebugClient extends SimpleApplication {
             playerX = serverX;
             playerY = serverY;
             playerZ = serverZ;
-            // 相机和红点位置会在 simpleUpdate 后续逻辑中更新
+            velocity.set(0, 0, 0);
+            Vector3d newPos = new Vector3d(playerX, playerY, playerZ);
+            if (boundingBox == null) {
+                boundingBox = new BoundingBox(newPos, 0.6, 1.8);
+            } else {
+                boundingBox.update(newPos);
+            }
         }
     }
 
@@ -641,6 +739,35 @@ public class DebugClient extends SimpleApplication {
             int localZ = z - chunkZ * CHUNK_SIZE_Z;
             
             return chunk.getBlockStateId(localX, y, localZ);
+        }
+        
+        public boolean canMoveTo(BoundingBox box) {
+            int minX = (int) Math.floor(box.getMinX());
+            int maxX = (int) Math.floor(box.getMaxX());
+            int minY = (int) Math.floor(box.getMinY());
+            int maxY = (int) Math.floor(box.getMaxY());
+            int minZ = (int) Math.floor(box.getMinZ());
+            int maxZ = (int) Math.floor(box.getMaxZ());
+            
+            GlobalPalette palette = GlobalPalette.getInstance();
+            for (int x = minX; x <= maxX; x++) {
+                for (int y = minY; y <= maxY; y++) {
+                    for (int z = minZ; z <= maxZ; z++) {
+                        int stateId = getBlockState(x, y, z);
+                        if (stateId == 0) {
+                            continue; // 空气或未加载区块，假设可以移动
+                        }
+                        BlockState state = palette.getState(stateId);
+                        if (state == null) {
+                            continue;
+                        }
+                        if (state.getSharedBlock().isSolid()) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
         }
     }
     

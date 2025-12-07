@@ -17,6 +17,7 @@ import com.ksptool.ourcraft.sharedcore.utils.position.Pos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.server.entity.ServerEntity;
+import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.event.ServerPlayerCameraInputEvent;
 import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
@@ -187,6 +188,13 @@ public class ServerWorld implements SharedWorld {
     @Override
     public void action(double delta) {
 
+        //重置所有Player的输入应用状态
+        ses.getEntities().forEach(entity -> {
+            if(entity instanceof ServerPlayer pl){
+                pl.resetInputApplied();
+            }
+        });
+
         // 时间服务动作(时间推进)
         swts.action(delta, this);
 
@@ -316,8 +324,16 @@ public class ServerWorld implements SharedWorld {
             log.warn("世界:{} 无法找到Player会话ID:{} 对应的PlayerEntity", name, e.getSessionId());
             return;
         }
+
+        //如果本Action已应用过输入，则不重复应用
+        if(player.isInputApplied()){
+            log.warn("世界:{} Player会话ID:{} 本Action已应用过输入，无效的输入事件被丢弃", name, e.getSessionId());
+            return;
+        }
+
         // 应用玩家键盘输入事件(为Player增加速度以便在物理更新时生效)
         player.applyInput(e);
+        player.markInputApplied();
     }
 
     /**

@@ -68,6 +68,8 @@ public class ServerPlayer extends ServerLivingEntity {
     //租约是否初始化过(当Player第一次加入这个世界时,他并没有跨过区块边界,因此无法通过跨区块检测来触发初始租约签发,需要特殊处理来初始化其视口范围内的区块租约)
     private AtomicBoolean isLeaseInited = new AtomicBoolean(false);
 
+    //本Action是否应用过输入
+    private AtomicBoolean isInputApplied = new AtomicBoolean(false);
 
     /**
      * 服务端构造函数：创建一个与服务端世界关联的Player对象（带UUID）
@@ -279,5 +281,16 @@ public class ServerPlayer extends ServerLivingEntity {
         isLeaseInited.set(true);
     }
 
+    public boolean isInputApplied() {
+        return isInputApplied.get();
+    }
+
+    public void markInputApplied() {
+        isInputApplied.set(true);
+    }
+
+    public void resetInputApplied() {
+        isInputApplied.set(false);
+    }
 }
 

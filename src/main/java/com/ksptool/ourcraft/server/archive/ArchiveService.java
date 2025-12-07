@@ -95,7 +95,8 @@ public class ArchiveService implements GlobalService {
 
         this.currentArchiveName = archiveName;
 
-        var jdbcUrl = "jdbc:h2:file:" + getArchiveIndexAbsolutePath() + ";MODE=MySQL;AUTO_SERVER=TRUE";
+        //var jdbcUrl = "jdbc:h2:file:" + getArchiveIndexAbsolutePath() + ";MODE=MySQL;AUTO_SERVER=TRUE;DB_CLOSE_ON_EXIT=FALSE";
+        var jdbcUrl = "jdbc:h2:file:" + getArchiveIndexAbsolutePath() + ";MODE=MySQL;DB_CLOSE_ON_EXIT=FALSE";
 
         log.info("正在连接归档索引数据库: {}", jdbcUrl);
         HikariConfig config = new HikariConfig();
