@@ -99,6 +99,7 @@ public class KryoManager {
         kryo.register(ServerSyncEntityPositionAndRotationNVo.class, id++);
         kryo.register(ServerSyncPlayerStateNVo.class, id++);
         kryo.register(ServerSyncWorldTimeNVo.class, id++);
+        kryo.register(HuPlayerLocationNVo.class, id++);
         
         // 枚举类型
         kryo.register(ActionType.class, id++);

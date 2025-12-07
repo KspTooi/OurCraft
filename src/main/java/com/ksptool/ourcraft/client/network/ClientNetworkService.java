@@ -30,10 +30,10 @@ public class ClientNetworkService {
     private CompletableFuture<ClientNetworkSession> connectFuture;
 
     //玩家名称
-    private String playerName = "KspTooi";
+    private final String playerName = "KspTooi";
 
     //客户端版本
-    private String clientVersion = EngineDefault.ENGINE_VERSION;
+    private final String clientVersion = EngineDefault.ENGINE_VERSION;
 
     /**
      * 连接到服务器

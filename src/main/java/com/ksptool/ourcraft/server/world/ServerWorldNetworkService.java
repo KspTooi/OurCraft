@@ -4,6 +4,7 @@ import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.network.NetworkSession;
 import com.ksptool.ourcraft.server.world.chunk.FlexServerChunkService;
 import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuPlayerLocationNVo;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
@@ -67,6 +68,9 @@ public class ServerWorldNetworkService extends WorldService {
             if (currentChunkPos == null) {
                 continue;
             }
+
+            // 同步玩家最新位置
+            session.sendNext(HuPlayerLocationNVo.of(player.getPosition().x, player.getPosition().y, player.getPosition().z, (float)player.getYaw(), (float)player.getPitch()));
 
             // 获取玩家视距
             int viewDistance = player.getViewDistance();

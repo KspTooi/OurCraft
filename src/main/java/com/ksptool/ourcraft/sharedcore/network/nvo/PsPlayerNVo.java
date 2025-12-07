@@ -9,11 +9,14 @@ public record PsPlayerNVo(
     double posY, //玩家位置Y
     double posZ, //玩家位置Z
     double yaw, //玩家朝向Yaw
-    double pitch //玩家朝向Pitch
+    double pitch, //玩家朝向Pitch
+    float ga, //地面加速度
+    float aa, //空中加速度
+    float ms //最大移动速度
 ) {
 
-    public static PsPlayerNVo of(String uuid, String name, int health, int hungry, double posX, double posY, double posZ, double yaw, double pitch) {
-        return new PsPlayerNVo(uuid, name, health, hungry, posX, posY, posZ, yaw, pitch);
+    public static PsPlayerNVo of(String uuid, String name, int health, int hungry, double posX, double posY, double posZ, double yaw, double pitch, float ga, float aa, float ms) {
+        return new PsPlayerNVo(uuid, name, health, hungry, posX, posY, posZ, yaw, pitch, ga, aa, ms);
     }
 
 }

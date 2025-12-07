@@ -5,6 +5,7 @@ import com.ksptool.ourcraft.server.archive.ArchivePlayerService;
 import com.ksptool.ourcraft.server.archive.ArchiveService;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerDto;
 import com.ksptool.ourcraft.server.archive.model.ArchivePlayerVo;
+import com.ksptool.ourcraft.server.entity.ServerPlayer;
 import com.ksptool.ourcraft.server.world.ServerWorld;
 import com.ksptool.ourcraft.server.world.ServerWorldService;
 import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
@@ -265,7 +266,10 @@ public class ClientPsHandler {
             var posZ = archive.getPosZ();
             var yaw = archive.getYaw();
             var pitch = archive.getPitch();
-            session.sendNext(PsPlayerNVo.of(uuid, name, health, hungry, posX, posY, posZ, yaw, pitch));
+            var ga = ServerPlayer.GROUND_ACCELERATION;
+            var aa = ServerPlayer.AIR_ACCELERATION;
+            var ms = ServerPlayer.MAX_SPEED;
+            session.sendNext(PsPlayerNVo.of(uuid, name, health, hungry, posX, posY, posZ, yaw, pitch, ga, aa, ms));
             log.info("会话:{} 玩家:{} 发送进程切换数据", session.getId(), archive.getName());
 
             //等待客户端进程切换完成

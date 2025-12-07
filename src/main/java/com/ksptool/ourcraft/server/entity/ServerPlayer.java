@@ -54,13 +54,13 @@ public class ServerPlayer extends ServerLivingEntity {
     private ChunkPos previousChunkPos;
 
     //地面加速度
-    private static final float GROUND_ACCELERATION = 40F;
+    public static final float GROUND_ACCELERATION = 40F;
     
     //空中加速度
-    private static final float AIR_ACCELERATION = 5F;
+    public static final float AIR_ACCELERATION = 5F;
     
     //最大移动速度
-    private static final float MAX_SPEED = 40F;
+    public static final float MAX_SPEED = 40F;
 
     //视口距离
     private int viewDistance = 4;
