@@ -9,8 +9,8 @@
     <version>1.2F21</version>
 
     <properties>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <joml.version>1.10.8</joml.version>
         <commons-lang3.version>3.19.0</commons-lang3.version>
@@ -220,8 +220,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.1</version>
                 <configuration>
-                    <source>25</source>
-                    <target>25</target>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
             <plugin>

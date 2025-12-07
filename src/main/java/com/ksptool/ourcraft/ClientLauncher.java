@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClientLauncher {
 
-    void main() {
+    public static void main(String[] rk) {
         OurCraftClient ourCraftClient = new OurCraftClient();
         ourCraftClient.run();
     }

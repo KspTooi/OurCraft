@@ -3,7 +3,7 @@ package com.ksptool.ourcraft.sharedcore.enums;
 public class EngineDefault {
 
     //引擎版本
-    public static String ENGINE_VERSION = "1.2F21";
+    public static String ENGINE_VERSION = "1.2G3";
 
     //SCA封装大小(这决定了一个SCA文件将封装多少个区块，通常为40即40x40个区块 警告: 如果修改了这个值则旧的SCA文件将无法加载)
     public static int SCA_PACKAGE_SIZE = 40;

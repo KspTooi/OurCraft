@@ -12,7 +12,7 @@ public class ServerLauncherNew {
     
     private static OurCraftServer ourCraftServer;
     
-    void main() {
+    public static void main(String[] args) {
 
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

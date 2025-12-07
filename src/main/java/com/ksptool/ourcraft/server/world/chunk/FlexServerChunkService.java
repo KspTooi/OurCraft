@@ -192,7 +192,7 @@ public class FlexServerChunkService extends WorldService{
 
         // 使用 computeIfAbsent 实现原子性的"检查并初始化"
         // existsChunk 要么是刚生成的，要么是原本就有的，一定是同一个对象
-        var chunk = chunks.computeIfAbsent(pos, _ -> {
+        var chunk = chunks.computeIfAbsent(pos, _1 -> {
 
             final var newChunk = new FlexServerChunk(pos, world);
 

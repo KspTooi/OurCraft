@@ -450,7 +450,7 @@ public class FlexChunkLeaseService extends WorldService{
             //如果租约是Player租约 则清除Player租约集合
             if(lease.isPlayerHolder()){
 
-                playerLeaseMap.computeIfPresent(lease.getHolderId(), (_, pSet) -> {
+                playerLeaseMap.computeIfPresent(lease.getHolderId(), (_1, pSet) -> {
 
                     pSet.remove(lease.getChunkPos());
 
