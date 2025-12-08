@@ -1,10 +1,10 @@
-package com.ksptool.ourcraft.sharedcore.network.packets;
+package com.ksptool.ourcraft.sharedcore.network.ndto;
 
 /**
- * 玩家输入状态数据包 (Player Input State Network Data Transfer Object)
+ * 玩家输入状态数据包 (Player Input Network Data Transfer Object)
  * 用于客户端向服务器发送玩家的输入状态，支持客户端预测和服务端回滚
  */
-public record PlayerInputStateNDto(
+public record PlayerInputNDto(
     int clientTick,      // 客户端的时间戳，用于服务器"回滚"
     boolean w,           // W 键是否按下
     boolean s,           // S 键是否按下

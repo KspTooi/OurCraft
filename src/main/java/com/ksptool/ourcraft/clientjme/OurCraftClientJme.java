@@ -1,5 +1,6 @@
 package com.ksptool.ourcraft.clientjme;
 
+import com.atr.jme.font.asset.TrueTypeLoader;
 import com.jme3.app.SimpleApplication;
 import com.jme3.math.ColorRGBA;
 import com.ksptool.ourcraft.clientjme.gui.MainMenuState;
@@ -33,10 +34,6 @@ public class OurCraftClientJme extends SimpleApplication {
     private MainMenuState mainMenuState;
     private GameplayState gameplayState;
 
-    public static void main(String[] args) {
-        OurCraftClientJme app = new OurCraftClientJme();
-        app.start();
-    }
 
     @Override
     public void simpleInitApp() {
@@ -56,7 +53,20 @@ public class OurCraftClientJme extends SimpleApplication {
         // 初始化主菜单状态
         mainMenuState = new MainMenuState();
         stateManager.attach(mainMenuState);
-        
+
+        assetManager.registerLoader(TrueTypeLoader.class, "ttf");
+
+
+
+
+
+
+
+
+
+
+
+
         log.info("JME客户端初始化完成，显示主菜单");
     }
 

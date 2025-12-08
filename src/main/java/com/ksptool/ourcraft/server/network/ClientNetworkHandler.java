@@ -3,14 +3,14 @@ package com.ksptool.ourcraft.server.network;
 
 import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.network.packets.ClientKeepAliveNDto;
-import com.ksptool.ourcraft.sharedcore.network.packets.PlayerInputStateNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PlayerInputNDto;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClientNetworkHandler {
 
 
-    public void playerInput(NetworkSession session, PlayerInputStateNDto dto){
+    public void playerInput(NetworkSession session, PlayerInputNDto dto){
         var world = session.getWorld();
         if(world == null){
             log.error("会话:{} 无法处理玩家输入事件,玩家所在世界不存在", session.getId());

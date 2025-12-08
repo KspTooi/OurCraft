@@ -14,9 +14,7 @@ import com.jme3.scene.Node;
 import com.ksptool.ourcraft.clientjme.OurCraftClientJme;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * 主菜单状态，显示"多人游戏"和"退出"按钮
- */
+
 @Slf4j
 public class MainMenuState extends BaseAppState {
 
@@ -42,14 +40,14 @@ public class MainMenuState extends BaseAppState {
         
         // 创建"多人游戏"按钮
         multiplayerButton = new BitmapText(guiFont);
-        multiplayerButton.setSize(guiFont.getCharSet().getRenderedSize() * 2); // 放大字体
-        multiplayerButton.setText("Multiplayer"); // JME默认字体不支持中文，暂用英文
+        multiplayerButton.setSize(guiFont.getCharSet().getRenderedSize() * 2);
+        multiplayerButton.setText("Multiplayer"); 
         multiplayerButton.setColor(ColorRGBA.White);
         
         // 创建"退出"按钮
         exitButton = new BitmapText(guiFont);
-        exitButton.setSize(guiFont.getCharSet().getRenderedSize() * 2); // 放大字体
-        exitButton.setText("Exit"); // JME默认字体不支持中文，暂用英文
+        exitButton.setSize(guiFont.getCharSet().getRenderedSize() * 2); 
+        exitButton.setText("Exit"); 
         exitButton.setColor(ColorRGBA.White);
         
         // 计算按钮位置（居中）

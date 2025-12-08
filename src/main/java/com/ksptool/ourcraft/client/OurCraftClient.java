@@ -20,6 +20,7 @@ import com.ksptool.ourcraft.client.network.ClientNetworkService;
 import com.ksptool.ourcraft.client.network.ClientNetworkSession;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.events.*;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PlayerInputNDto;
 import com.ksptool.ourcraft.sharedcore.utils.SimpleEventQueue;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
@@ -209,7 +210,7 @@ public class OurCraftClient {
         // 发送输入状态到服务器（如果已连接）
         if (useNetwork && session != null) {
             clientTick++;
-            session.sendNext(new PlayerInputStateNDto(
+            session.sendNext(new PlayerInputNDto(
                 clientTick,
                 forward,
                 backward,

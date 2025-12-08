@@ -24,7 +24,7 @@ import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.nvo.*;
-import com.ksptool.ourcraft.sharedcore.network.packets.PlayerInputStateNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PlayerInputNDto;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
@@ -699,7 +699,7 @@ public class DebugClient extends SimpleApplication {
         
         // 注意：为了让俯视图的方向符合直觉，我们交换W/S和A/D
         // 因为服务端yaw=0时的移动方向与俯视图显示相反
-        PlayerInputStateNDto input = new PlayerInputStateNDto(
+        PlayerInputNDto input = new PlayerInputNDto(
             clientTick,
             sPressed,  // W按下时发送S，让服务端向正Z移动（屏幕向上）
             wPressed,  // S按下时发送W，让服务端向负Z移动（屏幕向下）

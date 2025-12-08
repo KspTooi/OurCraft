@@ -116,6 +116,36 @@
             <version>${jme3_v}</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.github.stephengold/jme-ttf -->
+        <dependency>
+            <groupId>com.github.stephengold</groupId>
+            <artifactId>jme-ttf</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.simsilica/lemur -->
+        <dependency>
+            <groupId>com.simsilica</groupId>
+            <artifactId>lemur</artifactId>
+            <version>1.16.0</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/us.ihmc/jme3-plugins -->
+        <dependency>
+            <groupId>us.ihmc</groupId>
+            <artifactId>jme3-plugins</artifactId>
+            <version>3.2.0-171209</version>
+        </dependency>
+
+
+        <!-- https://mvnrepository.com/artifact/org.apache.groovy/groovy-all -->
+        <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <version>5.0.3</version>
+            <type>pom</type>
+        </dependency>
+
         <!-- Logback Classic (包含slf4j-api) -->
         <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
         <dependency>

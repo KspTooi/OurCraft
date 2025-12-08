@@ -14,6 +14,7 @@ import com.ksptool.ourcraft.clientjme.network.JmeClientNetworkService;
 import com.ksptool.ourcraft.clientjme.network.JmeClientNetworkSession;
 import com.ksptool.ourcraft.clientjme.world.JmeClientWorld;
 import com.ksptool.ourcraft.sharedcore.events.PlayerInputEvent;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PlayerInputNDto;
 import com.ksptool.ourcraft.sharedcore.network.nvo.*;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
@@ -203,7 +204,7 @@ public class GameplayState extends BaseAppState {
         JmeClientNetworkSession session = clientNetworkService != null ? clientNetworkService.getSession() : null;
         if (session != null && session.getStage() == JmeClientNetworkSession.Stage.IN_WORLD) {
             clientTick++;
-            session.sendNext(new PlayerInputStateNDto(
+            session.sendNext(new PlayerInputNDto(
                 clientTick,
                 forward,
                 backward,

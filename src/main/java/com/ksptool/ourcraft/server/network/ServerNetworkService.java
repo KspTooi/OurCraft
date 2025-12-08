@@ -2,10 +2,10 @@ package com.ksptool.ourcraft.server.network;
 
 import com.ksptool.ourcraft.server.OurCraftServer;
 import com.ksptool.ourcraft.server.ServerConfigService;
-import com.ksptool.ourcraft.server.event.ServerPlayerInputEvent;
 import com.ksptool.ourcraft.sharedcore.GlobalService;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PlayerInputNDto;
 import com.ksptool.ourcraft.sharedcore.network.packets.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +66,7 @@ public class ServerNetworkService implements GlobalService {
         nr.subscribeRpc(AuthRpcDto.class,psHandler::playerAuth);
 
         var networkHandler = new ClientNetworkHandler();
-        nr.subscribe(PlayerInputStateNDto.class,networkHandler::playerInput);
+        nr.subscribe(PlayerInputNDto.class,networkHandler::playerInput);
         nr.subscribe(ClientKeepAliveNDto.class,networkHandler::clientKeepAlive);
     }
 
@@ -121,7 +121,7 @@ public class ServerNetworkService implements GlobalService {
              }
          });
     }
-
+    
 
     /**
      * 停止网络服务

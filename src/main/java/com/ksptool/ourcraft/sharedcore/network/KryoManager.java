@@ -91,7 +91,7 @@ public class KryoManager {
         kryo.register(PlayerDcparNDto.class, id++);
         kryo.register(PlayerDshsNdto.class, id++);
         kryo.register(PlayerDActionNDto.class, id++);
-        kryo.register(PlayerInputStateNDto.class, id++);
+        kryo.register(PlayerInputNDto.class, id++);
         kryo.register(ServerSyncChunkDataNVo.class, id++);
         kryo.register(HuChunkUnloadNVo.class, id++);
         kryo.register(HuChunkNVo.class, id++);
