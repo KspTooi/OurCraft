@@ -6,10 +6,10 @@ import com.jme3.font.BitmapText;
 import com.jme3.math.ColorRGBA;
 import com.jme3.system.AppSettings;
 
-public class SimpleTTFTest extends SimpleApplication {
+public class SimpleFNTTest extends SimpleApplication {
 
     public static void main(String[] args) {
-        SimpleTTFTest app = new SimpleTTFTest();
+        SimpleFNTTest app = new SimpleFNTTest();
         AppSettings settings = new AppSettings(true);
         settings.setResolution(1280, 720);
         app.setSettings(settings);
@@ -20,20 +20,24 @@ public class SimpleTTFTest extends SimpleApplication {
     public void simpleInitApp() {
 
 
-        BitmapFont myChineseFont = assetManager.loadFont("textures/font/fnt/微软雅黑.fnt");
-
+        BitmapFont myChineseFont = assetManager.loadFont("textures/font/fnt/阿里巴巴普惠.fnt");
 
         // 3. 创建文本对象 (相当于你的 renderText 方法)
         BitmapText hudText = new BitmapText(myChineseFont, false);
-        
+
         // 4. 设置属性
         hudText.setSize(myChineseFont.getCharSet().getRenderedSize()); // 使用原字体大小
         hudText.setColor(ColorRGBA.Cyan);      // 设置颜色
-        hudText.setText("Hello JME! \n你好，世界！\n动态加载 TTF 测试"); // 设置文字
-        
+        hudText.setText("Hello JME 你好世界 动态加载 TTF 测试"); // 设置文字
+
         // 5. 设置位置 (JME 的 GUI 坐标原点在左下角)
         // x, y, z
-        hudText.setLocalTranslation(50, settings.getHeight() - 50, 0); 
+        hudText.setLocalTranslation(50, settings.getHeight() - 50, 0);
+
+        //TrueTypeNode trueNode = ttf.getText("Hello World", 0, ColorRGBA.White);
+        //trueNode.setLocalTranslation(0, 480, 0);
+        //guiNode.attachChild(trueNode);
+
 
         // 6. 添加到 GUI 节点
         guiNode.attachChild(hudText);
