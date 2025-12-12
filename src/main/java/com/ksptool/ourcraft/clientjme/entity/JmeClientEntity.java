@@ -15,7 +15,7 @@ public class JmeClientEntity {
 
     //位置
     protected final Vector3d position;
-    
+
     //上一逻辑刻的位置（用于插值）
     protected final Vector3d previousPosition;
 
@@ -32,7 +32,7 @@ public class JmeClientEntity {
         previousPosition.set(position);
         position.set(newPosition);
     }
-    
+
     /**
      * 设置实体位置（用于初始化）
      * 如果previousPosition尚未被有意义地设置过，则同时设置它

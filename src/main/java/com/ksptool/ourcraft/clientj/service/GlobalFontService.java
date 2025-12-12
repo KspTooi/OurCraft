@@ -1,28 +1,60 @@
-package com.ksptool.ourcraft.prototype;
+package com.ksptool.ourcraft.clientj.service;
 
 import com.atr.jme.font.TrueTypeFont;
 import com.atr.jme.font.asset.TrueTypeKeyBMP;
 import com.atr.jme.font.asset.TrueTypeLoader;
 import com.atr.jme.font.shape.TrueTypeNode;
 import com.atr.jme.font.util.Style;
-import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetManager;
+import com.jme3.font.BitmapFont;
 import com.jme3.math.ColorRGBA;
-import com.jme3.system.AppSettings;
-import com.ksptool.ourcraft.clientjme.commons.FontSize;
+import com.ksptool.ourcraft.clientj.OurCraftClientJ;
+import com.ksptool.ourcraft.clientj.commons.FontSize;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class SimpleTTFTest extends SimpleApplication {
+@Slf4j
+public class GlobalFontService {
 
-    public static void main(String[] args) {
-        SimpleTTFTest app = new SimpleTTFTest();
-        AppSettings settings = new AppSettings(true);
-        settings.setResolution(1280, 720);
-        app.setSettings(settings);
-        app.start();
+    @Getter
+    private static BitmapFont font;
+
+    @Getter
+    private static Map<FontSize, TrueTypeFont<?, ?>> ttFont = new HashMap<>();
+
+    private static boolean isInitialized = false;
+
+    public static void init(OurCraftClientJ client, String fontPath, String ttfFontPath) {
+
+        if (isInitialized) {
+            return;
+        }
+
+        log.info("GlobalFontService: Initializing...");
+        var startTime = System.currentTimeMillis();
+
+        font = client.getAssetManager().loadFont(fontPath);
+        var endTime = System.currentTimeMillis();
+        log.info("GlobalFontService: Font loaded in {}ms", endTime - startTime);
+
+        log.info("GlobalFontService: Loading TTF fonts...");
+        startTime = System.currentTimeMillis();
+        
+        //超采样加载4种大小字体
+        client.getAssetManager().registerLoader(TrueTypeLoader.class, "ttf");
+
+        for (FontSize fontSize : FontSize.values()) {
+            ttFont.put(fontSize, loadCrispFont(client.getAssetManager(), ttfFontPath, Style.Plain, fontSize.getSize()));
+        }
+        endTime = System.currentTimeMillis();
+        log.info("GlobalFontService: TTF fonts loaded in {}ms", endTime - startTime);
+
+        isInitialized = true;
     }
+
 
     /**
      * 加载经过超采样优化的字体。
@@ -66,28 +98,22 @@ public class SimpleTTFTest extends SimpleApplication {
         return font;
     }
 
-    @Override
-    public void simpleInitApp() {
-
-        assetManager.registerLoader(TrueTypeLoader.class, "ttf");
-
-        //超采样加载4种大小字体
-        String fontPath = "textures/font/AlibabaPuHuiTi-3-55-Regular.ttf";
-        Map<FontSize, TrueTypeFont<?, ?>> fonts = new HashMap<>();
-
-        for (FontSize fontSize : FontSize.values()) {
-            fonts.put(fontSize, loadCrispFont(assetManager, fontPath, Style.Plain, fontSize.getSize()));
-        }
-
-        //分别渲染4种大小字体
-        var offsetY = 0;
-        for (FontSize fontSize : FontSize.values()) {
-            TrueTypeNode<?> ttn = fonts.get(fontSize).getText("Hello JME! \n你好，世界！\n动态加载 TTF 测试", 1, ColorRGBA.Cyan);
-            ttn.setLocalTranslation(50, settings.getHeight() - 50 - offsetY, 0);
-            offsetY += (int) ttn.getHeight();
-            guiNode.attachChild(ttn);
-        }
-
+    /**
+     * 获取文本
+     *
+     * @param text     要显示的文本
+     * @param fontSize 字体大小
+     * @return 文本节点
+     */
+    public static TrueTypeNode<?> getText(String text, FontSize fontSize) {
+        TrueTypeFont<?, ?> font = ttFont.get(fontSize);
+        return font.getText(text, 0, ColorRGBA.Cyan);
     }
+
+    public static TrueTypeNode<?> getText(String text, FontSize fontSize, ColorRGBA color) {
+        TrueTypeFont<?, ?> font = ttFont.get(fontSize);
+        return font.getText(text, 0, color);
+    }
+
 
 }

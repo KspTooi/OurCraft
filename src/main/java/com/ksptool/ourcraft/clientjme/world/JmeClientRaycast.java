@@ -33,7 +33,7 @@ public class JmeClientRaycast {
                 distance += stepSize;
                 continue;
             }
-            
+
             GlobalPalette palette = GlobalPalette.getInstance();
             BlockState state = palette.getState(stateId);
             SharedBlock sharedBlock = state.getSharedBlock();

@@ -129,7 +129,7 @@ public abstract class JmeClientLivingEntity extends JmeClientEntity {
         Vector3d oldPosition = new Vector3d(position);
         previousPosition.set(position);
         position.set(newPosition);
-        
+
         if (boundingBox == null) {
             boundingBox = new BoundingBox(position, 0.6f, 1.8f);
         } else {

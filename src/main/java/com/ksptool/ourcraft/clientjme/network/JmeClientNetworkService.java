@@ -16,7 +16,7 @@ import java.util.concurrent.*;
 public class JmeClientNetworkService {
 
     //线程池
-    public static final ExecutorService NETWORK_THREAD_POOL =  Executors.newThreadPerTaskExecutor(ThreadFactoryUtils.createNetworkThreadFactory());
+    public static final ExecutorService NETWORK_THREAD_POOL = Executors.newThreadPerTaskExecutor(ThreadFactoryUtils.createNetworkThreadFactory());
 
     //当前连接到的服务器
     private JmeClientNetworkSession jmeClientNetworkSession;
@@ -32,12 +32,13 @@ public class JmeClientNetworkService {
 
     /**
      * 连接到服务器
+     *
      * @param host 服务器主机名
      * @param port 服务器端口
      */
     public Future<JmeClientNetworkSession> connect(String host, int port) throws Exception {
 
-        if(connectFuture != null && !connectFuture.isDone()){
+        if (connectFuture != null && !connectFuture.isDone()) {
             log.warn("已经连接到服务器");
             return connectFuture;
         }
@@ -49,7 +50,7 @@ public class JmeClientNetworkService {
         Future<Socket> socketFuture = openSocket(host, port);
         var socket = socketFuture.get(30, TimeUnit.SECONDS);
 
-        if(socket == null){
+        if (socket == null) {
             log.error("连接到服务器失败");
             return null;
         }
@@ -57,23 +58,23 @@ public class JmeClientNetworkService {
         //处理认证
         var session = establishSession(socket).get();
 
-        if(session == null){
+        if (session == null) {
             log.error("处理认证失败");
             return null;
         }
 
         //接收批数据
-        while(true){
+        while (true) {
             var batchData = session.receiveNext(30, TimeUnit.SECONDS);
 
-            if(batchData == null){
+            if (batchData == null) {
                 log.warn("批数据接收超时");
                 break;
             }
 
             //如果收到kind为-1的批数据，则表示批数据接收完成
-            if(batchData instanceof BatchDataNVo vo){
-                if(vo.kind() == -1){
+            if (batchData instanceof BatchDataNVo vo) {
+                if (vo.kind() == -1) {
                     log.info("会话:{} 批数据处理完成", session.getId());
                     // 发送批数据完成确认
                     session.sendNext(new BatchDataFinishNDto());
@@ -99,7 +100,7 @@ public class JmeClientNetworkService {
      * 断开连接
      */
     public void disconnect() {
-        if(jmeClientNetworkSession == null){
+        if (jmeClientNetworkSession == null) {
             log.warn("没有连接到服务器");
             return;
         }
@@ -111,6 +112,7 @@ public class JmeClientNetworkService {
 
     /**
      * 打开Socket
+     *
      * @param host 主机名
      * @param port 端口
      * @return Socket
@@ -134,6 +136,7 @@ public class JmeClientNetworkService {
 
     /**
      * 建立会话
+     *
      * @param socket Socket
      * @return 会话
      */
@@ -148,10 +151,10 @@ public class JmeClientNetworkService {
                 log.info("正在请求认证 玩家名称: {} 客户端版本: {}", playerName, clientVersion);
                 var authRet = session.rpcRequest(AuthRpcDto.of(playerName, clientVersion)).get();
 
-                if(authRet instanceof AuthRpcVo r){
+                if (authRet instanceof AuthRpcVo r) {
 
                     //服务端接受认证 已分配会话ID
-                    if(r.accepted() == 0){
+                    if (r.accepted() == 0) {
                         session.setId(r.sessionId());
                         session.setStage(JmeClientNetworkSession.Stage.AUTHORIZED);
                         future.complete(session);
@@ -160,7 +163,7 @@ public class JmeClientNetworkService {
                     }
 
                     //服务端拒绝认证 返回拒绝原因
-                    if(r.accepted() == 1){
+                    if (r.accepted() == 1) {
                         log.error("认证被拒绝: {}", r.reason());
                         future.complete(null);
                         return;
@@ -181,8 +184,6 @@ public class JmeClientNetworkService {
         });
         return future;
     }
-
-
 
 
 }

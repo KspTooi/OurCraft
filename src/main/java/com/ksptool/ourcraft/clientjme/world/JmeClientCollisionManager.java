@@ -12,7 +12,7 @@ import org.joml.Vector3f;
  */
 public class JmeClientCollisionManager {
     private final JmeClientWorld world;
-    
+
     public JmeClientCollisionManager(JmeClientWorld world) {
         this.world = world;
     }

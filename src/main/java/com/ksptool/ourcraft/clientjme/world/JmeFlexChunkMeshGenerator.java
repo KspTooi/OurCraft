@@ -29,33 +29,6 @@ import java.util.concurrent.*;
 @Slf4j
 public class JmeFlexChunkMeshGenerator {
 
-    private enum BlockFace {
-        TOP(0, 1, 0, 0, new int[][]{{0, 1, 0}, {1, 1, 0}, {1, 1, 1}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        BOTTOM(0, -1, 0, 1, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}, new int[]{0, 1, 2, 0, 2, 3}, new int[][]{{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
-        NORTH(0, 0, -1, 2, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        SOUTH(0, 0, 1, 2, new int[][]{{1, 0, 1}, {0, 0, 1}, {0, 1, 1}, {1, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        WEST(-1, 0, 0, 2, new int[][]{{0, 0, 1}, {0, 0, 0}, {0, 1, 0}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        EAST(1, 0, 0, 2, new int[][]{{1, 0, 0}, {1, 0, 1}, {1, 1, 1}, {1, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}});
-
-        public final int dx;
-        public final int dy;
-        public final int dz;
-        public final int textureFace;
-        public final int[][] vertexOffsets;
-        public final int[] indices;
-        public final int[][] texCoordOrder;
-
-        BlockFace(int dx, int dy, int dz, int textureFace, int[][] vertexOffsets, int[] indices, int[][] texCoordOrder) {
-            this.dx = dx;
-            this.dy = dy;
-            this.dz = dz;
-            this.textureFace = textureFace;
-            this.vertexOffsets = vertexOffsets;
-            this.indices = indices;
-            this.texCoordOrder = texCoordOrder;
-        }
-    }
-
     private final ExecutorService executor;
     private final List<Future<JmeMeshGenerationResult>> pendingFutures = new CopyOnWriteArrayList<>();
     private final JmeClientWorld clientWorld;
@@ -108,7 +81,7 @@ public class JmeFlexChunkMeshGenerator {
                     // 使用快照无锁读取方块状态
                     BlockState state = snapshot.getBlock(x, y, z);
                     SharedBlock sharedBlock = state.getSharedBlock();
-                    
+
                     // 使用isAir方法进行快速判断（避免对象创建）
                     if (snapshot.isAir(x, y, z)) {
                         continue;
@@ -163,12 +136,12 @@ public class JmeFlexChunkMeshGenerator {
     public void applyMeshResult(JmeFlexClientChunk chunk, JmeMeshGenerationResult result, com.jme3.scene.Node rootNode, com.jme3.asset.AssetManager assetManager) {
         JmeTextureManager textureManager = JmeTextureManager.getInstance();
         Texture atlasTexture = textureManager.getTexture();
-        
+
         if (result.vertices.length > 0) {
             Mesh mesh = createJmeMesh(result.vertices, result.texCoords, result.indices);
             Geometry geometry = new Geometry("Chunk_" + result.chunkX + "_" + result.chunkZ, mesh);
             geometry.setLocalTranslation(result.chunkX * JmeFlexClientChunk.CHUNK_SIZE, 0, result.chunkZ * JmeFlexClientChunk.CHUNK_SIZE);
-            
+
             // 设置材质和纹理图集
             Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
             if (atlasTexture != null) {
@@ -177,16 +150,16 @@ public class JmeFlexChunkMeshGenerator {
                 material.setColor("Color", ColorRGBA.White);
             }
             geometry.setMaterial(material);
-            
+
             chunk.setGeometry(geometry);
             rootNode.attachChild(geometry);
         }
-        
+
         if (result.transparentVertices.length > 0) {
             Mesh transparentMesh = createJmeMesh(result.transparentVertices, result.transparentTexCoords, result.transparentIndices);
             Geometry transparentGeometry = new Geometry("Chunk_Transparent_" + result.chunkX + "_" + result.chunkZ, transparentMesh);
             transparentGeometry.setLocalTranslation(result.chunkX * JmeFlexClientChunk.CHUNK_SIZE, 0, result.chunkZ * JmeFlexClientChunk.CHUNK_SIZE);
-            
+
             // 设置透明材质和纹理图集
             Material transparentMaterial = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
             if (atlasTexture != null) {
@@ -196,7 +169,7 @@ public class JmeFlexChunkMeshGenerator {
             }
             transparentMaterial.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
             transparentGeometry.setMaterial(transparentMaterial);
-            
+
             chunk.setTransparentGeometry(transparentGeometry);
             rootNode.attachChild(transparentGeometry);
         }
@@ -204,21 +177,21 @@ public class JmeFlexChunkMeshGenerator {
 
     private Mesh createJmeMesh(float[] vertices, float[] texCoords, int[] indices) {
         Mesh mesh = new Mesh();
-        
+
         // 设置顶点位置
         FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(vertices);
         mesh.setBuffer(VertexBuffer.Type.Position, 3, vertexBuffer);
-        
+
         // 设置纹理坐标
         if (texCoords.length > 0) {
             FloatBuffer texCoordBuffer = BufferUtils.createFloatBuffer(texCoords);
             mesh.setBuffer(VertexBuffer.Type.TexCoord, 2, texCoordBuffer);
         }
-        
+
         // 设置索引
         IntBuffer indexBuffer = BufferUtils.createIntBuffer(indices);
         mesh.setBuffer(VertexBuffer.Type.Index, 3, indexBuffer);
-        
+
         mesh.updateBound();
         return mesh;
     }
@@ -244,18 +217,18 @@ public class JmeFlexChunkMeshGenerator {
         int neighborX = x + dx;
         int neighborY = y + dy;
         int neighborZ = z + dz;
-        
+
         // 检查Y轴边界 (使用快照中的高度)
         if (neighborY < 0 || neighborY >= currentSnapshot.getHeight()) {
             return true;
         }
-        
+
         // 计算邻居方块所在的区块坐标
         int neighborChunkX = (int) Math.floor((float) neighborX / JmeFlexClientChunk.CHUNK_SIZE);
         int neighborChunkZ = (int) Math.floor((float) neighborZ / JmeFlexClientChunk.CHUNK_SIZE);
-        
+
         BlockState neighborState;
-        
+
         // 如果邻居在本区块内，使用快照无锁读取
         if (neighborChunkX == currentChunk.getChunkX() && neighborChunkZ == currentChunk.getChunkZ()) {
             int localX = neighborX - neighborChunkX * JmeFlexClientChunk.CHUNK_SIZE;
@@ -267,32 +240,32 @@ public class JmeFlexChunkMeshGenerator {
             GlobalPalette palette = GlobalPalette.getInstance();
             neighborState = palette.getState(neighborStateId);
         }
-        
+
         SharedBlock neighborSharedBlock = neighborState.getSharedBlock();
-        
+
         // 快速判断空气
         if (neighborSharedBlock.getStdRegName().equals(BlockEnums.AIR.getStdRegName())) {
             return true;
         }
-        
+
         boolean neighborIsSolid = neighborSharedBlock.isSolid();
         boolean neighborIsFluid = neighborSharedBlock.isFluid();
-        
+
         if (!neighborIsSolid && !neighborIsFluid) {
             return true;
         }
-        
+
         boolean currentIsSolid = currentSharedBlock.isSolid();
         boolean currentIsFluid = currentSharedBlock.isFluid();
-        
+
         if (currentIsSolid && neighborIsFluid) {
             return true;
         }
-        
+
         if (currentIsFluid && neighborIsSolid) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -300,9 +273,9 @@ public class JmeFlexChunkMeshGenerator {
         // 获取纹理名称和UV坐标
         SharedBlock sharedBlock = state.getSharedBlock();
         String textureName = sharedBlock.getTextureName(clientWorld, face.textureFace, state);
-        
+
         float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
-        
+
         if (textureName != null) {
             JmeTextureManager textureManager = JmeTextureManager.getInstance();
             JmeTextureManager.UVCoords uvCoords = textureManager.getUVCoords(textureName);
@@ -313,7 +286,7 @@ public class JmeFlexChunkMeshGenerator {
                 v1 = uvCoords.v1;
             }
         }
-        
+
         for (int i = 0; i < 4; i++) {
             int[] vOffset = face.vertexOffsets[i];
             vertices.add((float) (x + vOffset[0]));
@@ -352,28 +325,55 @@ public class JmeFlexChunkMeshGenerator {
         if (textureName == null) {
             return new float[]{0.0f, 0.0f, 0.0f};
         }
-        
+
         JmeTextureManager textureManager = JmeTextureManager.getInstance();
         JmeTextureManager.UVCoords uvCoords = textureManager.getUVCoords(textureName);
-        
+
         if (uvCoords == null || !uvCoords.isAnimated) {
             return new float[]{0.0f, 0.0f, 0.0f};
         }
-        
+
         return new float[]{(float) uvCoords.frameCount, uvCoords.frameTime, uvCoords.v0};
     }
 
     private float getTintValue(BlockState state, int face) {
         SharedBlock sharedBlock = state.getSharedBlock();
-        
+
         if (sharedBlock.getStdRegName().equals(BlockEnums.GRASS_BLOCK.getStdRegName()) && face == 0) {
             return 1.0f;
         }
-        
+
         if (sharedBlock.getStdRegName().equals(BlockEnums.LEAVES.getStdRegName())) {
             return 1.0f;
         }
-        
+
         return 0.0f;
+    }
+
+    private enum BlockFace {
+        TOP(0, 1, 0, 0, new int[][]{{0, 1, 0}, {1, 1, 0}, {1, 1, 1}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        BOTTOM(0, -1, 0, 1, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}, new int[]{0, 1, 2, 0, 2, 3}, new int[][]{{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+        NORTH(0, 0, -1, 2, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        SOUTH(0, 0, 1, 2, new int[][]{{1, 0, 1}, {0, 0, 1}, {0, 1, 1}, {1, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        WEST(-1, 0, 0, 2, new int[][]{{0, 0, 1}, {0, 0, 0}, {0, 1, 0}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        EAST(1, 0, 0, 2, new int[][]{{1, 0, 0}, {1, 0, 1}, {1, 1, 1}, {1, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}});
+
+        public final int dx;
+        public final int dy;
+        public final int dz;
+        public final int textureFace;
+        public final int[][] vertexOffsets;
+        public final int[] indices;
+        public final int[][] texCoordOrder;
+
+        BlockFace(int dx, int dy, int dz, int textureFace, int[][] vertexOffsets, int[] indices, int[][] texCoordOrder) {
+            this.dx = dx;
+            this.dy = dy;
+            this.dz = dz;
+            this.textureFace = textureFace;
+            this.vertexOffsets = vertexOffsets;
+            this.indices = indices;
+            this.texCoordOrder = texCoordOrder;
+        }
     }
 }

@@ -26,7 +26,7 @@ public class JmeMeshGenerationResult {
 
     //透明顶点坐标
     public final float[] transparentVertices;
-    
+
     //透明纹理坐标
     public final float[] transparentTexCoords;
 

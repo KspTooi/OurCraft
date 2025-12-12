@@ -34,22 +34,18 @@ public class HelloLemur extends SimpleApplication {
         Button clickMe = myWindow.addChild(new Button("22222222222"));
         Button exitBtn = myWindow.addChild(new Button("33333333333"));
 
-        clickMe.addClickCommands(new Command<Button>() {
-            @Override
-            public void execute(Button source) {
-                System.out.println("你点击了按钮！");
-                source.setText("我被点击了！"); // 动态修改文字
-            }
+        clickMe.addClickCommands(source -> {
+            System.out.println("你点击了按钮！");
+            source.setText("我被点击了！"); // 动态修改文字
         });
 
         exitBtn.addClickCommands(source -> stop());
 
         myWindow.setLocalTranslation(
-                (float) settings.getWidth() / 2 - 100, // x
-                (float) settings.getHeight() / 2 + 100, // y
+                (float) (settings.getWidth() / 2) - 50, // x
+                (float) (settings.getHeight()) / 2 + 50, // y
                 0 // z
         );
-
 
         guiNode.attachChild(myWindow);
     }

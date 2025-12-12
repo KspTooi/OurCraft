@@ -1,7 +1,6 @@
 package com.ksptool.ourcraft.clientjme.world;
 
 import com.jme3.scene.Node;
-import com.ksptool.ourcraft.client.world.FlexClientChunk;
 import com.ksptool.ourcraft.clientjme.entity.JmeClientPlayer;
 import com.ksptool.ourcraft.sharedcore.utils.ChunkUtils;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
@@ -35,31 +34,28 @@ public class JmeClientWorld implements SharedWorld {
 
     //世界模板
     private final WorldTemplate template;
-    
+    private final List<JmeFlexClientChunk> dirtyChunks = new ArrayList<>();
     private float timeOfDay = 0.0f;
-
     //客户端本地玩家
     private JmeClientPlayer player;
     private JmeFlexChunkMeshGenerator chunkMeshGenerator;
-    private final List<JmeFlexClientChunk> dirtyChunks = new ArrayList<>();
-    
     //JME场景图根节点
     private Node rootNode;
-    
+
     //JME资源管理器
     private com.jme3.asset.AssetManager assetManager;
-    
+
     public JmeClientWorld(WorldTemplate template, Node rootNode, com.jme3.asset.AssetManager assetManager) {
         this.template = template;
         this.rootNode = rootNode;
         this.assetManager = assetManager;
         this.chunkMeshGenerator = new JmeFlexChunkMeshGenerator(this);
     }
-    
+
     public void setPlayer(JmeClientPlayer player) {
         this.player = player;
     }
-    
+
     /**
      * 处理PsChunkNVo数据包，反序列化并存储Flex区块数据
      */
@@ -68,43 +64,43 @@ public class JmeClientWorld implements SharedWorld {
             log.warn("收到null的PsChunkNVo数据包");
             return;
         }
-        
+
         int chunkX = packet.chunkX();
         int chunkZ = packet.chunkZ();
         byte[] blockData = packet.blockData();
-        
+
         if (blockData == null || blockData.length == 0) {
             log.warn("收到空的区块数据: ({}, {})", chunkX, chunkZ);
             return;
         }
-        
+
         try {
             // 反序列化FlexChunkData
             FlexChunkData flexChunkData = FlexChunkSerializer.deserialize(blockData);
-            
+
             // 获取或创建JmeFlexClientChunk
             JmeFlexClientChunk chunk = getChunk(chunkX, chunkZ);
             if (chunk == null) {
                 chunk = new JmeFlexClientChunk(chunkX, chunkZ);
                 putChunk(chunkX, chunkZ, chunk);
             }
-            
+
             // 设置区块数据
             chunk.setFlexChunkData(flexChunkData);
-            
+
             // 标记为需要网格更新
             synchronized (dirtyChunks) {
                 if (!dirtyChunks.contains(chunk)) {
                     dirtyChunks.add(chunk);
                 }
             }
-            
+
             log.debug("处理区块数据: ({}, {}), 数据大小: {} bytes", chunkX, chunkZ, blockData.length);
         } catch (Exception e) {
             log.error("处理区块数据失败: ({}, {})", chunkX, chunkZ, e);
         }
     }
-    
+
     /**
      * 处理热更新区块数据 (HuChunkNVo)
      */
@@ -113,44 +109,44 @@ public class JmeClientWorld implements SharedWorld {
             log.warn("收到null的HuChunkNVo数据包");
             return;
         }
-        
+
         // 热更新区块的处理逻辑与PsChunkNVo相同
         int chunkX = packet.chunkX();
         int chunkZ = packet.chunkZ();
         byte[] blockData = packet.blockData();
-        
+
         if (blockData == null || blockData.length == 0) {
             log.warn("收到空的热更新区块数据: ({}, {})", chunkX, chunkZ);
             return;
         }
-        
+
         try {
             // 反序列化FlexChunkData
             FlexChunkData flexChunkData = FlexChunkSerializer.deserialize(blockData);
-            
+
             // 获取或创建JmeFlexClientChunk
             JmeFlexClientChunk chunk = getChunk(chunkX, chunkZ);
             if (chunk == null) {
                 chunk = new JmeFlexClientChunk(chunkX, chunkZ);
                 putChunk(chunkX, chunkZ, chunk);
             }
-            
+
             // 设置区块数据
             chunk.setFlexChunkData(flexChunkData);
-            
+
             // 标记为需要网格更新
             synchronized (dirtyChunks) {
                 if (!dirtyChunks.contains(chunk)) {
                     dirtyChunks.add(chunk);
                 }
             }
-            
+
             log.debug("处理热更新区块数据: ({}, {}), 数据大小: {} bytes", chunkX, chunkZ, blockData.length);
         } catch (Exception e) {
             log.error("处理热更新区块数据失败: ({}, {})", chunkX, chunkZ, e);
         }
     }
-    
+
     /**
      * 处理区块卸载 (HuChunkUnloadNVo)
      */
@@ -159,13 +155,13 @@ public class JmeClientWorld implements SharedWorld {
             log.warn("收到null的HuChunkUnloadNVo数据包");
             return;
         }
-        
+
         int chunkX = packet.pos().getX();
         int chunkZ = packet.pos().getZ();
         removeChunk(chunkX, chunkZ);
         log.debug("卸载区块: ({}, {})", chunkX, chunkZ);
     }
-    
+
     /**
      * 处理方块更新 (ServerSyncBlockUpdateNVo)
      */
@@ -174,38 +170,38 @@ public class JmeClientWorld implements SharedWorld {
             log.warn("收到null的ServerSyncBlockUpdateNVo数据包");
             return;
         }
-        
+
         int worldX = packet.x();
         int worldY = packet.y();
         int worldZ = packet.z();
         int blockId = packet.blockId();
-        
+
         // 计算区块坐标
         int chunkX = (int) Math.floor((float) worldX / JmeFlexClientChunk.CHUNK_SIZE);
         int chunkZ = (int) Math.floor((float) worldZ / JmeFlexClientChunk.CHUNK_SIZE);
-        
+
         JmeFlexClientChunk chunk = getChunk(chunkX, chunkZ);
         if (chunk == null) {
             log.warn("收到方块更新但区块不存在: ({}, {}, {})", worldX, worldY, worldZ);
             return;
         }
-        
+
         // 计算区块内坐标
         int localX = worldX - chunkX * JmeFlexClientChunk.CHUNK_SIZE;
         int localZ = worldZ - chunkZ * JmeFlexClientChunk.CHUNK_SIZE;
-        
+
         // 从GlobalPalette获取BlockState
         BlockState blockState = GlobalPalette.getInstance().getState(blockId);
-        
+
         // 设置方块状态
         chunk.setBlockState(localX, worldY, localZ, blockState);
-        
+
         // 标记为需要网格更新
         markChunkForMeshUpdate(chunkX, chunkZ);
-        
+
         log.debug("收到方块更新: ({}, {}, {}) -> blockId={}", worldX, worldY, worldZ, blockId);
     }
-    
+
     /**
      * 添加或更新客户端区块
      */
@@ -213,7 +209,7 @@ public class JmeClientWorld implements SharedWorld {
         long key = ChunkUtils.getChunkKey(chunkX, chunkZ);
         chunks.put(key, chunk);
     }
-    
+
     /**
      * 获取客户端区块
      */
@@ -221,7 +217,7 @@ public class JmeClientWorld implements SharedWorld {
         long key = ChunkUtils.getChunkKey(chunkX, chunkZ);
         return chunks.get(key);
     }
-    
+
     /**
      * 移除客户端区块
      */
@@ -232,7 +228,7 @@ public class JmeClientWorld implements SharedWorld {
             chunk.cleanup();
         }
     }
-    
+
     /**
      * 将区块标记为需要网格更新（用于网络接收的区块数据）
      */
@@ -247,15 +243,15 @@ public class JmeClientWorld implements SharedWorld {
             }
         }
     }
-    
-    public void setTimeOfDay(float timeOfDay) {
-        this.timeOfDay = timeOfDay;
-    }
 
     public float getTimeOfDay() {
         return timeOfDay;
     }
-    
+
+    public void setTimeOfDay(float timeOfDay) {
+        this.timeOfDay = timeOfDay;
+    }
+
     /**
      * 获取指定坐标的方块状态ID（用于网格生成和物理检测）
      */
@@ -270,15 +266,15 @@ public class JmeClientWorld implements SharedWorld {
         int localZ = z - chunkZ * JmeFlexClientChunk.CHUNK_SIZE;
         return chunk.getBlockStateId(localX, y, localZ);
     }
-    
+
     public void processMeshGeneration() {
         if (chunkMeshGenerator == null) {
             return;
         }
-        
+
         List<Future<JmeMeshGenerationResult>> futures = chunkMeshGenerator.getPendingFutures();
         List<Future<JmeMeshGenerationResult>> completedFutures = new ArrayList<>();
-        
+
         for (Future<JmeMeshGenerationResult> future : futures) {
             if (future.isDone()) {
                 try {
@@ -295,9 +291,9 @@ public class JmeClientWorld implements SharedWorld {
                 completedFutures.add(future);
             }
         }
-        
+
         futures.removeAll(completedFutures);
-        
+
         synchronized (dirtyChunks) {
             for (JmeFlexClientChunk chunk : dirtyChunks) {
                 if (chunk.needsMeshUpdate()) {
@@ -307,7 +303,7 @@ public class JmeClientWorld implements SharedWorld {
             dirtyChunks.clear();
         }
     }
-    
+
     public void cleanup() {
         if (chunkMeshGenerator != null) {
             chunkMeshGenerator.shutdown();

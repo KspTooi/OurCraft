@@ -12,33 +12,33 @@ import lombok.Getter;
  */
 @Getter
 public class JmeFlexClientChunk {
-    
+
     //区块大小（与ClientChunk保持一致）
     public static final int CHUNK_SIZE = 16;
-    
+
     private final int chunkX;
     private final int chunkZ;
-    
+
     private FlexChunkData flexChunkData;
     private Geometry geometry;
     private Geometry transparentGeometry;
     private BoundingBox boundingBox;
     private boolean needsMeshUpdate = false;
-    
+
     public JmeFlexClientChunk(int chunkX, int chunkZ) {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
-        
+
         float minX = chunkX * CHUNK_SIZE;
         float maxX = minX + CHUNK_SIZE;
         float minZ = chunkZ * CHUNK_SIZE;
         float maxZ = minZ + CHUNK_SIZE;
-        
+
         // 初始包围盒高度设置为0，待设置数据后更新，或者设为一个合理的默认值
         // 这里暂时设为0，setFlexChunkData时会更新
         this.boundingBox = new BoundingBox(minX, 0, minZ, maxX, 0, maxZ);
     }
-    
+
     /**
      * 设置Flex区块数据（通常来自网络）
      */
@@ -48,7 +48,7 @@ public class JmeFlexClientChunk {
         }
         this.flexChunkData = flexChunkData;
         this.needsMeshUpdate = true;
-        
+
         // 更新包围盒高度
         double minX = boundingBox.getMinX();
         double maxX = boundingBox.getMaxX();
@@ -56,7 +56,7 @@ public class JmeFlexClientChunk {
         double maxZ = boundingBox.getMaxZ();
         this.boundingBox = new BoundingBox(minX, 0, minZ, maxX, flexChunkData.getHeight(), maxZ);
     }
-    
+
     /**
      * 线程安全地获取方块状态
      * 直接调用flexChunkData.getBlock，该方法自带锁
@@ -70,7 +70,7 @@ public class JmeFlexClientChunk {
         }
         return flexChunkData.getBlock(x, y, z);
     }
-    
+
     /**
      * 获取方块状态ID（用于兼容旧代码）
      */
@@ -78,7 +78,7 @@ public class JmeFlexClientChunk {
         BlockState state = getBlockState(x, y, z);
         return GlobalPalette.getInstance().getStateId(state);
     }
-    
+
     /**
      * 设置方块状态
      */
@@ -92,7 +92,7 @@ public class JmeFlexClientChunk {
         flexChunkData.setBlock(x, y, z, state);
         needsMeshUpdate = true;
     }
-    
+
     /**
      * 创建数据快照用于异步网格生成
      * 快照是线程安全的，无锁读取
@@ -103,7 +103,7 @@ public class JmeFlexClientChunk {
         }
         return flexChunkData.createSnapshot();
     }
-    
+
     public void setGeometry(Geometry geometry) {
         if (this.geometry != null) {
             this.geometry.removeFromParent();
@@ -111,30 +111,30 @@ public class JmeFlexClientChunk {
         this.geometry = geometry;
         this.needsMeshUpdate = false;
     }
-    
+
     public void setTransparentGeometry(Geometry transparentGeometry) {
         if (this.transparentGeometry != null) {
             this.transparentGeometry.removeFromParent();
         }
         this.transparentGeometry = transparentGeometry;
     }
-    
+
     public boolean hasGeometry() {
         return geometry != null;
     }
-    
+
     public boolean hasTransparentGeometry() {
         return transparentGeometry != null;
     }
-    
+
     public void markNeedsMeshUpdate() {
         this.needsMeshUpdate = true;
     }
-    
+
     public boolean needsMeshUpdate() {
         return needsMeshUpdate;
     }
-    
+
     public void cleanup() {
         if (geometry != null) {
             geometry.removeFromParent();

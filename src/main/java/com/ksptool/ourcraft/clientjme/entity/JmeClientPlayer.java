@@ -15,34 +15,28 @@ import java.util.UUID;
  */
 @Getter
 public class JmeClientPlayer extends JmeClientLivingEntity {
-    //相机
-    private final Camera camera;
+    //地面加速度
+    private static final float GROUND_ACCELERATION = 40F;
 
     //背包 (TODO: 实现 JME 版本的 Inventory)
     // private final ClientInventory inventory;
-
+    //空中加速度
+    private static final float AIR_ACCELERATION = 5F;
+    //最大移动速度
+    private static final float MAX_SPEED = 40F;
+    //相机
+    private final Camera camera;
     //鼠标灵敏度
     private float mouseSensitivity = 0.1f;
-    
     //相机朝向
     private float yaw = 0.0f;
     private float pitch = 0.0f;
     private float previousYaw = 0.0f;
     private float previousPitch = 0.0f;
-    
-    //地面加速度
-    private static final float GROUND_ACCELERATION = 40F;
-    
-    //空中加速度
-    private static final float AIR_ACCELERATION = 5F;
-    
-    //最大移动速度
-    private static final float MAX_SPEED = 40F;
-    
     //生命值（从服务器同步）
     private float health = 40.0f;
     private float maxHealth = 40.0f;
-    
+
     //饥饿值（从服务器同步）
     private float hunger = 40.0f;
     private float maxHunger = 40.0f;
@@ -75,19 +69,20 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
         if (delta > 0.1f) {
             delta = 0.1f;
         }
-        
+
         // 更新previousYaw和previousPitch用于插值
         previousYaw = yaw;
         previousPitch = pitch;
-        
+
         // 调用父类的物理更新
         super.update(delta);
-        
+
         updateCamera();
     }
-    
+
     /**
      * 处理鼠标输入（客户端本地处理）
+     *
      * @param deltaX 鼠标X方向变化量
      * @param deltaY 鼠标Y方向变化量
      */
@@ -97,19 +92,19 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
             yaw += deltaX;
             pitch += deltaY;
             pitch = Math.max(-90, Math.min(90, pitch));
-            
+
             camera.setYaw(yaw);
             camera.setPitch(pitch);
         }
     }
-    
+
     /**
      * 应用玩家输入（移动方向）- 客户端预测
      */
     public void applyInput(PlayerInputEvent event) {
         Vector3f moveDirection = new Vector3f();
         float yawRad = (float) Math.toRadians(yaw);
-        
+
         if (event.isForward()) {
             moveDirection.x += Math.sin(yawRad);
             moveDirection.z -= Math.cos(yawRad);
@@ -126,10 +121,10 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
             moveDirection.x += Math.cos(yawRad);
             moveDirection.z += Math.sin(yawRad);
         }
-        
+
         if (moveDirection.length() > 0) {
             moveDirection.normalize();
-            
+
             float acceleration = onGround ? GROUND_ACCELERATION : AIR_ACCELERATION;
             float tickDelta = 1.0f / 20.0f; // 假设20 TPS，后续可以从WorldTemplate获取
             if (world != null && world.getTemplate() != null) {
@@ -137,7 +132,7 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
             }
             velocity.x += moveDirection.x * acceleration * tickDelta;
             velocity.z += moveDirection.z * acceleration * tickDelta;
-            
+
             Vector2d horizontalVelocity = new Vector2d(velocity.x, velocity.z);
             if (horizontalVelocity.lengthSquared() > MAX_SPEED * MAX_SPEED) {
                 horizontalVelocity.normalize().mul(MAX_SPEED);
@@ -145,13 +140,13 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
                 velocity.z = horizontalVelocity.y;
             }
         }
-        
+
         if (event.isJump() && onGround) {
             velocity.y = JUMP_VELOCITY;
             onGround = false;
         }
     }
-    
+
     /**
      * 更新相机朝向（从服务器接收）
      */
@@ -172,7 +167,7 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
         // 如果客户端预测的位置与服务端位置差异较大，说明预测有误，需要强制同步
         Vector3d serverPosition = event.getPosition();
         double distance = position.distance(serverPosition);
-        
+
         // 如果差异超过阈值（例如0.5个单位），强制同步到服务端位置
         // 这可以防止客户端预测错误导致的"穿墙"等问题
         if (distance > 0.5f) {
@@ -184,7 +179,7 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
             position.lerp(serverPosition, 0.3f);
             previousPosition.set(event.getPreviousPosition());
         }
-        
+
         // 同步相机朝向（服务端是权威的）
         yaw = event.getYaw();
         pitch = event.getPitch();
@@ -194,10 +189,10 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
         camera.setPitch(pitch);
         camera.setPreviousYaw(previousYaw);
         camera.setPreviousPitch(previousPitch);
-        
+
         // 同步物品栏选择
         // inventory.setSelectedSlot(event.getSelectedSlot());
-        
+
         updateCamera();
     }
 
@@ -211,25 +206,25 @@ public class JmeClientPlayer extends JmeClientLivingEntity {
     public float getYaw() {
         return yaw;
     }
-    
+
     public void setYaw(float yaw) {
         this.yaw = yaw;
         camera.setYaw(yaw);
     }
-    
+
     public float getPreviousYaw() {
         return previousYaw;
     }
-    
+
     public float getPitch() {
         return pitch;
     }
-    
+
     public void setPitch(float pitch) {
         this.pitch = Math.max(-90, Math.min(90, pitch));
         camera.setPitch(this.pitch);
     }
-    
+
     public float getPreviousPitch() {
         return previousPitch;
     }

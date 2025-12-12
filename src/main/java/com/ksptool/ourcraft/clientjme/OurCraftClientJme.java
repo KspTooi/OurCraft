@@ -30,7 +30,7 @@ public class OurCraftClientJme extends SimpleApplication {
 
     @Getter
     private JmeClientNetworkService clientNetworkService;
-    
+
     private MainMenuState mainMenuState;
     private GameplayState gameplayState;
 
@@ -40,31 +40,21 @@ public class OurCraftClientJme extends SimpleApplication {
         // 注册所有引擎原版内容
         registerAllDefaultContent();
         GlobalPalette.getInstance().bake();
-        
+
         // 加载纹理图集
         JmeTextureManager.getInstance().loadAtlas();
-        
+
         // 初始化网络服务
         clientNetworkService = new JmeClientNetworkService();
-        
+
         // 设置背景色
         viewPort.setBackgroundColor(new ColorRGBA(0.1f, 0.1f, 0.15f, 1.0f));
-        
+
         // 初始化主菜单状态
         mainMenuState = new MainMenuState();
         stateManager.attach(mainMenuState);
 
         assetManager.registerLoader(TrueTypeLoader.class, "ttf");
-
-
-
-
-
-
-
-
-
-
 
 
         log.info("JME客户端初始化完成，显示主菜单");
@@ -75,13 +65,13 @@ public class OurCraftClientJme extends SimpleApplication {
      */
     public void connectToServer(String host, int port) throws Exception {
         log.info("开始连接到服务器: {}:{}", host, port);
-        
+
         Future<com.ksptool.ourcraft.clientjme.network.JmeClientNetworkSession> future = clientNetworkService.connect(host, port);
         if (future == null) {
             log.error("连接失败：无法创建连接任务");
             return;
         }
-        
+
         // 异步等待连接完成
         new Thread(() -> {
             try {
@@ -119,7 +109,7 @@ public class OurCraftClientJme extends SimpleApplication {
         gen.addLayer(new SurfaceLayer());
         gen.addLayer(new FeatureLayer());
         registry.registerTerrainGenerator(gen);
-        
+
         //注册出生平台生成器
         var spawnPlatformGen = new SpawnPlatformGenerator();
         registry.registerTerrainGenerator(spawnPlatformGen);

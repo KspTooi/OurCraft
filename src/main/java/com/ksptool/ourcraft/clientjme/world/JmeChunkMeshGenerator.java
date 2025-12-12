@@ -18,33 +18,6 @@ import java.util.concurrent.*;
  */
 public class JmeChunkMeshGenerator {
 
-    private enum BlockFace {
-        TOP(0, 1, 0, 0, new int[][]{{0, 1, 0}, {1, 1, 0}, {1, 1, 1}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        BOTTOM(0, -1, 0, 1, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}, new int[]{0, 1, 2, 0, 2, 3}, new int[][]{{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
-        NORTH(0, 0, -1, 2, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        SOUTH(0, 0, 1, 2, new int[][]{{1, 0, 1}, {0, 0, 1}, {0, 1, 1}, {1, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        WEST(-1, 0, 0, 2, new int[][]{{0, 0, 1}, {0, 0, 0}, {0, 1, 0}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
-        EAST(1, 0, 0, 2, new int[][]{{1, 0, 0}, {1, 0, 1}, {1, 1, 1}, {1, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}});
-
-        public final int dx;
-        public final int dy;
-        public final int dz;
-        public final int textureFace;
-        public final int[][] vertexOffsets;
-        public final int[] indices;
-        public final int[][] texCoordOrder;
-
-        BlockFace(int dx, int dy, int dz, int textureFace, int[][] vertexOffsets, int[] indices, int[][] texCoordOrder) {
-            this.dx = dx;
-            this.dy = dy;
-            this.dz = dz;
-            this.textureFace = textureFace;
-            this.vertexOffsets = vertexOffsets;
-            this.indices = indices;
-            this.texCoordOrder = texCoordOrder;
-        }
-    }
-
     private final ExecutorService executor;
     private final List<Future<MeshGenerationResult>> pendingFutures = new CopyOnWriteArrayList<>();
     private final com.ksptool.ourcraft.client.world.ClientWorld clientWorld;
@@ -97,7 +70,7 @@ public class JmeChunkMeshGenerator {
                     int stateId = blockStates[x][y][z];
                     BlockState state = palette.getState(stateId);
                     SharedBlock sharedBlock = state.getSharedBlock();
-                    
+
                     if (stateId == AIR_STATE_ID) {
                         continue;
                     }
@@ -166,37 +139,37 @@ public class JmeChunkMeshGenerator {
         GlobalPalette palette = GlobalPalette.getInstance();
         BlockState neighborState = palette.getState(neighborStateId);
         SharedBlock neighborSharedBlock = neighborState.getSharedBlock();
-        
+
         int AIR_STATE_ID = 0;
         if (neighborStateId == AIR_STATE_ID) {
             return true;
         }
-        
+
         boolean neighborIsSolid = neighborSharedBlock.isSolid();
         boolean neighborIsFluid = neighborSharedBlock.isFluid();
-        
+
         if (!neighborIsSolid && !neighborIsFluid) {
             return true;
         }
-        
+
         boolean currentIsSolid = currentSharedBlock.isSolid();
         boolean currentIsFluid = currentSharedBlock.isFluid();
-        
+
         if (currentIsSolid && neighborIsFluid) {
             return true;
         }
-        
+
         if (currentIsFluid && neighborIsSolid) {
             return true;
         }
-        
+
         return false;
     }
 
     private void addFace(BlockFace face, List<Float> vertices, List<Float> texCoords, List<Float> tints, List<Float> animationData, List<Integer> indices, int x, int y, int z, BlockState state, int offset) {
         float[] tex = getTextureCoords(state, face.textureFace);
         float u0 = tex[0], v0 = tex[1], u1 = tex[2], v1 = tex[3];
-        
+
         for (int i = 0; i < 4; i++) {
             int[] vOffset = face.vertexOffsets[i];
             vertices.add((float) (x + vOffset[0]));
@@ -238,28 +211,28 @@ public class JmeChunkMeshGenerator {
 
         TextureManager textureManager = TextureManager.getInstance();
         TextureManager.UVCoords uvCoords = textureManager.getUVCoords(textureName);
-        
+
         if (uvCoords == null) {
             return new float[]{0.0f, 0.0f, 1.0f, 1.0f};
         }
-        
+
         return new float[]{uvCoords.u0, uvCoords.v0, uvCoords.u1, uvCoords.v1};
     }
-    
+
     private float[] getAnimationData(BlockState state, int face) {
         SharedBlock sharedBlock = state.getSharedBlock();
         String textureName = sharedBlock.getTextureName(clientWorld, face, state);
         if (textureName == null) {
             return new float[]{0.0f, 0.0f, 0.0f};
         }
-        
+
         TextureManager textureManager = TextureManager.getInstance();
         TextureManager.UVCoords uvCoords = textureManager.getUVCoords(textureName);
-        
+
         if (uvCoords == null || !uvCoords.isAnimated) {
             return new float[]{0.0f, 0.0f, 0.0f};
         }
-        
+
         return new float[]{(float) uvCoords.frameCount, uvCoords.frameTime, uvCoords.v0};
     }
 
@@ -269,15 +242,42 @@ public class JmeChunkMeshGenerator {
         if (textureName == null) {
             return 0.0f;
         }
-        
+
         if (sharedBlock.getStdRegName().equals(BlockEnums.GRASS_BLOCK.getStdRegName()) && face == 0) {
             return 1.0f;
         }
-        
+
         if (sharedBlock.getStdRegName().equals(BlockEnums.LEAVES.getStdRegName())) {
             return 1.0f;
         }
-        
+
         return 0.0f;
+    }
+
+    private enum BlockFace {
+        TOP(0, 1, 0, 0, new int[][]{{0, 1, 0}, {1, 1, 0}, {1, 1, 1}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        BOTTOM(0, -1, 0, 1, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}, new int[]{0, 1, 2, 0, 2, 3}, new int[][]{{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+        NORTH(0, 0, -1, 2, new int[][]{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        SOUTH(0, 0, 1, 2, new int[][]{{1, 0, 1}, {0, 0, 1}, {0, 1, 1}, {1, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        WEST(-1, 0, 0, 2, new int[][]{{0, 0, 1}, {0, 0, 0}, {0, 1, 0}, {0, 1, 1}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}}),
+        EAST(1, 0, 0, 2, new int[][]{{1, 0, 0}, {1, 0, 1}, {1, 1, 1}, {1, 1, 0}}, new int[]{0, 3, 2, 0, 2, 1}, new int[][]{{0, 1}, {1, 1}, {1, 0}, {0, 0}});
+
+        public final int dx;
+        public final int dy;
+        public final int dz;
+        public final int textureFace;
+        public final int[][] vertexOffsets;
+        public final int[] indices;
+        public final int[][] texCoordOrder;
+
+        BlockFace(int dx, int dy, int dz, int textureFace, int[][] vertexOffsets, int[] indices, int[][] texCoordOrder) {
+            this.dx = dx;
+            this.dy = dy;
+            this.dz = dz;
+            this.textureFace = textureFace;
+            this.vertexOffsets = vertexOffsets;
+            this.indices = indices;
+            this.texCoordOrder = texCoordOrder;
+        }
     }
 }

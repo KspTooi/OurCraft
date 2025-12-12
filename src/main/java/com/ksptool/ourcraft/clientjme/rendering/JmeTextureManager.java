@@ -43,33 +43,6 @@ public class JmeTextureManager {
     // 纹理图集高度
     private int atlasHeight;
 
-    public static class UVCoords {
-        public float u0, v0, u1, v1;
-        public boolean isAnimated;
-        public int frameCount;
-        public float frameTime;
-
-        public UVCoords(float u0, float v0, float u1, float v1) {
-            this.u0 = u0;
-            this.v0 = v0;
-            this.u1 = u1;
-            this.v1 = v1;
-            this.isAnimated = false;
-            this.frameCount = 1;
-            this.frameTime = 1.0f;
-        }
-
-        public UVCoords(float u0, float v0, float u1, float v1, boolean isAnimated, int frameCount, float frameTime) {
-            this.u0 = u0;
-            this.v0 = v0;
-            this.u1 = u1;
-            this.v1 = v1;
-            this.isAnimated = isAnimated;
-            this.frameCount = frameCount;
-            this.frameTime = frameTime;
-        }
-    }
-
     private JmeTextureManager() {
         textureUVMap = new HashMap<>();
     }
@@ -182,35 +155,6 @@ public class JmeTextureManager {
         log.info("Texture atlas loaded: {} textures, size: {}x{}", textureUVMap.size(), atlasWidth, atlasHeight);
     }
 
-    private static class TextureLoadResult {
-        BufferedImage image;
-        boolean isAnimated;
-        int frameCount;
-        float frameTime;
-        int imgWidth;
-        int imgHeight;
-
-        TextureLoadResult(BufferedImage image, boolean isAnimated, int frameCount, float frameTime, int imgWidth,
-                int imgHeight) {
-            this.image = image;
-            this.isAnimated = isAnimated;
-            this.frameCount = frameCount;
-            this.frameTime = frameTime;
-            this.imgWidth = imgWidth;
-            this.imgHeight = imgHeight;
-        }
-    }
-
-    private static class AnimationMetadata {
-        AnimationData animation;
-
-        static class AnimationData {
-            Integer frametime;
-            Boolean interpolate;
-            Integer[] frames;
-        }
-    }
-
     private TextureLoadResult loadTexture(String path) {
         try {
             log.debug("Loading texture from path: {}", path);
@@ -317,7 +261,7 @@ public class JmeTextureManager {
         java.nio.ByteBuffer buffer = java.nio.ByteBuffer.allocateDirect(data.length);
         buffer.put(data);
         buffer.flip();
-        
+
         Image jmeImage = new Image(Image.Format.RGBA8, width, height, buffer, ColorSpace.sRGB);
         Texture2D texture = new Texture2D(jmeImage);
         texture.setMagFilter(Texture.MagFilter.Nearest);
@@ -339,6 +283,62 @@ public class JmeTextureManager {
 
     public int getAtlasHeight() {
         return atlasHeight;
+    }
+
+    public static class UVCoords {
+        public float u0, v0, u1, v1;
+        public boolean isAnimated;
+        public int frameCount;
+        public float frameTime;
+
+        public UVCoords(float u0, float v0, float u1, float v1) {
+            this.u0 = u0;
+            this.v0 = v0;
+            this.u1 = u1;
+            this.v1 = v1;
+            this.isAnimated = false;
+            this.frameCount = 1;
+            this.frameTime = 1.0f;
+        }
+
+        public UVCoords(float u0, float v0, float u1, float v1, boolean isAnimated, int frameCount, float frameTime) {
+            this.u0 = u0;
+            this.v0 = v0;
+            this.u1 = u1;
+            this.v1 = v1;
+            this.isAnimated = isAnimated;
+            this.frameCount = frameCount;
+            this.frameTime = frameTime;
+        }
+    }
+
+    private static class TextureLoadResult {
+        BufferedImage image;
+        boolean isAnimated;
+        int frameCount;
+        float frameTime;
+        int imgWidth;
+        int imgHeight;
+
+        TextureLoadResult(BufferedImage image, boolean isAnimated, int frameCount, float frameTime, int imgWidth,
+                          int imgHeight) {
+            this.image = image;
+            this.isAnimated = isAnimated;
+            this.frameCount = frameCount;
+            this.frameTime = frameTime;
+            this.imgWidth = imgWidth;
+            this.imgHeight = imgHeight;
+        }
+    }
+
+    private static class AnimationMetadata {
+        AnimationData animation;
+
+        static class AnimationData {
+            Integer frametime;
+            Boolean interpolate;
+            Integer[] frames;
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -128,20 +128,12 @@
             <groupId>com.simsilica</groupId>
             <artifactId>lemur</artifactId>
             <version>1.16.0</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/us.ihmc/jme3-plugins -->
-        <dependency>
-            <groupId>us.ihmc</groupId>
-            <artifactId>jme3-plugins</artifactId>
-            <version>3.2.0-171209</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/us.ihmc/jme3-desktop -->
-        <dependency>
-            <groupId>us.ihmc</groupId>
-            <artifactId>jme3-desktop</artifactId>
-            <version>3.2.0-171209</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 
@@ -273,7 +265,8 @@
                         </goals>
                         <configuration>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.ksptool.ourcraft.ClientLauncher</mainClass>
                                 </transformer>
                             </transformers>
@@ -293,8 +286,6 @@
             </plugin>
         </plugins>
     </build>
-
-
 
 
 </project>
