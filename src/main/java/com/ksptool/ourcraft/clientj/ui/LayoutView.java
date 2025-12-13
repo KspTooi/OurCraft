@@ -137,6 +137,24 @@ public class LayoutView extends Container {
     }
 
     /**
+     * 设置为垂直布局（纵向排列）- flexCol 的别名
+     *
+     * @return LayoutView
+     */
+    public LayoutView layoutFlexVer() {
+        return flexCol();
+    }
+
+    /**
+     * 设置为水平布局（横向排列）- flexRow 的别名
+     *
+     * @return LayoutView
+     */
+    public LayoutView layoutFlexHor() {
+        return flexRow();
+    }
+
+    /**
      * 设置为高度填充
      *
      * @return BodyLayout
@@ -217,7 +235,6 @@ public class LayoutView extends Container {
             throw new IllegalStateException("Layout mode is not " + layout);
         }
     }
-
 
     private enum Layout {
         BORDER,

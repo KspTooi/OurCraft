@@ -4,9 +4,14 @@ import com.jme3.app.Application;
 import com.jme3.app.state.BaseAppState;
 import com.jme3.math.ColorRGBA;
 import com.ksptool.ourcraft.clientj.OurCraftClientJ;
+import com.ksptool.ourcraft.clientj.service.GlobalFontService;
+import com.ksptool.ourcraft.clientj.commons.FontSize;
 import com.ksptool.ourcraft.clientj.commons.RGBA;
 import com.ksptool.ourcraft.clientj.ui.GlowBody;
+import com.ksptool.ourcraft.clientj.ui.GlowButton;
 import com.ksptool.ourcraft.clientj.ui.GlowDiv;
+import com.ksptool.ourcraft.clientj.ui.TTFLabel;
+import com.ksptool.ourcraft.clientj.state.LoadingState;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -15,7 +20,12 @@ public class MainMenuState extends BaseAppState {
     private final OurCraftClientJ client;
 
     private GlowBody body;
-    private GlowDiv div;
+    private GlowDiv menuContainer;
+    private TTFLabel titleLabel;
+    private GlowButton multiplayerButton;
+    private GlowButton exitButton;
+
+    private LoadingState loadingState;
 
     public MainMenuState(OurCraftClientJ client) {
         this.client = client;
@@ -23,34 +33,89 @@ public class MainMenuState extends BaseAppState {
 
     @Override
     protected void initialize(Application app) {
+        // 【关键修复】预加载所有文字，防止动态图集重排导致渲染问题
+        GlobalFontService.preloadText("OurCraft", FontSize.XLARGE);
+        GlobalFontService.preloadText("多人模式退出", FontSize.LARGE);
+
+        // 初始化加载状态
+        loadingState = new LoadingState(client);
+
+        // 创建主体背景
         body = new GlowBody(app);
-        body.bg(new ColorRGBA(1F, 1F, 1F, 1));
+        // 设置深色背景，增加游戏氛围
+        body.bg(new ColorRGBA(0.1f, 0.15f, 0.2f, 1f));
         body.layoutNull();
 
-        div = new GlowDiv();
-        div.size(320, 320)
-                .bg(RGBA.of(0, 0, 0, 128))
-                .border(RGBA.of(0, 0, 0, 64), 1)
-        ;
+        // 创建菜单容器
+        menuContainer = new GlowDiv();
+        menuContainer.size(500, 400)
+                .bg(RGBA.of(20, 30, 40, 220))
+                .border(RGBA.of(100, 150, 200, 255), 3);
 
-        body.attachChild(div);
-        div.centerInParent(true);
+        body.attachChild(menuContainer);
+        menuContainer.centerInParent(true);
 
-        var btn = new GlowDiv();
-        btn.size(300, 200)
-                .bg(RGBA.of(0, 255, 0, 128))
-                .border(RGBA.of(0, 0, 0, 64), 1);
+        // 使用绝对定位布局，手动计算位置
+        menuContainer.layoutNull();
 
+        // 创建标题
+        titleLabel = new TTFLabel("OurCraft", FontSize.XLARGE, RGBA.of(100, 200, 255, 255));
+        titleLabel.textAlignCenter();
+        titleLabel.setPreferredSize(titleLabel.getPreferredSize());
+        menuContainer.attachChild(titleLabel);
 
-        div.layoutNull();
-        div.attachChild(btn);
-        btn.centerInParent(true);
-        //centerDiv();
+        // 手动定位标题到顶部
+        titleLabel.setLocalTranslation(250 - titleLabel.getPreferredSize().x / 2, -40, 1);
+
+        // 创建"多人模式"按钮
+        multiplayerButton = new GlowButton("多人模式", FontSize.LARGE);
+        multiplayerButton.size(440, 70)
+                .normalColor(RGBA.of(50, 100, 150, 200))
+                .hoverColor(RGBA.of(70, 130, 190, 230))
+                .pressedColor(RGBA.of(30, 80, 130, 250))
+                .border(RGBA.of(100, 150, 200, 255), 2)
+                .onClick(this::onMultiplayerClicked);
+        menuContainer.attachChild(multiplayerButton);
+
+        // 定位多人模式按钮
+        multiplayerButton.setLocalTranslation(30, -120, 1);
+
+        // 创建"退出"按钮
+        exitButton = new GlowButton("退出", FontSize.LARGE);
+        exitButton.size(440, 70)
+                .normalColor(RGBA.of(150, 50, 50, 200))
+                .hoverColor(RGBA.of(190, 70, 70, 230))
+                .pressedColor(RGBA.of(130, 30, 30, 250))
+                .border(RGBA.of(200, 100, 100, 255), 2)
+                .onClick(this::onExitClicked);
+        menuContainer.attachChild(exitButton);
+
+        // 定位退出按钮
+        exitButton.setLocalTranslation(30, -210, 1);
+
+    }
+
+    /**
+     * 多人模式按钮点击事件
+     */
+    private void onMultiplayerClicked() {
+        log.info("用户点击多人模式按钮，切换到加载状态");
+        // 禁用当前主菜单状态
+        this.setEnabled(false);
+        // 启用加载状态
+        client.getStateManager().attach(loadingState);
+    }
+
+    /**
+     * 退出按钮点击事件
+     */
+    private void onExitClicked() {
+        client.stop();
     }
 
     @Override
     public void update(float tpf) {
-
+        // 可以在这里添加动画效果
     }
 
     @Override
@@ -60,43 +125,23 @@ public class MainMenuState extends BaseAppState {
 
     @Override
     protected void onDisable() {
-
+        client.getGuiNode().detachChild(body);
     }
 
     @Override
     protected void cleanup(Application app) {
-
     }
 
+    /**
+     * 响应窗口大小变化
+     */
     public void reshape(int w, int h) {
-        body.resizeAndReposition();
-        //centerDiv();
+        if (body != null) {
+            body.resizeAndReposition();
+
+            if (menuContainer != null) {
+                menuContainer.centerInParent(true);
+            }
+        }
     }
-
-    /*private void centerDiv() {
-        if (div == null || body == null) return;
-
-        // 获取父容器（屏幕）尺寸
-        // 建议直接用 body 的尺寸，比调用 cam 更符合 UI 逻辑
-        Vector3f parentSize = body.getPreferredSize();
-        float pW = parentSize.x;
-        float pH = parentSize.y;
-
-        // 获取子容器尺寸
-        Vector3f childSize = div.getPreferredSize();
-        float cW = childSize.x;
-        float cH = childSize.y;
-
-        // 计算坐标
-        // X轴：(父宽 - 子宽) / 2
-        float x = (pW - cW) / 2;
-
-        // Y轴：-(父高 - 子高) / 2
-        // 注意：因为是从左上角向下排，所以 Y 应该是负值
-        float y = -(pH - cH) / 2;
-
-        // 设置坐标 (Z轴设为1或更高，确保在背景之上)
-        div.setLocalTranslation(x, y, 1);
-    }*/
-
 }

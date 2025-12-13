@@ -35,7 +35,6 @@ public class GuiService {
             styles.getSelector(TextField.ELEMENT_ID, "glass").set("font", customFont);
         }
 
-
         log.info("GuiService: Gui initialized");
     }
 

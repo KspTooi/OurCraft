@@ -115,5 +115,21 @@ public class GlobalFontService {
         return font.getText(text, 0, color);
     }
 
+    /**
+     * 预加载文本到图集，防止后续创建时触发图集重排导致旧 Mesh UV 失效。
+     * 建议在界面初始化前，将该界面所有可能用到的文字都预加载一遍。
+     *
+     * @param text     要预加载的文字
+     * @param fontSize 字体大小
+     */
+    public static void preloadText(String text, FontSize fontSize) {
+        if (!isInitialized) return;
+        TrueTypeFont<?, ?> font = ttFont.get(fontSize);
+        if (font != null) {
+            // 生成临时 Node 以触发图集更新，不需要添加到场景中
+            // 只是为了让字符进入 Texture Atlas
+            font.getText(text, 0, ColorRGBA.White);
+        }
+    }
 
 }

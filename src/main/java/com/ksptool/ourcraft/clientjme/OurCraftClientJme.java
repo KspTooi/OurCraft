@@ -34,6 +34,10 @@ public class OurCraftClientJme extends SimpleApplication {
     private MainMenuState mainMenuState;
     private GameplayState gameplayState;
 
+    public static void main(String[] args) {
+        var app = new OurCraftClientJme();
+        app.start();
+    }
 
     @Override
     public void simpleInitApp() {
