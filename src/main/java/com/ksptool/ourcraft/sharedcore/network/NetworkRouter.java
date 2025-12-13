@@ -1,5 +1,6 @@
-package com.ksptool.ourcraft.server.network;
+package com.ksptool.ourcraft.sharedcore.network;
 
+import com.ksptool.ourcraft.server.network.NetworkSession;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -7,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 /**
  * 网络事件总线

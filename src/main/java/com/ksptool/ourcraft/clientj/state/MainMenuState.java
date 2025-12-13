@@ -12,6 +12,7 @@ import com.ksptool.ourcraft.clientj.ui.GlowButton;
 import com.ksptool.ourcraft.clientj.ui.GlowDiv;
 import com.ksptool.ourcraft.clientj.ui.TTFLabel;
 import com.ksptool.ourcraft.clientj.state.LoadingState;
+import com.ksptool.ourcraft.clientj.service.StateService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -19,16 +20,18 @@ public class MainMenuState extends BaseAppState {
 
     private final OurCraftClientJ client;
 
+    private StateService stateService;
+
     private GlowBody body;
     private GlowDiv menuContainer;
     private TTFLabel titleLabel;
     private GlowButton multiplayerButton;
     private GlowButton exitButton;
 
-    private LoadingState loadingState;
 
     public MainMenuState(OurCraftClientJ client) {
         this.client = client;
+        this.stateService = client.getStateService();
     }
 
     @Override
@@ -36,9 +39,7 @@ public class MainMenuState extends BaseAppState {
         // 【关键修复】预加载所有文字，防止动态图集重排导致渲染问题
         GlobalFontService.preloadText("OurCraft", FontSize.XLARGE);
         GlobalFontService.preloadText("多人模式退出", FontSize.LARGE);
-
-        // 初始化加载状态
-        loadingState = new LoadingState(client);
+        GlobalFontService.preloadText("纹理可视化器", FontSize.LARGE);
 
         // 创建主体背景
         body = new GlowBody(app);
@@ -50,7 +51,7 @@ public class MainMenuState extends BaseAppState {
         menuContainer = new GlowDiv();
         menuContainer.size(500, 400)
                 .bg(RGBA.of(20, 30, 40, 220))
-                .border(RGBA.of(100, 150, 200, 255), 3);
+                .border(RGBA.of(100, 150, 200, 255), 1);
 
         body.attachChild(menuContainer);
         menuContainer.centerInParent(true);
@@ -73,12 +74,25 @@ public class MainMenuState extends BaseAppState {
                 .normalColor(RGBA.of(50, 100, 150, 200))
                 .hoverColor(RGBA.of(70, 130, 190, 230))
                 .pressedColor(RGBA.of(30, 80, 130, 250))
-                .border(RGBA.of(100, 150, 200, 255), 2)
+                .border(RGBA.of(100, 150, 200, 255), 1)
                 .onClick(this::onMultiplayerClicked);
         menuContainer.attachChild(multiplayerButton);
 
         // 定位多人模式按钮
         multiplayerButton.setLocalTranslation(30, -120, 1);
+
+        // 创建"纹理可视化器"按钮（调试用）
+        GlowButton textureVisualizerButton = new GlowButton("纹理可视化器", FontSize.LARGE);
+        textureVisualizerButton.size(440, 70)
+                .normalColor(RGBA.of(100, 100, 100, 200))
+                .hoverColor(RGBA.of(130, 130, 130, 230))
+                .pressedColor(RGBA.of(80, 80, 80, 250))
+                .border(RGBA.of(150, 150, 150, 255), 1)
+                .onClick(this::onTextureVisualizerClicked);
+        menuContainer.attachChild(textureVisualizerButton);
+
+        // 定位纹理可视化器按钮
+        textureVisualizerButton.setLocalTranslation(30, -200, 1);
 
         // 创建"退出"按钮
         exitButton = new GlowButton("退出", FontSize.LARGE);
@@ -86,12 +100,12 @@ public class MainMenuState extends BaseAppState {
                 .normalColor(RGBA.of(150, 50, 50, 200))
                 .hoverColor(RGBA.of(190, 70, 70, 230))
                 .pressedColor(RGBA.of(130, 30, 30, 250))
-                .border(RGBA.of(200, 100, 100, 255), 2)
+                .border(RGBA.of(200, 100, 100, 255), 1)
                 .onClick(this::onExitClicked);
         menuContainer.attachChild(exitButton);
 
         // 定位退出按钮
-        exitButton.setLocalTranslation(30, -210, 1);
+        exitButton.setLocalTranslation(30, -280, 1);
 
     }
 
@@ -99,11 +113,15 @@ public class MainMenuState extends BaseAppState {
      * 多人模式按钮点击事件
      */
     private void onMultiplayerClicked() {
-        log.info("用户点击多人模式按钮，切换到加载状态");
-        // 禁用当前主菜单状态
-        this.setEnabled(false);
         // 启用加载状态
-        client.getStateManager().attach(loadingState);
+        stateService.joinServer();
+    }
+
+    /**
+     * 纹理可视化器按钮点击事件
+     */
+    private void onTextureVisualizerClicked() {
+        stateService.showTextureVisualizer();
     }
 
     /**

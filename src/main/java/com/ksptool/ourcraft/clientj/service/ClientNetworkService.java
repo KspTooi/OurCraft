@@ -1,5 +1,7 @@
-package com.ksptool.ourcraft.clientj.network;
+package com.ksptool.ourcraft.clientj.service;
 
+import com.ksptool.ourcraft.clientj.network.ClientNetworkSession;
+import com.ksptool.ourcraft.clientj.state.LoadingState;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
@@ -35,12 +37,14 @@ public class ClientNetworkService {
      * @param host 服务器主机名
      * @param port 服务器端口
      */
-    public Future<ClientNetworkSession> connect(String host, int port) throws Exception {
+    public Future<ClientNetworkSession> connect(String host, int port,LoadingState loadingState) throws Exception {
 
         if(connectFuture != null && !connectFuture.isDone()){
             log.warn("已经连接到服务器");
             return connectFuture;
         }
+
+        loadingState.updateStatus("正在连接到: " + host + ":" + port);
 
         connectFuture = new CompletableFuture<>();
         log.info("正在连接到: {}:{}", host, port);
@@ -62,6 +66,8 @@ public class ClientNetworkService {
             return null;
         }
 
+        loadingState.updateStatus("正在处理批数据");
+        
         //接收批数据
         while(true){
             var batchData = session.receiveNext(30, TimeUnit.SECONDS);

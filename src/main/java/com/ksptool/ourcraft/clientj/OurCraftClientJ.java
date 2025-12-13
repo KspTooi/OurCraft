@@ -7,31 +7,27 @@ import com.ksptool.ourcraft.clientj.service.GuiService;
 import com.ksptool.ourcraft.clientj.service.StateService;
 import com.ksptool.ourcraft.clientj.state.LoadingState;
 import com.ksptool.ourcraft.clientj.state.MainMenuState;
+
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class OurCraftClientJ extends SimpleApplication {
 
-
     private GuiService guiService;
 
+    @Getter
     private StateService stateService;
-
-    private MainMenuState mms;
-    private LoadingState ls;
 
 
     @Override
     public void simpleInitApp() {
 
         GlobalFontService.init(this, "textures/font/fnt/阿里巴巴普惠.fnt", "textures/font/AlibabaPuHuiTi-3-55-Regular.ttf");
+        stateService = new StateService(this);
         guiService = new GuiService(this);
-
-        mms = new MainMenuState(this);
-        ls = new LoadingState(this);
         viewPort.setBackgroundColor(ColorRGBA.White);
         inputManager.setCursorVisible(true);
-        stateService = new StateService(this);
 
         //立即切换到主菜单状态
         stateService.toMain();
@@ -40,11 +36,9 @@ public class OurCraftClientJ extends SimpleApplication {
     @Override
     public void reshape(int w, int h) {
         super.reshape(w, h);
-        if (mms != null) {
-            mms.reshape(w, h);
+        if(stateService != null){
+            stateService.reshape(w, h);
         }
-        if (ls != null) {
-            ls.reshape(w, h);
-        }
+
     }
 }
