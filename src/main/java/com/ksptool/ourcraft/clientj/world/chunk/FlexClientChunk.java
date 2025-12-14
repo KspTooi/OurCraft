@@ -1,4 +1,4 @@
-package com.ksptool.ourcraft.clientj.world;
+package com.ksptool.ourcraft.clientj.world.chunk;
 
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
  * 用于存储客户端区块数据和状态
  */
 @Slf4j
-public class ClientChunk implements SharedChunk {
+public class FlexClientChunk implements SharedChunk {
 
     //区块坐标
     private ChunkPos chunkPos;
@@ -26,7 +26,7 @@ public class ClientChunk implements SharedChunk {
     private volatile Stage stage;
 
 
-    public ClientChunk(ChunkPos chunkPos, FlexChunkData blockData) {
+    public FlexClientChunk(ChunkPos chunkPos, FlexChunkData blockData) {
         this.chunkPos = chunkPos;
         this.blockData = blockData;
         this.stage = Stage.NEED_MESH_UPDATE;

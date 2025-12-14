@@ -7,7 +7,12 @@ import com.ksptool.ourcraft.clientj.service.GuiService;
 import com.ksptool.ourcraft.clientj.service.ClientEventService;
 import com.ksptool.ourcraft.clientj.service.ClientNetworkService;
 import com.ksptool.ourcraft.clientj.service.ClientStateService;
+import com.ksptool.ourcraft.clientj.world.ClientWorld;
+import com.ksptool.ourcraft.sharedcore.GlobalPalette;
+import com.ksptool.ourcraft.sharedcore.Registry;
+import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
+import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +39,9 @@ public class OurCraftClientJ extends SimpleApplication {
     @Getter
     private ClientEventService ces;
 
+    @Getter
+    private ClientWorld world;
+
 
     @Override
     public void simpleInitApp() {
@@ -57,6 +65,16 @@ public class OurCraftClientJ extends SimpleApplication {
 
         //立即切换到主菜单状态
         clientStateService.toMain();
+
+        //注册全部原版内容(客户端)
+        var registry = Registry.getInstance();
+        BlockEnums.registerBlocks(registry);
+        WorldTemplateEnums.registerWorldTemplate(registry);
+
+        //初始化全局调色板
+        GlobalPalette.getInstance().bake();
+
+        world = new ClientWorld();
     }
 
     /**

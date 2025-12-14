@@ -2,19 +2,21 @@ package com.ksptool.ourcraft.clientj.world;
 
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ClientWorld implements SharedWorld {
 
+    @Getter@Setter
+    private WorldTemplate template;
 
-    @Override
-    public boolean isServerSide() {
-        return false;
-    }
+    @Getter@Setter
+    private String name;
 
-    @Override
-    public boolean isClientSide() {
-        return true;
-    }
+
+
 
     /**
      * 世界动作
@@ -35,12 +37,15 @@ public class ClientWorld implements SharedWorld {
 
     }
 
-    public String getName() {
-        return "ClientWorld";
+
+    @Override
+    public boolean isServerSide() {
+        return false;
     }
 
-    public WorldTemplate getTemplate() {
-        return null;
+    @Override
+    public boolean isClientSide() {
+        return true;
     }
 
 }

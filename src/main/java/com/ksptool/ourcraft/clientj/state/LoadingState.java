@@ -126,18 +126,20 @@ public class LoadingState extends BaseAppState {
         cancelButton = null;
         log.info("清理加载状态资源完成");
     }
-
+    
     @Override
     public void update(float tpf) {
-
-        //处理事件
         client.getCes().action(tpf, null);
-
     }
+
 
     public void onProcessSwitch(ProcessSwitchEvent event) {
         log.info("服务器要求进程切换: {}", event.getWorldName());
+
+        //构建世界
+
     }
+
 
     /**
      * 服务器连接失败事件
