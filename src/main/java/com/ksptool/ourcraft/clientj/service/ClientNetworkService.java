@@ -6,12 +6,14 @@ import com.ksptool.ourcraft.clientj.commons.event.SessionReadyEvent;
 import com.ksptool.ourcraft.clientj.commons.event.SessionUpdateEvent;
 import com.ksptool.ourcraft.clientj.network.ClientNetworkRouter;
 import com.ksptool.ourcraft.clientj.network.ClientNetworkSession;
+import com.ksptool.ourcraft.clientj.network.NetworkHandler;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.server.network.NetworkRouter;
 import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.nvo.AuthRpcVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
 
 import lombok.Getter;
@@ -50,6 +52,10 @@ public class ClientNetworkService {
     public ClientNetworkService(OurCraftClientJ client) {
         this.ces = client.getCes();
         this.nr = new ClientNetworkRouter();
+
+        //注册NR处理器
+        var nh = new NetworkHandler(this);
+        nr.subscribe(PsNVo.class, nh::onProcessSwitch);
     }
 
     public void connect(String host, int port) {

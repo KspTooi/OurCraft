@@ -60,11 +60,13 @@ public class ClientNetworkSession extends RpcSession{
             if(packet instanceof RpcRequest<?>(long requestId, Object data)){
                 //解包并推送RPC数据
                 nr.postRpc(this, data,requestId);
+                log.info("会话:{} 收到RPC请求:{}", id, requestId);
                 continue;
             }
 
             //非RPC请求的普通数据包直接在NR中处理
             nr.post(this,packet);
+            log.info("会话:{} 收到普通数据包:{}", id, packet);
         }
     }
 

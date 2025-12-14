@@ -158,10 +158,6 @@ public class LoadingState extends BaseAppState {
 
 
 
-
-
-
-
     /**
      * 更新加载状态文本
      * @param status 状态文本

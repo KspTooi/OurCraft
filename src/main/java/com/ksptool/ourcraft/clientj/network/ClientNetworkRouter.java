@@ -72,7 +72,7 @@ public class ClientNetworkRouter {
             }
             return;
         }
-        // log.warn("收到未处理的数据包: {}", packet.getClass().getSimpleName());
+        log.warn("会话:{} 收到未处理的数据包: {}", session.getId(), packet.getClass().getSimpleName());
     }
 
     /**
