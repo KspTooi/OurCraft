@@ -11,8 +11,20 @@ import com.ksptool.ourcraft.clientj.state.MainMenuState;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.ExecutorService;
+
 @Slf4j
 public class OurCraftClientJ extends SimpleApplication {
+
+    //服务端世界执行单元线程池(用于运行世界逻辑ACTION)
+    private ExecutorService CWEU_THREAD_POOL;
+
+    //区块工作线程池(用于处理区块加载、生成、卸载存盘等任务)
+    private ExecutorService CHUNK_PROCESS_THREAD_POOL;
+
+    //网络线程池(用于处理网络连接、心跳、数据包接收发送等任务(虚拟线程))
+    private ExecutorService NETWORK_THREAD_POOL;
+
 
     private GuiService guiService;
 

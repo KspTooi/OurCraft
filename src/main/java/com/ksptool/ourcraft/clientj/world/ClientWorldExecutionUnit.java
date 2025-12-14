@@ -1,7 +1,8 @@
-package com.ksptool.ourcraft.server.world;
+package com.ksptool.ourcraft.clientj.world;
 
+import com.ksptool.ourcraft.clientj.OurCraftClientJ;
 import com.ksptool.ourcraft.server.OurCraftServer;
-import com.ksptool.ourcraft.sharedcore.events.*;
+import com.ksptool.ourcraft.server.world.ServerWorld;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,22 +13,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 负责执行单个服务端世界的逻辑（Tick循环、物理更新、事件处理、网络同步）
  */
 @Slf4j
-public class ServerWorldExecutionUnit implements Runnable {
+public class ClientWorldExecutionUnit implements Runnable {
 
     private final String worldName;
 
     @Getter
-    private final ServerWorld serverWorld;
+    private final ClientWorld clientWorld;
 
     @Getter
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
     private final int actionPerSecond;
 
-    public ServerWorldExecutionUnit(ServerWorld serverWorld, OurCraftServer serverInstance) {
-        this.worldName = serverWorld.getName();
-        this.serverWorld = serverWorld;
-        this.actionPerSecond = serverWorld.getTemplate().getActionPerSecond();
+    public ClientWorldExecutionUnit(ClientWorld clientWorld, OurCraftClientJ client) {
+        this.worldName = clientWorld.getName();
+        this.clientWorld = clientWorld;
+        this.actionPerSecond = clientWorld.getTemplate().getActionPerSecond();
     }
 
     @Override
@@ -36,13 +37,13 @@ public class ServerWorldExecutionUnit implements Runnable {
         log.info("世界 {} 已启动 APS:{}", worldName, actionPerSecond);
         isRunning.set(true);
 
-        if (serverWorld.getTemplate() == null) {
+        if (clientWorld.getTemplate() == null) {
             log.error("无法启动世界 {}: template 为 null", worldName);
             isRunning.set(false);
             return;
         }
 
-        final double tickRate = serverWorld.getTemplate().getActionPerSecond();
+        final double tickRate = clientWorld.getTemplate().getActionPerSecond();
         final double tickTime = 1.0 / tickRate;
 
         double lastTime = System.nanoTime() / 1_000_000_000.0;
@@ -86,7 +87,7 @@ public class ServerWorldExecutionUnit implements Runnable {
      * 执行一次逻辑 Tick
      */
     private void tick(float tickDelta) {
-        serverWorld.action(tickDelta);
+        clientWorld.action(tickDelta);
     }
 
 }
