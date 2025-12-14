@@ -19,6 +19,16 @@ public class ClientWorld implements SharedWorld {
     @Override
     public void action(double delta) {
 
+        //处理网络事件
+
+
+        //提交MESH计算任务
+        
+
+        //处理已完成的区块MESH计算
+
+
+
     }
 
     public String getName() {
