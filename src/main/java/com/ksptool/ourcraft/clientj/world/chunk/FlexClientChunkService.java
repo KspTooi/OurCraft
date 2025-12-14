@@ -2,6 +2,8 @@ package com.ksptool.ourcraft.clientj.world.chunk;
 
 import com.ksptool.ourcraft.clientj.OurCraftClientJ;
 import com.ksptool.ourcraft.clientj.world.ClientWorld;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
+import com.ksptool.ourcraft.sharedcore.utils.FlexChunkSerializer;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 
 import lombok.Getter;
@@ -38,6 +40,29 @@ public class FlexClientChunkService {
         var template = world.getTemplate();
         this.chunkSizeX = template.getChunkSizeX();
         this.chunkSizeZ = template.getChunkSizeZ();
+    }
+
+    /**
+     * 添加区块数据 
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @param data 未反序列化的原始区块数据
+     */
+    public void addChunkFromRawData(ChunkPos chunkPos, byte[] data) {
+        FlexChunkData chunkData = FlexChunkSerializer.deserialize(data);
+        FlexClientChunk chunk = new FlexClientChunk(chunkPos, chunkData);
+        chunk.setStage(FlexClientChunk.Stage.NEED_MESH_UPDATE);
+        chunks.put(chunkPos, chunk);
+        log.info("添加客户端区块: ({})", chunkPos);
+    }
+
+    /**
+     * 获取区块
+     * @param chunkPos 区块坐标
+     * @return 区块，如果不存在返回null
+     */
+    public FlexClientChunk getChunk(ChunkPos chunkPos) {
+        return chunks.get(chunkPos);
     }
 
 }

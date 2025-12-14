@@ -9,10 +9,19 @@ import com.ksptool.ourcraft.clientj.service.GlobalFontService;
 import com.ksptool.ourcraft.clientj.service.ClientStateService;
 import com.ksptool.ourcraft.clientj.commons.FontSize;
 import com.ksptool.ourcraft.clientj.commons.RGBA;
-import com.ksptool.ourcraft.clientj.commons.event.ProcessSwitchEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsChunkRcvEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsJoinWorldEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsPlayerRcvEvent;
 import com.ksptool.ourcraft.clientj.commons.event.SessionCloseEvent;
 import com.ksptool.ourcraft.clientj.commons.event.SessionUpdateEvent;
+import com.ksptool.ourcraft.clientj.entity.ClientPlayer;
 import com.ksptool.ourcraft.clientj.network.ClientNetworkSession;
+import com.ksptool.ourcraft.clientj.network.NetworkHandler;
+import com.ksptool.ourcraft.clientj.world.ClientWorld;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
+import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.clientj.ui.GlowBody;
 import com.ksptool.ourcraft.clientj.ui.GlowDiv;
 import com.ksptool.ourcraft.clientj.ui.TTFLabel;
@@ -44,11 +53,17 @@ public class LoadingState extends BaseAppState {
 
     private volatile String currentStatus = "正在连接服务器...";
 
+    private volatile boolean chunkReceived = false;
+    private volatile boolean playerReceived = false;
+
     //连接目标
     @Setter
     private String host = "127.0.0.1";
     @Setter
     private int port = 25564;
+
+    //落地区块计数
+    private int chunkCount = 0;
 
     public LoadingState(OurCraftClientJ client) {
         this.client = client;
@@ -100,7 +115,11 @@ public class LoadingState extends BaseAppState {
         client.getCes().unsubscribeAll();
 
         //订阅本阶段需要的事件
-        client.getCes().subscribe(ProcessSwitchEvent.class, this::onProcessSwitch);
+        client.getCes().subscribe(PsEvent.class, this::onPsEvent);
+        client.getCes().subscribe(PsChunkRcvEvent.class, this::onPsChunkRcv);
+        client.getCes().subscribe(PsPlayerRcvEvent.class, this::onPsPlayerRcv);
+        client.getCes().subscribe(PsJoinWorldEvent.class, this::onPsJoinWorldRcv);
+        
         client.getCes().subscribe(SessionCloseEvent.class, this::onSessionClosed);
         client.getCes().subscribe(SessionUpdateEvent.class, this::onSessionUpdate);
 
@@ -132,12 +151,57 @@ public class LoadingState extends BaseAppState {
         client.getCes().action(tpf, null);
     }
 
+    public void onPsEvent(PsEvent event) {
+        log.info("服务器要求进程切换 目标世界:{} 模板:{} APS:{} 总动作数:{} 开始时间:{}", event.getWorldName(), event.getWorldTemplate(), event.getAps(), event.getTotalActions(), event.getStartDateTime());
 
-    public void onProcessSwitch(ProcessSwitchEvent event) {
-        log.info("服务器要求进程切换: {}", event.getWorldName());
+        updateStatus("进程切换:" + event.getWorldName());
 
-        //构建世界
+        ClientNetworkSession session = event.getSession();
+        ClientWorld world = client.getWorld();
+        world.init(
+            event.getWorldName(),
+            event.getWorldTemplate(),
+            event.getAps(),
+            event.getTotalActions(),
+            event.getStartDateTime()
+        );
 
+        chunkCount = 0;
+        session.sendNext(new PsAllowNDto());
+    }
+
+    public void onPsChunkRcv(PsChunkRcvEvent event) {
+        ClientWorld world = client.getWorld();
+        world.getFccs().addChunkFromRawData(event.getChunkPos(), event.getBlockData());
+        chunkCount++;
+        updateStatus("接收落地区块(" + chunkCount + ")");
+    }
+
+    public void onPsPlayerRcv(PsPlayerRcvEvent event) {
+        ClientWorld world = client.getWorld();
+        ClientPlayer player = new ClientPlayer(
+            event.getUuid(),
+            event.getName(),
+            event.getHealth(),
+            event.getHungry(),
+            event.getPosX(),
+            event.getPosY(),
+            event.getPosZ(),
+            event.getYaw(),
+            event.getPitch(),
+            event.getGa(),
+            event.getAa(),
+            event.getMs()
+        );
+        world.setPlayer(player);
+        updateStatus(player.getName() + " 进入世界");
+    }
+
+
+    public void onPsJoinWorldRcv(PsJoinWorldEvent event) {
+        //log.info("已加入世界");
+        //updateStatus("进入世界中...");
+        //css.toInWorld();
     }
 
 
@@ -157,7 +221,6 @@ public class LoadingState extends BaseAppState {
     public void onSessionUpdate(SessionUpdateEvent event) {
         updateStatus(event.getText());
     }
-
 
 
     /**

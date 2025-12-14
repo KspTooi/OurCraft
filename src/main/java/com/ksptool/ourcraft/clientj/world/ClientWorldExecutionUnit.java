@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 public class ClientWorldExecutionUnit implements Runnable {
 
-    private final String worldName;
+    private String worldName;
 
     @Getter
     private final ClientWorld clientWorld;
@@ -23,7 +23,7 @@ public class ClientWorldExecutionUnit implements Runnable {
     @Getter
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    private final int actionPerSecond;
+    private volatile int actionPerSecond;
 
     public ClientWorldExecutionUnit(ClientWorld clientWorld, OurCraftClientJ client) {
         this.worldName = clientWorld.getName();
@@ -33,6 +33,9 @@ public class ClientWorldExecutionUnit implements Runnable {
 
     @Override
     public void run() {
+        
+        this.worldName = clientWorld.getName();
+        this.actionPerSecond = clientWorld.getTemplate().getActionPerSecond();
 
         log.info("世界 {} 已启动 APS:{}", worldName, actionPerSecond);
         isRunning.set(true);
@@ -88,6 +91,22 @@ public class ClientWorldExecutionUnit implements Runnable {
      */
     private void tick(float tickDelta) {
         clientWorld.action(tickDelta);
+    }
+    
+    /**
+     * 设置每秒动作数
+     * @param aps 每秒动作数
+     */
+    public void setAps(int aps){
+
+        //正在运行时无法设置
+        if(isRunning.get()){
+            log.warn("世界正在运行时无法设置APS");
+            return;
+        }
+
+        actionPerSecond = aps;
+        log.info("世界 {} APS 设置为 {}", worldName, aps);
     }
 
 }

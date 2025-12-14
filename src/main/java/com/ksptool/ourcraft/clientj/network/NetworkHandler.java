@@ -1,9 +1,15 @@
 package com.ksptool.ourcraft.clientj.network;
 
-import com.ksptool.ourcraft.clientj.commons.event.ProcessSwitchEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsChunkRcvEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsJoinWorldEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PsPlayerRcvEvent;
 import com.ksptool.ourcraft.clientj.service.ClientEventService;
 import com.ksptool.ourcraft.clientj.service.ClientNetworkService;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsPlayerNVo;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,12 +30,41 @@ public class NetworkHandler {
     }
 
     /**
-     * 处理进程切换
+     * 处理服务端要求进程切换网络包
      * @param session 网络会话
      * @param vo 进程切换数据包
      */
-    public void onProcessSwitch(ClientNetworkSession session,PsNVo vo){
-        ces.publish(ProcessSwitchEvent.of(session, vo));
+    public void onPsEvent(ClientNetworkSession session, PsNVo vo){
+        ces.publish(PsEvent.of(session, vo));
     }
+
+    /**
+     * 处理接收进程切换落地区块网络包
+     * @param session 网络会话
+     * @param vo 区块数据包
+     */
+    public void onPsChunkRcv(ClientNetworkSession session, PsChunkNVo vo){
+        ces.publish(PsChunkRcvEvent.of(session, vo));
+    }
+
+    /**
+     * 处理接收进程切换玩家网络包
+     * @param session 网络会话
+     * @param vo 玩家数据包
+     */
+    public void onPsPlayerRcv(ClientNetworkSession session, PsPlayerNVo vo){
+        ces.publish(PsPlayerRcvEvent.of(session, vo));
+    }
+
+    /**
+     * 处理服务端已经将玩家投入世界后产生的网络事件
+     * @param session 网络会话
+     * @param vo 加入世界数据包
+     */
+    public void onPsJoinWorldRcv(ClientNetworkSession session, PsJoinWorldNVo vo){
+        ces.publish(PsJoinWorldEvent.of(session));
+    }
+
+
 
 }

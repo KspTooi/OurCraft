@@ -13,7 +13,10 @@ import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.nvo.AuthRpcVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.PsPlayerNVo;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
 
 import lombok.Getter;
@@ -55,7 +58,10 @@ public class ClientNetworkService {
 
         //注册NR处理器
         var nh = new NetworkHandler(this);
-        nr.subscribe(PsNVo.class, nh::onProcessSwitch);
+        nr.subscribe(PsNVo.class, nh::onPsEvent);
+        nr.subscribe(PsChunkNVo.class, nh::onPsChunkRcv);
+        nr.subscribe(PsPlayerNVo.class, nh::onPsPlayerRcv);
+        nr.subscribe(PsJoinWorldNVo.class, nh::onPsJoinWorldRcv);
     }
 
     public void connect(String host, int port) {

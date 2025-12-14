@@ -3,6 +3,7 @@ package com.ksptool.ourcraft.clientj.service;
 import com.jme3.app.state.AppStateManager;
 import com.ksptool.ourcraft.clientj.OurCraftClientJ;
 import com.ksptool.ourcraft.clientj.state.ArrayTextureVisualizerState;
+import com.ksptool.ourcraft.clientj.state.InWorldState;
 import com.ksptool.ourcraft.clientj.state.LoadingState;
 import com.ksptool.ourcraft.clientj.state.MainMenuState;
 
@@ -23,6 +24,7 @@ public class ClientStateService {
     //所有的状态都保存在这里
     private MainMenuState mms;
     private LoadingState ls;
+    private InWorldState iws;
     private ArrayTextureVisualizerState atvs;
 
     public ClientStateService(OurCraftClientJ client) {
@@ -78,6 +80,26 @@ public class ClientStateService {
      */
     public void joinWorld(){
 
+    }
+
+    /**
+     * 切换到世界中状态
+     */
+    public void toInWorld(){
+        if (iws == null) {
+            iws = new InWorldState();
+        }
+
+        if(currentState == CurrentState.LOADING){
+            stateManager.detach(ls);
+        }
+
+        if(currentState == CurrentState.MAIN_MENU){
+            stateManager.detach(mms);
+        }
+
+        stateManager.attach(iws);
+        currentState = CurrentState.IN_GAME;
     }
 
     /**

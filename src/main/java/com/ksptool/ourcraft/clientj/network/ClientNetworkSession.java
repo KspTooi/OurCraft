@@ -66,7 +66,7 @@ public class ClientNetworkSession extends RpcSession{
 
             //非RPC请求的普通数据包直接在NR中处理
             nr.post(this,packet);
-            log.info("会话:{} 收到普通数据包:{}", id, packet);
+            //log.info("会话:{} 收到普通数据包:{}", id, packet);
         }
     }
 

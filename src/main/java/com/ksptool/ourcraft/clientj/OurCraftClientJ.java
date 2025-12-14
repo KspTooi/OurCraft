@@ -8,6 +8,7 @@ import com.ksptool.ourcraft.clientj.service.ClientEventService;
 import com.ksptool.ourcraft.clientj.service.ClientNetworkService;
 import com.ksptool.ourcraft.clientj.service.ClientStateService;
 import com.ksptool.ourcraft.clientj.world.ClientWorld;
+import com.ksptool.ourcraft.clientj.world.ClientWorldExecutionUnit;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.Registry;
 import com.ksptool.ourcraft.sharedcore.enums.BlockEnums;
@@ -15,6 +16,7 @@ import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.*;
@@ -42,6 +44,9 @@ public class OurCraftClientJ extends SimpleApplication {
     @Getter
     private ClientWorld world;
 
+    @Getter
+    private ClientWorldExecutionUnit cweu;
+
 
     @Override
     public void simpleInitApp() {
@@ -59,7 +64,6 @@ public class OurCraftClientJ extends SimpleApplication {
         //创建网络服务
         clientNetworkService = new ClientNetworkService(this);
 
-
         //初始化线程池
         initThreadPools();
 
@@ -74,7 +78,8 @@ public class OurCraftClientJ extends SimpleApplication {
         //初始化全局调色板
         GlobalPalette.getInstance().bake();
 
-        world = new ClientWorld();
+        world = new ClientWorld(this);
+        cweu = new ClientWorldExecutionUnit(world, this);
     }
 
     /**
@@ -134,5 +139,20 @@ public class OurCraftClientJ extends SimpleApplication {
             CHUNK_PROCESS_THREAD_POOL.shutdown();
             log.info("区块处理线程池已关闭");
         }
+    }
+
+
+    /**
+     * 启动CWEU
+     */
+    public void startCWEU() {
+        CWEU_THREAD_POOL.submit(cweu);
+    }
+
+    /**
+     * 停止CWEU
+     */
+    public void stopCWEU() {
+        cweu.stop();
     }
 }
