@@ -1,10 +1,12 @@
 package com.ksptool.ourcraft.clientj.world.chunk;
 
+import com.jme3.scene.Geometry;
 import com.ksptool.ourcraft.sharedcore.GlobalPalette;
 import com.ksptool.ourcraft.sharedcore.utils.FlexChunkData;
 import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.world.BlockState;
 import com.ksptool.ourcraft.sharedcore.world.SharedChunk;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,8 +24,13 @@ public class FlexClientChunk implements SharedChunk {
     private FlexChunkData blockData;
 
     //区块状态
-    @Setter
+    @Setter@Getter
     private volatile Stage stage;
+
+    //JME几何体
+    @Getter
+    @Setter
+    private volatile Geometry geometry;
 
 
     public FlexClientChunk(ChunkPos chunkPos, FlexChunkData blockData) {
@@ -84,6 +91,18 @@ public class FlexClientChunk implements SharedChunk {
         return chunkPos;
     }
 
+    public int getChunkX() {
+        return chunkPos.getX();
+    }
+
+    public int getChunkZ() {
+        return chunkPos.getZ();
+    }
+
+    public FlexChunkData.Snapshot createSnapshot() {
+        return blockData.createSnapshot();
+    }
+
     /**
      * 标记区块为脏
      */
@@ -102,6 +121,11 @@ public class FlexClientChunk implements SharedChunk {
          * NEED_MESH_UPDATE(需要Mesh更新): 表示区块需要Mesh更新
          */
         NEED_MESH_UPDATE,
+
+        /**
+         * MESH_GENERATING(正在生成Mesh): 表示区块正在异步生成Mesh
+         */
+        MESH_GENERATING,
 
         /**
          * READY(就绪): 数据已完整,可进行读写、物理交互

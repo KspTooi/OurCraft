@@ -1,11 +1,17 @@
 package com.ksptool.ourcraft.clientj.network;
 
+import com.ksptool.ourcraft.clientj.commons.event.ChunkLoadEvent;
+import com.ksptool.ourcraft.clientj.commons.event.ChunkUnloadEvent;
+import com.ksptool.ourcraft.clientj.commons.event.PlayerLocationUpdateEvent;
 import com.ksptool.ourcraft.clientj.commons.event.PsChunkRcvEvent;
 import com.ksptool.ourcraft.clientj.commons.event.PsEvent;
 import com.ksptool.ourcraft.clientj.commons.event.PsJoinWorldEvent;
 import com.ksptool.ourcraft.clientj.commons.event.PsPlayerRcvEvent;
 import com.ksptool.ourcraft.clientj.service.ClientEventService;
 import com.ksptool.ourcraft.clientj.service.ClientNetworkService;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuPlayerLocationNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
@@ -65,6 +71,32 @@ public class NetworkHandler {
         ces.publish(PsJoinWorldEvent.of(session));
     }
 
+    
+    /**
+     * 处理接收服务端反馈玩家位置网络包
+     * @param session 网络会话
+     * @param vo 玩家位置反馈数据包
+     */
+    public void onPlayerLocationUpdate(ClientNetworkSession session, HuPlayerLocationNVo vo){
+        ces.publish(PlayerLocationUpdateEvent.of(session, vo));
+    }
 
+    /**
+     * 处理接收服务端反馈区块加载网络包
+     * @param session 网络会话
+     * @param vo 区块加载数据包
+     */
+    public void onChunkLoad(ClientNetworkSession session, HuChunkNVo vo){
+        ces.publish(ChunkLoadEvent.of(session, vo));
+    }
+
+    /**
+     * 处理接收服务端反馈区块卸载网络包
+     * @param session 网络会话
+     * @param vo 区块卸载数据包
+     */
+    public void onChunkUnload(ClientNetworkSession session, HuChunkUnloadNVo vo){
+        ces.publish(ChunkUnloadEvent.of(session, vo));
+    }
 
 }

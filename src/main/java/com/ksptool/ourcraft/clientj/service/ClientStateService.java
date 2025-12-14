@@ -87,7 +87,7 @@ public class ClientStateService {
      */
     public void toInWorld(){
         if (iws == null) {
-            iws = new InWorldState();
+            iws = new InWorldState(client);
         }
 
         if(currentState == CurrentState.LOADING){
@@ -100,6 +100,7 @@ public class ClientStateService {
 
         stateManager.attach(iws);
         currentState = CurrentState.IN_GAME;
+        log.info("切换到世界中状态");
     }
 
     /**

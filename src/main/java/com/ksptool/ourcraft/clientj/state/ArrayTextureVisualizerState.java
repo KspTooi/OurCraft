@@ -71,7 +71,7 @@ public class ArrayTextureVisualizerState extends BaseAppState implements ActionL
 
     public ArrayTextureVisualizerState(OurCraftClientJ client) {
         this.client = client;
-        this.clientStateService = client.getClientStateService();
+        this.clientStateService = client.getCss();
     }
 
     @Override

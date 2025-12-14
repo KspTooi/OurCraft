@@ -13,6 +13,9 @@ import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.nvo.AuthRpcVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuChunkUnloadNVo;
+import com.ksptool.ourcraft.sharedcore.network.nvo.HuPlayerLocationNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsJoinWorldNVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.PsNVo;
@@ -62,6 +65,9 @@ public class ClientNetworkService {
         nr.subscribe(PsChunkNVo.class, nh::onPsChunkRcv);
         nr.subscribe(PsPlayerNVo.class, nh::onPsPlayerRcv);
         nr.subscribe(PsJoinWorldNVo.class, nh::onPsJoinWorldRcv);
+        nr.subscribe(HuChunkNVo.class, nh::onChunkLoad);
+        nr.subscribe(HuChunkUnloadNVo.class, nh::onChunkUnload);
+        nr.subscribe(HuPlayerLocationNVo.class, nh::onPlayerLocationUpdate);
     }
 
     public void connect(String host, int port) {

@@ -30,7 +30,7 @@ public class MainMenuState extends BaseAppState {
 
     public MainMenuState(OurCraftClientJ client) {
         this.client = client;
-        this.clientStateService = client.getClientStateService();
+        this.clientStateService = client.getCss();
     }
 
     @Override

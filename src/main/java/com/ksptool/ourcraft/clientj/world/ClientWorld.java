@@ -1,15 +1,17 @@
 package com.ksptool.ourcraft.clientj.world;
 
+import com.jme3.scene.Node;
 import com.ksptool.ourcraft.clientj.OurCraftClientJ;
 import com.ksptool.ourcraft.clientj.entity.ClientPlayer;
+import com.ksptool.ourcraft.clientj.world.chunk.FlexClientChunk;
 import com.ksptool.ourcraft.clientj.world.chunk.FlexClientChunkService;
 import com.ksptool.ourcraft.sharedcore.Registry;
+import com.ksptool.ourcraft.sharedcore.utils.position.ChunkPos;
 import com.ksptool.ourcraft.sharedcore.world.SharedWorld;
 import com.ksptool.ourcraft.sharedcore.world.WorldTemplate;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -30,6 +32,9 @@ public class ClientWorld implements SharedWorld {
 
     @Getter
     private final OurCraftClientJ client;
+
+    @Getter
+    private Node worldNode;
 
     public ClientWorld(OurCraftClientJ client) {
         this.client = client;
@@ -52,6 +57,10 @@ public class ClientWorld implements SharedWorld {
         }
         this.template = template;
         
+        if (worldNode == null) {
+            worldNode = new Node("WorldNode");
+        }
+        
         if (client != null && this.fccs == null) {
             this.fccs = new FlexClientChunkService(client, this);
         }
@@ -66,6 +75,30 @@ public class ClientWorld implements SharedWorld {
     public void setPlayer(ClientPlayer player) {
         this.player = player;
         log.info("设置客户端玩家: {}", player != null ? player.getName() : "null");
+    }
+
+    /**
+     * 获取指定坐标的方块状态ID（用于网格生成和物理检测）
+     */
+    public int getBlockState(int x, int y, int z) {
+        if (fccs == null) {
+            return 0;
+        }
+        
+        int chunkSizeX = template.getChunkSizeX();
+        int chunkSizeZ = template.getChunkSizeZ();
+        int chunkX = (int) Math.floor((float) x / chunkSizeX);
+        int chunkZ = (int) Math.floor((float) z / chunkSizeZ);
+        
+        ChunkPos chunkPos = ChunkPos.of(chunkX, chunkZ);
+        FlexClientChunk chunk = fccs.getChunk(chunkPos);
+        if (chunk == null) {
+            return 0;
+        }
+        
+        int localX = x - chunkX * chunkSizeX;
+        int localZ = z - chunkZ * chunkSizeZ;
+        return chunk.getBlockStateId(localX, y, localZ);
     }
 
     /**

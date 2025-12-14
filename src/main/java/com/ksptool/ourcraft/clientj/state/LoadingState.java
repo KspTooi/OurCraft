@@ -17,11 +17,9 @@ import com.ksptool.ourcraft.clientj.commons.event.SessionCloseEvent;
 import com.ksptool.ourcraft.clientj.commons.event.SessionUpdateEvent;
 import com.ksptool.ourcraft.clientj.entity.ClientPlayer;
 import com.ksptool.ourcraft.clientj.network.ClientNetworkSession;
-import com.ksptool.ourcraft.clientj.network.NetworkHandler;
 import com.ksptool.ourcraft.clientj.world.ClientWorld;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsAllowNDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.PsFinishNDto;
-import com.ksptool.ourcraft.sharedcore.network.nvo.PsChunkNVo;
 import com.ksptool.ourcraft.clientj.ui.GlowBody;
 import com.ksptool.ourcraft.clientj.ui.GlowDiv;
 import com.ksptool.ourcraft.clientj.ui.TTFLabel;
@@ -67,8 +65,8 @@ public class LoadingState extends BaseAppState {
 
     public LoadingState(OurCraftClientJ client) {
         this.client = client;
-        this.css = client.getClientStateService();
-        this.cns = client.getClientNetworkService();
+        this.css = client.getCss();
+        this.cns = client.getCns();
     }
 
     @Override
@@ -138,7 +136,7 @@ public class LoadingState extends BaseAppState {
         //取消所有事件订阅
         client.getCes().unsubscribeAll();
         //断开连接
-        cns.disconnect();
+        //cns.disconnect();
         body = null;
         container = null;
         titleLabel = null;
@@ -177,6 +175,7 @@ public class LoadingState extends BaseAppState {
         updateStatus("接收落地区块(" + chunkCount + ")");
     }
 
+
     public void onPsPlayerRcv(PsPlayerRcvEvent event) {
         ClientWorld world = client.getWorld();
         ClientPlayer player = new ClientPlayer(
@@ -195,13 +194,14 @@ public class LoadingState extends BaseAppState {
         );
         world.setPlayer(player);
         updateStatus(player.getName() + " 进入世界");
+
+        event.getSession().sendNext(new PsFinishNDto());
     }
 
 
     public void onPsJoinWorldRcv(PsJoinWorldEvent event) {
-        //log.info("已加入世界");
-        //updateStatus("进入世界中...");
-        //css.toInWorld();
+        log.info("玩家进入世界事件触发");
+        css.toInWorld();
     }
 
 

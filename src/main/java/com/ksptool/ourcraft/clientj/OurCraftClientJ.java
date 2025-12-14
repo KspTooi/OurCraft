@@ -16,7 +16,6 @@ import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
 import com.ksptool.ourcraft.sharedcore.enums.WorldTemplateEnums;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.*;
@@ -33,10 +32,10 @@ public class OurCraftClientJ extends SimpleApplication {
     private GuiService guiService;
 
     @Getter
-    private ClientStateService clientStateService;
+    private ClientStateService css;
 
     @Getter
-    private ClientNetworkService clientNetworkService;
+    private ClientNetworkService cns;
 
     @Getter
     private ClientEventService ces;
@@ -56,19 +55,19 @@ public class OurCraftClientJ extends SimpleApplication {
         //创建事件服务
         ces = new ClientEventService();
 
-        clientStateService = new ClientStateService(this);
+        css = new ClientStateService(this);
         guiService = new GuiService(this);
         viewPort.setBackgroundColor(ColorRGBA.White);
         inputManager.setCursorVisible(true);
 
         //创建网络服务
-        clientNetworkService = new ClientNetworkService(this);
+        cns = new ClientNetworkService(this);
 
         //初始化线程池
         initThreadPools();
 
         //立即切换到主菜单状态
-        clientStateService.toMain();
+        css.toMain();
 
         //注册全部原版内容(客户端)
         var registry = Registry.getInstance();
@@ -90,8 +89,8 @@ public class OurCraftClientJ extends SimpleApplication {
     @Override
     public void reshape(int w, int h) {
         super.reshape(w, h);
-        if(clientStateService != null){
-            clientStateService.reshape(w, h);
+        if(css != null){
+            css.reshape(w, h);
         }
     }
 

@@ -28,7 +28,7 @@ public class ClientWorldExecutionUnit implements Runnable {
     public ClientWorldExecutionUnit(ClientWorld clientWorld, OurCraftClientJ client) {
         this.worldName = clientWorld.getName();
         this.clientWorld = clientWorld;
-        this.actionPerSecond = clientWorld.getTemplate().getActionPerSecond();
+        this.actionPerSecond = 20;
     }
 
     @Override

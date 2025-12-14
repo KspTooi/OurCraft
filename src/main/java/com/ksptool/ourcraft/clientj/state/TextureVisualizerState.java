@@ -54,7 +54,7 @@ public class TextureVisualizerState extends BaseAppState implements ActionListen
 
     public TextureVisualizerState(OurCraftClientJ client) {
         this.client = client;
-        this.clientStateService = client.getClientStateService();
+        this.clientStateService = client.getCss();
     }
 
     @Override
