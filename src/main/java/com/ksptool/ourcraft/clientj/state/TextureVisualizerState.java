@@ -21,7 +21,7 @@ import com.jme3.texture.Texture;
 import com.ksptool.ourcraft.clientj.OurCraftClientJ;
 import com.ksptool.ourcraft.clientj.commons.FontSize;
 import com.ksptool.ourcraft.clientj.commons.RGBA;
-import com.ksptool.ourcraft.clientj.service.StateService;
+import com.ksptool.ourcraft.clientj.service.ClientStateService;
 import com.ksptool.ourcraft.clientj.service.TextureService;
 import com.ksptool.ourcraft.clientj.ui.GlowButton;
 import com.ksptool.ourcraft.clientj.ui.TTFLabel;
@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class TextureVisualizerState extends BaseAppState implements ActionListener, AnalogListener {
 
     private final OurCraftClientJ client;
-    private final StateService stateService;
+    private final ClientStateService clientStateService;
 
     private Node guiNode;
     private Geometry atlasGeometry;
@@ -54,7 +54,7 @@ public class TextureVisualizerState extends BaseAppState implements ActionListen
 
     public TextureVisualizerState(OurCraftClientJ client) {
         this.client = client;
-        this.stateService = client.getStateService();
+        this.clientStateService = client.getClientStateService();
     }
 
     @Override
@@ -194,7 +194,7 @@ public class TextureVisualizerState extends BaseAppState implements ActionListen
      * 返回按钮点击事件
      */
     private void onBackButtonClicked() {
-        stateService.toMain();
+        clientStateService.toMain();
     }
 
     /**

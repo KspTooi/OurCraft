@@ -16,6 +16,10 @@ public class ClientWorld implements SharedWorld {
         return true;
     }
 
+    /**
+     * 世界动作
+     * @param delta 时间差 由CWEU传入
+     */
     @Override
     public void action(double delta) {
 

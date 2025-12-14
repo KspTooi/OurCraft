@@ -11,8 +11,7 @@ import com.ksptool.ourcraft.clientj.ui.GlowBody;
 import com.ksptool.ourcraft.clientj.ui.GlowButton;
 import com.ksptool.ourcraft.clientj.ui.GlowDiv;
 import com.ksptool.ourcraft.clientj.ui.TTFLabel;
-import com.ksptool.ourcraft.clientj.state.LoadingState;
-import com.ksptool.ourcraft.clientj.service.StateService;
+import com.ksptool.ourcraft.clientj.service.ClientStateService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -20,7 +19,7 @@ public class MainMenuState extends BaseAppState {
 
     private final OurCraftClientJ client;
 
-    private StateService stateService;
+    private ClientStateService clientStateService;
 
     private GlowBody body;
     private GlowDiv menuContainer;
@@ -31,7 +30,7 @@ public class MainMenuState extends BaseAppState {
 
     public MainMenuState(OurCraftClientJ client) {
         this.client = client;
-        this.stateService = client.getStateService();
+        this.clientStateService = client.getClientStateService();
     }
 
     @Override
@@ -115,14 +114,14 @@ public class MainMenuState extends BaseAppState {
      */
     private void onMultiplayerClicked() {
         // 启用加载状态
-        stateService.joinServer();
+        clientStateService.joinServer("127.0.0.1",25564);
     }
 
     /**
      * 纹理可视化器按钮点击事件
      */
     private void onTextureVisualizerClicked() {
-        stateService.showArrayTextureVisualizer();
+        clientStateService.showArrayTextureVisualizer();
     }
 
     /**

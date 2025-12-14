@@ -19,7 +19,7 @@ import com.ksptool.ourcraft.clientj.OurCraftClientJ;
 import com.ksptool.ourcraft.clientj.commons.FontSize;
 import com.ksptool.ourcraft.clientj.commons.RGBA;
 import com.ksptool.ourcraft.clientj.service.ArrayTextureService;
-import com.ksptool.ourcraft.clientj.service.StateService;
+import com.ksptool.ourcraft.clientj.service.ClientStateService;
 import com.ksptool.ourcraft.clientj.ui.GlowButton;
 import com.ksptool.ourcraft.clientj.ui.TTFLabel;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ import java.util.*;
 public class ArrayTextureVisualizerState extends BaseAppState implements ActionListener, AnalogListener {
 
     private final OurCraftClientJ client;
-    private final StateService stateService;
+    private final ClientStateService clientStateService;
 
     private Node guiNode;
     private Node textureGridNode;
@@ -71,7 +71,7 @@ public class ArrayTextureVisualizerState extends BaseAppState implements ActionL
 
     public ArrayTextureVisualizerState(OurCraftClientJ client) {
         this.client = client;
-        this.stateService = client.getStateService();
+        this.clientStateService = client.getClientStateService();
     }
 
     @Override
@@ -378,7 +378,7 @@ public class ArrayTextureVisualizerState extends BaseAppState implements ActionL
      * 返回按钮点击事件
      */
     private void onBackButtonClicked() {
-        stateService.toMain();
+        clientStateService.toMain();
     }
 
     /**

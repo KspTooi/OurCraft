@@ -100,7 +100,7 @@ public class NetworkSession extends RpcSession {
 
     public void readLoop(){
 
-        var nes = sns.getNr();
+        var nr = sns.getNr();
 
         while (isActive()) {
             //阻塞3分钟获取下一个数据包(这些已经是Kryo解码后的数据包)
@@ -113,12 +113,12 @@ public class NetworkSession extends RpcSession {
             //检查是否是RPC请求
             if(packet instanceof RpcRequest<?>(long requestId, Object data)){
                 //解包并推送RPC数据
-                nes.postRpc(this, data,requestId);
+                nr.postRpc(this, data,requestId);
                 continue;
             }
 
             //非RPC请求的普通数据包直接在NES中处理
-            nes.post(this,packet);
+            nr.post(this,packet);
 
             //处理数据包(旧式,已废弃)
             //sns.doRoute(this, packet);

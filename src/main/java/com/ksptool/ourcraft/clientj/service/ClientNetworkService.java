@@ -1,20 +1,29 @@
 package com.ksptool.ourcraft.clientj.service;
 
+import com.ksptool.ourcraft.clientj.OurCraftClientJ;
+import com.ksptool.ourcraft.clientj.commons.event.SessionCloseEvent;
+import com.ksptool.ourcraft.clientj.commons.event.SessionReadyEvent;
+import com.ksptool.ourcraft.clientj.commons.event.SessionUpdateEvent;
+import com.ksptool.ourcraft.clientj.network.ClientNetworkRouter;
 import com.ksptool.ourcraft.clientj.network.ClientNetworkSession;
-import com.ksptool.ourcraft.clientj.state.LoadingState;
 import com.ksptool.ourcraft.sharedcore.enums.EngineDefault;
+import com.ksptool.ourcraft.server.network.NetworkRouter;
 import com.ksptool.ourcraft.sharedcore.network.ndto.AuthRpcDto;
 import com.ksptool.ourcraft.sharedcore.network.ndto.BatchDataFinishNDto;
 import com.ksptool.ourcraft.sharedcore.network.nvo.AuthRpcVo;
 import com.ksptool.ourcraft.sharedcore.network.nvo.BatchDataNVo;
 import com.ksptool.ourcraft.sharedcore.utils.ThreadFactoryUtils;
+
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
+@Getter
 public class ClientNetworkService {
 
     //线程池
@@ -23,31 +32,54 @@ public class ClientNetworkService {
     //当前连接到的服务器
     private ClientNetworkSession clientNetworkSession;
 
-    //正在进行的连接任务
-    private CompletableFuture<ClientNetworkSession> connectFuture;
-
     //玩家名称
     private final String playerName = "KspTooi";
 
     //客户端版本
     private final String clientVersion = EngineDefault.ENGINE_VERSION;
 
+    //事件服务
+    private final ClientEventService ces;
+    
+    //网络路由
+    private final ClientNetworkRouter nr;
+
+    //是否正在连接
+    private final AtomicBoolean connecting = new AtomicBoolean(false);
+
+    public ClientNetworkService(OurCraftClientJ client) {
+        this.ces = client.getCes();
+        this.nr = new ClientNetworkRouter();
+    }
+
+    public void connect(String host, int port) {
+        NETWORK_THREAD_POOL.submit(() -> {
+            try {
+                connectInternal(host, port);
+                ces.publish(new SessionReadyEvent());
+            } catch (Exception e) {
+                log.error("连接服务器失败", e);
+                ces.publish(new SessionCloseEvent(e.getMessage()));
+            }
+        });
+    }
+
+
     /**
      * 连接到服务器
      * @param host 服务器主机名
      * @param port 服务器端口
      */
-    public Future<ClientNetworkSession> connect(String host, int port,LoadingState loadingState) throws Exception {
+    private void connectInternal(String host, int port) throws Exception{
 
-        if(connectFuture != null && !connectFuture.isDone()){
-            log.warn("已经连接到服务器");
-            return connectFuture;
+        if(clientNetworkSession != null || connecting.get()){
+            log.warn("已经连接到服务器或正在连接中");
+            return;
         }
 
-        loadingState.updateStatus("正在连接到: " + host + ":" + port);
-
-        connectFuture = new CompletableFuture<>();
+        connecting.set(true);
         log.info("正在连接到: {}:{}", host, port);
+        ces.publish(SessionUpdateEvent.of(null, ClientNetworkSession.Stage.NEW, "正在连接到: " + host + ":" + port));
 
         //打开Socket
         Future<Socket> socketFuture = openSocket(host, port);
@@ -55,25 +87,29 @@ public class ClientNetworkService {
 
         if(socket == null){
             log.error("连接到服务器失败");
-            return null;
+            ces.publish(new SessionCloseEvent("连接到服务器失败"));
+            return;
         }
 
-        //处理认证
-        var session = establishSession(socket).get();
+        ces.publish(SessionUpdateEvent.of(null, ClientNetworkSession.Stage.AUTHORIZED, "处理认证"));
+
+        var session = establishSession(socket).get(30, TimeUnit.SECONDS);
 
         if(session == null){
             log.error("处理认证失败");
-            return null;
+            ces.publish(new SessionCloseEvent("处理认证失败"));
+            return;
         }
 
-        loadingState.updateStatus("正在处理批数据");
-        
+        ces.publish(SessionUpdateEvent.of(session, ClientNetworkSession.Stage.PROCESSED, "处理批数据"));
+
         //接收批数据
         while(true){
             var batchData = session.receiveNext(30, TimeUnit.SECONDS);
 
             if(batchData == null){
                 log.warn("批数据接收超时");
+                ces.publish(new SessionCloseEvent("批数据接收超时"));
                 break;
             }
 
@@ -89,9 +125,12 @@ public class ClientNetworkService {
             }
         }
 
+        ces.publish(SessionUpdateEvent.of(session, ClientNetworkSession.Stage.PROCESSED, "等待进程切换"));
         clientNetworkSession = session;
-        connectFuture.complete(session);
-        return connectFuture;
+        connecting.set(false);
+
+        //开始读取循环
+        session.readLoop();
     }
 
     /**
@@ -111,7 +150,7 @@ public class ClientNetworkService {
         }
         clientNetworkSession.close();
         clientNetworkSession = null;
-        connectFuture = null;
+        ces.publish(new SessionCloseEvent("服务器断开连接"));
     }
 
 
@@ -147,7 +186,7 @@ public class ClientNetworkService {
         var future = new CompletableFuture<ClientNetworkSession>();
         Thread.ofVirtual().start(() -> {
 
-            var session = new ClientNetworkSession(socket, NETWORK_THREAD_POOL);
+            var session = new ClientNetworkSession(this,socket, NETWORK_THREAD_POOL);
             //发送认证包
             try {
 

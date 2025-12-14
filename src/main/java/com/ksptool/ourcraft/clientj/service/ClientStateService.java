@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
  * 负责管理项目中的各个状态
  */
 @Slf4j
-public class StateService {
+public class ClientStateService {
 
     private final OurCraftClientJ client;
     private final AppStateManager stateManager;
@@ -25,7 +25,7 @@ public class StateService {
     private LoadingState ls;
     private ArrayTextureVisualizerState atvs;
 
-    public StateService(OurCraftClientJ client) {
+    public ClientStateService(OurCraftClientJ client) {
         this.client = client;
         this.stateManager = client.getStateManager();
         this.currentState = CurrentState.MAIN_MENU;
@@ -56,7 +56,8 @@ public class StateService {
     /**
      * 加入服务器
      */
-    public void joinServer(){
+    public void joinServer(String host, int port){
+        
         if (ls == null) {
             ls = new LoadingState(client);
         }
@@ -67,6 +68,8 @@ public class StateService {
 
         stateManager.attach(ls);
         currentState = CurrentState.LOADING;
+        ls.setHost(host);
+        ls.setPort(port);
     }
 
 
