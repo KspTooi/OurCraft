@@ -2,7 +2,7 @@ package com.ksptool.ourcraft.clientj.service;
 
 import com.jme3.app.state.AppStateManager;
 import com.ksptool.ourcraft.clientj.OurCraftClientJ;
-import com.ksptool.ourcraft.clientj.state.TextureVisualizerState;
+import com.ksptool.ourcraft.clientj.state.ArrayTextureVisualizerState;
 import com.ksptool.ourcraft.clientj.state.LoadingState;
 import com.ksptool.ourcraft.clientj.state.MainMenuState;
 
@@ -23,7 +23,7 @@ public class StateService {
     //所有的状态都保存在这里
     private MainMenuState mms;
     private LoadingState ls;
-    private TextureVisualizerState tsv;
+    private ArrayTextureVisualizerState atvs;
 
     public StateService(OurCraftClientJ client) {
         this.client = client;
@@ -43,8 +43,10 @@ public class StateService {
 
         if(currentState == CurrentState.LOADING){
             stateManager.detach(ls);
-        } else if(currentState == CurrentState.TEXTURE_VISUALIZER){
-            stateManager.detach(tsv);
+        }
+
+        if(currentState == CurrentState.ARRAY_TEXTURE_VISUALIZER){
+            stateManager.detach(atvs);
         }
 
         stateManager.attach(mms);
@@ -76,35 +78,20 @@ public class StateService {
     }
 
     /**
-     * 显示纹理图集可视化器（调试用）
+     * 显示数组纹理可视化器（调试用）
      */
-    public void showTextureVisualizer(){
-        if (tsv == null) {
-            tsv = new TextureVisualizerState(client);
+    public void showArrayTextureVisualizer(){
+        if (atvs == null) {
+            atvs = new ArrayTextureVisualizerState(client);
         }
 
-        // 先分离当前状态
         if(currentState == CurrentState.MAIN_MENU){
             stateManager.detach(mms);
-        } else if(currentState == CurrentState.LOADING){
-            stateManager.detach(ls);
         }
 
-        stateManager.attach(tsv);
-        currentState = CurrentState.TEXTURE_VISUALIZER;
+        stateManager.attach(atvs);
+        currentState = CurrentState.ARRAY_TEXTURE_VISUALIZER;
     }
-
-    /**
-     * 从纹理可视化器返回主菜单
-     */
-    public void backFromTextureVisualizer(){
-        if(currentState == CurrentState.TEXTURE_VISUALIZER){
-            stateManager.detach(tsv);
-            stateManager.attach(mms);
-            currentState = CurrentState.MAIN_MENU;
-        }
-    }
-
     
     /**
      * 响应窗口大小变化
@@ -118,8 +105,8 @@ public class StateService {
         if (currentState == CurrentState.LOADING) {
             ls.reshape(w, h);
         }
-        if (currentState == CurrentState.TEXTURE_VISUALIZER) {
-            tsv.reshape(w, h);
+        if (currentState == CurrentState.ARRAY_TEXTURE_VISUALIZER) {
+            atvs.reshape(w, h);
         }
     }
 
@@ -128,6 +115,7 @@ public class StateService {
         MAIN_MENU,
         LOADING,
         IN_GAME,
-        TEXTURE_VISUALIZER
+        TEXTURE_VISUALIZER,
+        ARRAY_TEXTURE_VISUALIZER
     }
 }

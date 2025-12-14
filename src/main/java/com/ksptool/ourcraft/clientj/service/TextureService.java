@@ -8,7 +8,6 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.image.ColorSpace;
 import lombok.extern.slf4j.Slf4j;
-
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -18,6 +17,7 @@ import java.util.*;
 
 /**
  * JME纹理图集管理类，负责加载和管理方块纹理图集
+ * 注意：此服务已被ArrayTextureService替代，建议使用ArrayTextureService以获得更好的空间利用率
  */
 @Slf4j
 public class TextureService {

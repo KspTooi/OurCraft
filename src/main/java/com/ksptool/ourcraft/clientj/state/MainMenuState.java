@@ -39,7 +39,8 @@ public class MainMenuState extends BaseAppState {
         // 【关键修复】预加载所有文字，防止动态图集重排导致渲染问题
         GlobalFontService.preloadText("OurCraft", FontSize.XLARGE);
         GlobalFontService.preloadText("多人模式退出", FontSize.LARGE);
-        GlobalFontService.preloadText("纹理可视化器", FontSize.LARGE);
+        GlobalFontService.preloadText("纹理查看器", FontSize.LARGE);
+        GlobalFontService.preloadText("退出", FontSize.LARGE);
 
         // 创建主体背景
         body = new GlowBody(app);
@@ -82,7 +83,7 @@ public class MainMenuState extends BaseAppState {
         multiplayerButton.setLocalTranslation(30, -120, 1);
 
         // 创建"纹理可视化器"按钮（调试用）
-        GlowButton textureVisualizerButton = new GlowButton("纹理可视化器", FontSize.LARGE);
+        GlowButton textureVisualizerButton = new GlowButton("纹理查看器", FontSize.LARGE);
         textureVisualizerButton.size(440, 70)
                 .normalColor(RGBA.of(100, 100, 100, 200))
                 .hoverColor(RGBA.of(130, 130, 130, 230))
@@ -121,7 +122,7 @@ public class MainMenuState extends BaseAppState {
      * 纹理可视化器按钮点击事件
      */
     private void onTextureVisualizerClicked() {
-        stateService.showTextureVisualizer();
+        stateService.showArrayTextureVisualizer();
     }
 
     /**

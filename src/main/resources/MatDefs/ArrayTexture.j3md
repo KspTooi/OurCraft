@@ -1,0 +1,16 @@
+MaterialDef ArrayTexture {
+
+    MaterialParameters {
+        TextureArray ArrayTex
+        Int Layer
+    }
+
+    Technique {
+        VertexShader GLSL150:   shaders/ArrayTexture.vert
+        FragmentShader GLSL150: shaders/ArrayTexture.frag
+
+        WorldParameters {
+            WorldViewProjectionMatrix
+        }
+    }
+}
